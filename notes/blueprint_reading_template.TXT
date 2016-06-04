@@ -1,0 +1,12 @@
+char *Look???P0(char *fp)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	while(*fp)
+	{
+		fp = GetLine(fp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		//...
+	}
+	ferr("UEOF"); return fp;
+}

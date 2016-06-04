@@ -1,0 +1,36 @@
+WK(B) Script Documentation
+AI features
+------------------------------------------------------------------------------
+
+WORK_ORDER "WorkOrder"	// nw = num. of workers (for example peasants)
+	ASSIGN_WORKERS INDIVIDUALS <VALUE> "Order" <WOT>	// nw = VALUE
+	ASSIGN_WORKERS FRACTION_DOWN <VALUE> "Order" <WOT>	// nw = VALUE*rest
+	ASSIGN_WORKERS REMAINING_WORKERS "Order" <WOT>		// nw = rest
+END_WORK_ORDER
+
+<WOT>:
+	PER <FINDER>		// nw workers for every finder result
+				// in reality nw*(num of finder results) workers
+				// will be assigned the order.
+	BETWEEN <FINDER>	// nw workers working with all objects.
+				// always nw workers, not more nor less
+	AUTO_IDENTIFY		// only one nearest possible object
+
+COMMISSION "Commission"
+	PRIORITY <VALUE>
+	SUSPENSION_CONDITION <VALUE>
+
+	CHARACTER_REQUIREMENT "CharacterLadder" <VALUE> <FINDER>
+	BUILDING_REQUIREMENT "Building" <POSITION> <VALUE> <FINDER>
+	UPGRADE_REQUIREMENT "?" <VALUE> <FINDER>
+	// "?" = Order or Command?
+
+	ON_COMPLETE_EVENT "GameEvent"
+	ON_STALLED_EVENT "GameEvent"
+	// and more...
+END_COMMISSION
+
+CHARACTER_LADDER "CharacterLadder"
+	CHARACTER "Character" <FINDER>
+	// CHARACTER ...
+END_CHARACTER_LADDER

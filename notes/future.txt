@@ -1,0 +1,11 @@
+Ideas for the future:
+--------------------------
+
+ - Accelerate FINDER_SPECIFIC_ID using a sort of cache
+   struct FSIDCacheItem
+   {
+	uint id;
+	goref obj;
+   }
+   if obj.valid() then get GameObject* from it.
+   else find an GameObject* with requested id then set obj to the result for the future

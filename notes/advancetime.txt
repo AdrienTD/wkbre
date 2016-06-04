@@ -1,0 +1,48 @@
+uint sysabstime = 0;
+
+float GetTime()
+{
+	return timeGetTime() / 1000.0f;
+}
+
+float GetElapsedTime()
+{
+	float c = timeGetTime();
+	float r = (c - sysabstime) / 1000.0f;
+	sysabstime = c;
+	return r;
+}
+
+void AdvanceTime()
+{
+/*	previous_time = current_time;
+	current_time = GetTime();
+	elapsed_time = current_time - previous_time;
+*/
+	elapsed_time = GetElapsedTime();
+	float p = previous_time;
+	previous_time = current_time;
+	current_time = elapsed_time + p;
+
+	/* // Execute delayed sequences
+	DynListEntry<DelayedSequenceEntry> *n;
+	for(DynListEntry<DelayedSequenceEntry> *e = delayedSeq.first; e; e = n)
+	{
+		n = e->next;
+		if(current_time >= e->value.time)
+		{
+			// execute sequence
+			SequenceEnv c;
+			c.exec = e->value.executor;
+			for(uint i = 0; i < e->value.numobj; i++)
+				if(e->value.obj[i].valid())
+				{
+					c.self = e->value.obj[i];
+					actionseq[e->value.actseq]->run(&c);
+				}
+
+			delayedSeq.remove(e);
+		}
+	}
+	*/
+}

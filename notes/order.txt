@@ -1,0 +1,84 @@
+*	->	optional or under condition
+0/1	->	if 1, then line is written.
+		if 0, then line is not written at all in WK Battles.
+
+ORDER_CONFIGURATION
+	UNIQUE_ORDER_ID %i
+
+	ORDER "Shop"
+		PROCESS_STATE %i
+		CYCLED 0/1
+		ORDER_ID %i
+		UNIQUE_TASK_ID %i
+
+		TASK "Wait For Gold"
+			TARGET %i
+			PROXIMITY %f
+			PROXIMITY_SATISFIED 0/1
+			LAST_DESTINATION_VALID 0/1
+			FIRST_EXECUTION 0/1
+	
+			TRIGGERS_STARTED 0/1
+			*TRIGGER %i // available when TRIGGERS_STARTED is 1
+				*PERIOD %f
+				REFERENCE_TIME %f // float or integer?
+				// look at "Campi di Gothnak (8 giocatori) Adrien 2015.sav", line 41669
+			 END_TRIGGER
+			... // other TRIGGERs
+
+			PROCESS_STATE %i
+			TASK_ID %i
+			START_SEQUENCE_EXECUTED 0/1
+		END_TASK
+
+		CURRENT_TASK %i
+	END_ORDER
+END_ORDER_CONFIGURATION
+
+#define FSTASK_PROXIMITY_SATISFIED 1
+#define FSTASK_LAST_DESTINATION_VALID 2
+#define FSTASK_FIRST_EXECUTION 4
+#define FSTASK_TRIGGERS_STARTED 8
+#define FSTASK_START_SEQUENCE_EXECUTED 16
+
+struct STrigger
+{
+	float period, referenceTime;
+};
+
+struct STask
+{
+	uint target, flags, processState, taskID; float proximity;
+	DynList<STrigger> trigger;
+};
+
+struct SOrder
+{
+	uint processState, cycled, orderID, uniqueTaskID, currentTask;
+	DynList<STask> task;
+};
+
+struct SOrderConfiguration
+{
+	uint uniqueOrderID;
+	DynList<SOrder> order;
+};
+
+Note:
+It seems that when PERIOD is written, REFERENCE_TIME requires a float.
+If not, then it requires an integer instead of a float.
+In case of an integer, divide it by 1000 to convert it to the correct float.
+In WK Original, every TRIGGER has a PERIOD, and REFERENCE_TIME is always a float.
+
+If there's a PERIOD, then the TRIGGER is a TIMER (in the game set).
+PERIOD is the time to count.
+If there's no PERIOD, then the TRIGGER is an ANIMATION_LOOP. (?)
+WKB has a REFERENCE_TIME in that case, WKO doesn't.
+(What if the TRIGGER is an ATTACHMENT_POINT?)
+
+In the game set, TASK can have these lines:
+	TERMINATE_ENTIRE_ORDER_IF_NO_TARGET
+	REJECT_TARGET_IF_IT_IS_TERMINATED	(?)
+This means that if an object targeted by a TASK is deleted,
+then this TASK (?) or even its ORDER must also be deleted!
+If not specified, the target of the TASK must be changed to -1 (when saving).

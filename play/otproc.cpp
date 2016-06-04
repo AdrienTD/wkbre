@@ -1,0 +1,364 @@
+// wkbre - WK (Battles) recreated game engine
+// Copyright (C) 2015-2016 Adrien Geets
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "../global.h"
+
+DynList<goref> workingObjs;
+
+void ObjStepMove(GameObject *o, Vector3 dest)
+{
+	Vector3 v = dest - o->position;
+	float l = v.len2xz();
+	v /= l; v.y = 0;
+
+	o->position += v * elapsed_time * 2;
+	o->position.y = GetHeight(o->position.x, o->position.z);
+}
+
+void ProcessCurrentTask(GameObject *o)
+{
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	CTask *c =  t->type;
+	if(t->processState == 0)
+		InitCurrentTask(o);
+	if(t->processState == 1)
+	{
+		switch(c->type)
+		{
+			case ORDTSKTYPE_OBJECT_REFERENCE:
+				{if(!t->target.valid()) {TerminateCurrentTask(o); break;}
+				if((o == t->target.get()) || (t->proximity < 0.0f)) break;
+				Vector3 v = t->target->position - o->position;
+				float d = v.len2xz();
+			  	if(d < t->proximity)
+				{
+					if(!(t->flags & FSTASK_PROXIMITY_SATISFIED))
+					{
+						t->flags |= FSTASK_PROXIMITY_SATISFIED;
+						if(c->proxSatisfiedSeq)
+						{
+							SequenceEnv env;
+							env.self = o;
+							env.target = t->target;
+							c->proxSatisfiedSeq->run(&env);
+						}
+					}
+				} else {
+					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
+					ObjStepMove(o, t->target->position);
+				}
+				break;}
+			case ORDTSKTYPE_MOVE:
+				{if(!t->destinations.len) {TerminateCurrentTask(o); break;}
+				Vector3 h(t->destinations.first->value.x, 0, t->destinations.first->value.y);
+				Vector3 v = h - o->position;
+				float d = v.len2xz();
+				if(d < 0.1f)
+					TerminateCurrentTask(o);
+				else
+					ObjStepMove(o, h);
+				break;}
+		}
+
+		t->flags &= ~FSTASK_FIRST_EXECUTION;
+	}
+	if(t->processState == 5)
+	{
+		DynListEntry<SOrder> *e = o->ordercfg.order.first;
+		//SOrder *s = &o->ordercfg.order.first->value;
+		s->currentTask++;
+		if(s->currentTask >= s->task.len)
+		{
+			if(s->cycled)
+				{s->currentTask = 0; InitCurrentTask(o);}
+			else
+				//o->ordercfg.order.remove(e);
+				{s->currentTask--; TerminateCurrentOrder(o);}
+		}
+		else
+			InitCurrentTask(o);
+	}
+}
+
+void ProcessObjsOrder(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	DynListEntry<SOrder> *e = o->ordercfg.order.first;
+	SOrder *s = &o->ordercfg.order.first->value;
+
+	if(s->processState == 0)
+		{s->currentTask = 0;
+		InitCurrentOrder(o);}
+	else if(s->processState == 2)
+		{// resumption_sequence
+		ResumeCurrentOrder(o);}
+	else if(s->processState == 5)
+		{o->ordercfg.order.remove(o->ordercfg.order.first);
+		return;}
+
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	ProcessCurrentTask(o);
+}
+
+void FindWorkingObjs(GameObject *o)
+{
+	if(o->ordercfg.order.len)
+		{workingObjs.add(); workingObjs.last->value = o;}
+	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+		FindWorkingObjs(&e->value);
+}
+
+// NOTE: A safe way is to delete entries in the list only in ProcessAllOrders
+// during the iteration, and not elsewhere, so we can be sure that the list
+// can be iterated correctly.
+// Adding new objects at the end of the list is safe.
+
+void ProcessAllOrders()
+{
+	workingObjs.clear();
+	FindWorkingObjs(levelobj);
+
+	DynListEntry<goref> *nextle;
+	for(DynListEntry<goref> *e = workingObjs.first; e; e = nextle)
+	{
+		nextle = e->next;
+		if(!e->value.valid())
+			{workingObjs.remove(e); continue;}
+		if(!e->value->ordercfg.order.len)
+			{workingObjs.remove(e); continue;}
+
+		// ...
+		ProcessObjsOrder(e->value.get());
+
+		nextle = e->next;
+		// Imagine we assign an order in the last order.
+		// If nextle is not updated, it can stay 0 even if
+		// a new non-idle object has just been added in the list.
+	}
+}
+
+//************//
+
+void InitCurrentTask(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if((t->processState != 0) && (t->processState != 5)) return;
+
+	t->processState = 1;
+	if(t->type->target)
+	{
+		SequenceEnv env; env.self = o;
+		t->target = t->type->target->getfirst(&env);
+	}
+	if(t->type->initSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = t->target;
+		t->type->initSeq->run(&env);
+	}
+	if(t->type->startSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = t->target;
+		t->type->startSeq->run(&env);
+	}
+	t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
+}
+
+void SuspendCurrentTask(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if(t->processState != 1) return;
+
+	t->processState = 2;
+	if(t->type->suspendSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = t->target;
+		t->type->suspendSeq->run(&env);
+	}
+}
+
+void ResumeCurrentTask(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if(t->processState != 2) return;
+
+	t->processState = 1;
+	if(t->type->resumeSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = t->target;
+		t->type->resumeSeq->run(&env);
+	}
+}
+
+void TerminateCurrentTask(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if(t->processState == 5) return;
+
+	t->processState = 5;
+	if(t->type->terminateSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = t->target;
+		t->type->terminateSeq->run(&env);
+	}
+}
+
+void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
+{
+	so->type = co;
+	so->processState = 0;
+	so->cycled = co->cycle;
+	so->orderID = go->ordercfg.uniqueOrderID++;
+	so->uniqueTaskID = co->tasks.len;
+	so->currentTask = 0;
+
+	for(int i = 0; i < co->tasks.len; i++)
+	{
+		CTask *ct = co->tasks.get(i);
+		so->task.add();
+		STask *st = &so->task.last->value;
+		memset(st, 0, sizeof(STask));
+		st->type = ct;
+		st->target.deref();
+		st->flags = FSTASK_FIRST_EXECUTION;
+		st->processState = 0;
+		st->taskID = i;
+		SequenceEnv env; env.self = go; // TODO: env.target = ?
+		st->proximity = ct->proxRequirement->get(&env);
+		st->spawnBlueprint = 0;
+	}
+
+	so->task.first->value.target = tg;
+}
+
+void InitCurrentOrder(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s; s = &o->ordercfg.order.first->value;
+	if((s->processState != 0) && (s->processState != 5)) return;
+
+	s->processState = 1;
+	InitCurrentTask(o);
+	SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+	if(s->type->initSeq)
+		s->type->initSeq->run(&env);
+	if(s->type->startSeq)
+		s->type->startSeq->run(&env);
+}
+
+void AssignOrderVia(GameObject *go, COrderAssignment *oa, SequenceEnv *env)
+{
+	GameObject *tg = 0;
+	if(oa->target) tg = oa->target->getfirst(env);
+	AssignOrder(go, oa->order, oa->mode, tg);
+}
+
+void AssignOrder(GameObject *go, COrder *ord, uint mode, GameObject *tg)
+{
+	SOrder *so;
+	switch(mode)
+	{
+		case ORDERASSIGNMODE_DO_FIRST:
+			SuspendCurrentOrder(go);
+			go->ordercfg.order.addbegin();
+			so = &go->ordercfg.order.first->value;
+			break;
+		case ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE:
+			CancelAllOrders(go);
+		case ORDERASSIGNMODE_DO_LAST:
+			go->ordercfg.order.add();
+			so = &go->ordercfg.order.last->value;
+			break;
+	}
+	CreateOrder(go, so, ord, tg);
+}
+
+void SuspendCurrentOrder(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s; s = &o->ordercfg.order.first->value;
+	if(s->processState != 1) return;
+
+	s->processState = 2;
+	SuspendCurrentTask(o);
+	if(s->type->suspendSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		s->type->suspendSeq->run(&env);
+	}
+}
+
+void ResumeCurrentOrder(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s; s = &o->ordercfg.order.first->value;
+	if(s->processState != 1) return;
+
+	s->processState = 1;
+	ResumeCurrentTask(o);
+	if(s->type->resumeSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		s->type->resumeSeq->run(&env);
+	}
+}
+
+void CancelCurrentOrder(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s; s = &o->ordercfg.order.first->value;
+	if(s->processState == 4) return;
+
+	s->processState = 4;
+	TerminateCurrentTask(o);
+	if(s->type->cancelSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		s->type->cancelSeq->run(&env);
+	}
+	o->ordercfg.order.remove(o->ordercfg.order.first);
+}
+
+void CancelAllOrders(GameObject *o)
+{
+	while(o->ordercfg.order.len)
+		CancelCurrentOrder(o);
+}
+
+void TerminateCurrentOrder(GameObject *o)
+{
+	if(!o->ordercfg.order.len) return;
+	SOrder *s = &o->ordercfg.order.first->value;
+	if(s->processState == 5) return;
+
+	s->processState = 5;
+	TerminateCurrentTask(o);
+	if(s->type->terminateSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		s->type->terminateSeq->run(&env);
+	}
+	
+	o->ordercfg.order.remove(o->ordercfg.order.first);
+}

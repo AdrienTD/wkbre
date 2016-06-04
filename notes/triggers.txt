@@ -1,0 +1,15 @@
+These TRIGGERs contains things like REFERENCE_TIME in the savegame:
+	TIMER
+	ANIMATION_LOOP
+	ATTACHMENT_POINT
+
+These TRIGGERs are empty in the savegame:
+	COLLISION
+	STRUCK_FLOOR
+
+These task types save their triggers in the savegame:
+	ORDER_REFERENCE
+	ATTACK
+
+These task types don't save their triggers in the savegame (at least empty ones):
+	MISSILE

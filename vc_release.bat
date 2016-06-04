@@ -1,0 +1,1 @@
+@vc_compall /DWKBRE_RELEASE /O2 /MD

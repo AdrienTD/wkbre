@@ -1,0 +1,22 @@
+Size of structure
+	beginning 0xC000 bytes after the sky box directory string
+	ending at the beginning of the table of textures (containing for example GRASS, ...)
+
+4 peaks		0xD  = 13
+chokepoint	0xD  = 13
+bad place	0xA0 = 160
+
+160 / 13 = 12, ... (?) lakes in Bad Place
+
+BUT in reality there seem to be 11 lakes!
+
+
+What can be stored in 13 bytes?
+
+Num bytes	Usage
+4		X (float)
+4		Y (float)
+4		Z (float)
+1		Height
+
+Eureka!

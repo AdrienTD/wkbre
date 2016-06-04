@@ -1,0 +1,29 @@
+cX = cos X
+cY = cos Y
+
+a : angle around X axis
+b : angle around Y axis
+c : angle around Z axis
+
+  1   0   0   0
+  0  ca  sa   0
+  0 -sa  ca   0
+  0   0   0   1
+
+ cb   0 -sb   0
+  0   1   0   0
+ sb   0  cb   0
+  0   0   0   1
+
+ cc  sc   0   0
+-sc  cc   0   0
+  0   0   1   0
+  0   0   0   1
+
+rotZ * rotX =
+
+cc	sc	0	0
+-sc*ca	cc*ca	sa	0
+sc*sa	-cc*sa	ca	0
+0	0	0	1
+

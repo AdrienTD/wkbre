@@ -1,0 +1,27 @@
+WKO Script oddities
+
+ - CHANGE_REACTION_PROFILE ADD/REMOVE instead of ADD_REACTION/REMOVE_REACTION
+
+ - TERMINATE_THIS_ORDER without ACTION
+
+ - INDIVIDUAL_ITEM for declaring items
+
+ - NUM_REFERENCERS which doesn't exist in WKB
+   (use FINDER_RESULTS_COUNT instead)
+
+ - ENODE BUILDING_TYPE_OPERAND instead of ENODE BUILDING_TYPE
+
+ - NUM_ASSOCIATES/NUM_ASSOCIATORS don't exist in WKB
+   (use NUM_OBJECTS FINDER_ASSOCIATES/FINDER_ASSOCIATORS instead)
+
+ - PLAY_SOUND_AT_POSITION "snd" <FINDER> instead of
+   PLAY_SOUND_AT_POSITION "snd" <POSITION>
+   (maybe someone forgot LOCATION_OF)
+
+ - The meaning of OBJECT_ID is different in both versions.
+   WKO: OBJECT_ID <FINDER:A> <FINDER:B>
+        Returns 1 if A == B, otherwise 0.
+   WKB: OBJECT_ID <FINDER:A>
+        Returns the object id of A.
+   When porting from WKO to WKB, OBJECT_ID should be replaced with
+   IS_SUBSET_OF.

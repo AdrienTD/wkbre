@@ -1,0 +1,82 @@
+struct ActionUponCondition : public CAction
+{
+	CValue *v; ActionSeq *x, *y;
+	ActionUponCondition(CValue *a, ActionSeq *b, ActionSeq *c) : v(a), x(b), y(c) {}
+	void run(SequenceEnv *env)
+	{
+		if(stpo(v->get(env))
+			x->run(env);
+		else if(y)
+			y->run(env);
+	}
+};
+
+struct ActionRegisterAssociates : public CAction
+{
+	CFinder *x, *y; uint t;
+	ActionRegisterAssociates(CFinder *a, uint b, CFinder *c) : x(a), t(b), y(c) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *a = x->getfirst(), *b = y->getfirst();
+		// Is the order correct?
+		if(a && b)
+			AssociateObjToObj(a, t, b);
+	}
+};
+
+struct ActionAssignAlias : public CAction
+{
+	uint t; CFinder *f;
+	ActionAssignAlias(uint a, CFinder *b) : t(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o;
+		while(o = f->getnext())
+			AliasObj(o, t);
+	}
+};
+
+void ClearAlias(uint t)
+{
+	alias[t].clear();
+}
+
+struct ActionClearAlias : public CAction
+{
+	uint t;
+	ActionClearAlias(uint a) : t(a) {}
+	void run(SequenceEnv *env) {ClearAlias(t);}
+};
+
+struct ActionTransferControl : public CAction
+{
+	CFinder *x, *y;
+	ActionTransferControl(CFinder *a, CFinder *b) : x(a), y(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o, *t = y->getfirst(env);
+		if(!t) return;
+		x->begin(env);
+		while(o = x->getnext())
+			SetObjectParent(o, t);
+	}
+};
+
+struct ASwitchCase
+{
+	CValue *v; ActionSeq *s;
+};
+
+struct ActionSwitchCondition : public CAction
+{
+	CValue *c; GrowList<ASwitchCase> *s; // must be allocated with malloc or new
+	ActionSwitchCondition(CValue *a, GrowList<ASwitchCase> *b) : c(a), s(b) {}
+	void run(SequenceEnv *env)
+	{
+		valuetype x = c->get(env);
+		for(uint i = 0; i < s->len; i++)
+			if(s->getpnt(x)->v->get(env) == x)
+				{s->getpnt(x)->s->run(env); return;}
+	}
+};

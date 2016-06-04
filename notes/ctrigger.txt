@@ -1,0 +1,85 @@
+/*
+TASKTRIGGER_ {
+	TIMER
+	ANIMATION_LOOP
+	ATTACHMENT_POINT
+	COLLISION
+	STRUCK_FLOOR
+}
+*/
+
+struct CTask
+{
+	// ...
+	GrowList<CTrigger> triggers;
+}
+
+struct CTrigger
+{
+	int type;
+	ActSeq *seq;
+	CFinder *period;
+};
+
+void ReadCTrigger(char **pntfp, char **fstline, CTask *s)
+{
+	CTrigger *g = s->triggers.addp();
+	g->seq = 0; g->period = 0;
+	g->type = stfind_cs(TASKTRIGGER_str, TASKTRIGGER_NUM, fstline[1]);
+	if(g->type == TASKTRIGGER_TIMER)
+	{
+		char **w = fstline + 2;
+		g->period = ReadFinder(&w);
+	}
+	g->seq = ReadActSeq(pntfp);
+}
+
+void InitCurrentTaskTriggers(GameObject *o)
+{
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+
+	t->flags |= FSTASK_TRIGGERS_STARTED;
+	for(int i = 0; i < t->type->triggers.len; i++)
+	{
+		CTrigger *c = t->type->triggers.getpnt(i);
+		t->trigger.add();
+		t->trigger.last->value.id = i;
+		if(c->type == TASKTRIGGER_TIMER)
+		{
+			SequenceEnv env; env.self = o; env.target = t->target;
+			t->trigger.last->value.period = c->period->get(&env);
+		}
+		t->trigger.last->value.referenceTime = current_time;
+		//t->trigger.last->value.trigger = ...;
+	}
+}
+
+// For various reasons (notably because it is possible to terminate the order and
+// free its memory in the trigger action sequence), only one trigger is executed
+// (and only one time) in CheckCurrentTaskTriggers.
+
+void CheckCurrentTaskTriggers(GameObject *o)
+{
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+
+	for(DynListEntry<STrigger> *e = t->trigger.first; e; e = e->next)
+	{
+		STrigger *g = &e->value;
+		CTrigger *c = &t->type->triggers.getpnt(g->id);
+		SequenceEnv env;
+		switch(c->type)
+		{
+			case TASKTRIGGER_TIMER:
+				if((g->referenceTime + g->period) > current_time)
+					break;
+				env.self = o; env.target = t->target;
+				g->referenceTime += g->period;
+				g->period = c->period->get(&env);
+				c->seq->run(&env);
+				return;
+		}
+		// continue loop only if trigger not executed
+	}
+}

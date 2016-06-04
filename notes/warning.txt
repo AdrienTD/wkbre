@@ -1,0 +1,5 @@
+CObjectDefinition now uses a GrowList!
+
+ - Be sure they are correctly allocated using the new operator.
+
+ - Be also sure that "Standard" types are updated for the new entries.

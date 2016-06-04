@@ -1,0 +1,82 @@
+class EnodeIsBetween : public CValue
+{
+	CValue *x, *y, *z;
+	EnodeIsBetween(CValue *a, CValue *b, CValue *c) : x(a), y(b), z(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		valuetype a = x->get(env);
+		// TODO: 2nd and 3rd nodes included or not?
+		return (a > y->get(env)) || (a < z->get(env));
+	}
+};
+
+class EnodeDistanceBetween : public CValue
+{
+	int mode; CFinder *x, *y;
+	EnodeDistanceBetween(int a, CFinder *b, CFinder *c) : mode(a), x(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		PosOri a, b;
+		// ...
+		switch(mode)
+		{
+			case 0: // 3D
+				{Vector3 s = a.pos - b.pos;
+				return sqrt(s.x*s.x + s.y*s.y + s.z*s.z);}
+			case 1: // HORIZONTAL
+				{Vector3 s = a.pos - b.pos;
+				return sqrt(s.x*s.x + s.z*s.z);}
+			case 2: // VERTICAL
+				return abs(a.y - b.y);
+		}
+	}
+};
+
+class FinderFilter : public CFinder
+{
+	int eq; CFinder *f;
+	int nomore; SequenceEnv *env;
+	FinderFilter(int a, CFinder *b) : eq(a), f(b) {}
+	CFinder *clone() {return new FinderFilter(eq, f->clone());}
+	void begin(SequenceEnv *c) {nomore = 0; env = c; f->begin(env);}
+	GameObject *getnext()
+	{
+		if(nomore) return 0;
+		GameObject *o; SequenceEnv c;
+		while(1)
+		{
+			// self should not be modified!
+			o = f->getnext();
+			if(!o) {nomore = 1; return 0;}
+			env->copyAll(&c);
+			c.candidate = o;
+			if(stpo(equation[eq]->get(&c)))
+				return o;
+		}
+	}
+};
+
+// Question: 2D or 3D? To determinate.
+class FinderNeareastCandidate : public CFinder
+{
+	CFinder *f;
+	int nomore; SequenceEnv *env;
+	FinderNearestCandidate(CFinder *a) : f(a) {}
+	CFinder *clone() {return FinderNearestCandidate(f->clone());}
+	void begin(SequenceEnv *c) {f->begin(env = c);}
+	GameObject *getnext()
+	{
+		if(nomore) return 0;
+		GameObject *c = 0, *o, *s = env->self;
+		float sd = -1;
+		while(o = f->getnext())
+		{
+			float x = s.position.x - o.position.x;
+			float z = s.position.z - o.position.z;
+			float nd = x*x + z*z;
+			if((sd < 0) || (nd < sd)) {c = o; sd = nd;}
+		}
+		nomore = 1;
+		return c;
+	}
+};

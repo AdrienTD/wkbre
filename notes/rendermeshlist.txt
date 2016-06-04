@@ -1,0 +1,28 @@
+// VCACHE QUERY!
+
+struct RendarableMeshesListEntry
+{
+	DynList<GameObject*> uvlist[8];
+};
+
+RenderableMeshesListEntry *rendermeshes;
+
+void InitRendermeshes()
+{
+	rendermeshes = new RenderableMeshesListEntry[strObjDef.len];
+}
+
+void DrawMeshesFromList()
+{
+	for(int i = 0; i < strObjDef.len; i++)
+	{
+		int noobj = 0;
+		for(int j = 0; j < 8; j++)
+			noobj |= rendermeshes[i].uvlist[j].len;
+		if(!noobj) continue;
+
+		ddev->SetStreamSource(0, objdef[i].mesh XXX
+
+		for(int j = 0; j < 8; j++)
+		{
+			if(rendermeshes[i].uvlist[j].len)

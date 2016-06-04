@@ -26,3 +26,9 @@
 *.exe
 *.out
 *.app
+
+# ADDED:
+*.lnk
+*.pdb
+*.res
+*.ilk

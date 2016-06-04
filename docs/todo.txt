@@ -1,0 +1,52 @@
+wkbre version 
+
+--- 0.0.2 ---
+
+Done:
+- Selection
+- Divide landscape in multiple small parts
+
+Not done:
+- Small action sequence support
+
+Optional and not done:
+- Skybox
+- Level tree
+- Object properties dialog box
+
+--- 0.0.3 ---
+
+Progess:
+- Small action sequence support
+
+To do:
+- INHERITS_FROM
+- MAP_TYPE_TAG
+- Orders & Tasks
+- Moving units / Server
+- Unknown action/value/finder/position types will be created but will make
+  an error at execution.
+
+---
+
+Things not related to "game emulation" but will be eventually done in the future:
+- Remove dependency on D3DX9.
+  --> Own texture loading.
+  --> Own font drawing.
+  --> Own vector structure and functions.
+- OpenGL (use a setting to switch from Direct3D to OpenGL and vice versa)
+- SDL (for compatibility with other OSes than Windows, like Linux, Mac OS X, ...)
+  --> Put dialog boxes inside the game window?
+
+--- 0.0.4 ---
+
+OPEN SOURCE RELEASE!
+
+To add:
+- TERRAIN_ZONE
+- Task/order processing!
+
+Optimizations:
+- Put param* variables from GameObject to a ParamBlock structure
+  and put a pointer to this structure in GameObject.
+  If done we can save 32 bytes in GameObject (in 32 bits code).

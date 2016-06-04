@@ -1,0 +1,80 @@
+wkbre changelog:
+
+[0.0.4/?] ??/??/2016
+- Now open source!!
+- TERRAIN_ZONE object class supported.
+- Incomplete implementation of task/order processing (in non-release builds only)
+- ...
+
+[0.0.3/27] 21/05/2016
+- New game object reference mechanism.
+   --> You can now have objects with IDs greater than or equal to 1048576,
+       but there's still a limit of 1048576 objects though.
+- Small support for game scripts added (actions, values, finders, positions,
+  events, reactions, OBJECT_CREATION, map tags, value tags, ...).
+   --> See wkrscriptsup.txt for a list of supported features.
+- 'Experimental' keys:
+  X: Execute action sequence.
+  C: Create objects of type mapped by the selected objects.
+  V: Create an object with properties of the selected object and then send the
+     "On Stampdown" event to the new object.
+- INHERITS_FROM
+- Can now load and save level's and players' names.
+- You can select multiple objects (hold the 'Shift' key).
+- You can rotate selected objects by 90° ('R' key).
+- Association categories declared with DECLARE_ASSOCIATE_CATEGORY are now read.
+- Loading screen with text and background.
+- New font, bitmap, texture and math code which doesn't need D3DX9.
+   --> Texture compression is temporarily unsupported.
+- DELAYED_SEQUENCE_EXECUTION removed when executor is invalid.
+- You can now see representations of formations and certain markers (if they
+  use REPRESENT_AS in their object type definition).
+- Games saved with wkbre should now work with WKO.
+- PARAM_BLOCK (order set in a building that is assigned to new units)
+  loaded and saved.
+- Order configuration loading/saving improved (supports class type
+  OBJECT_REFERENCE, MOVE, FACE_TOWARDS, UPGRADE, SPAWN).
+- Vertex shaders removed.
+- Certain properties of the client states are loaded and saved.
+- You can move the camera to a client's position which is where the camera
+  was left when you saved in the game.
+- When a texture is missing, netexfb.tga is used instead.
+- grass.dds renamed to grass.tga
+- Executable icon added.
+- Fog added (can be enabled/disabled via settings.txt)
+- ...
+
+[0.0.2/13] 10/01/2016
+- The landscape is divided in multiple meshes which are only drawn if needed.
+  The setting MAP_MAX_PART_SIZE allows you to control the maximum size of
+  a part of the landscape.
+- Menu bar added (press TAB to enable/disable it).
+- You can click an object to select it.
+- Added command that deletes the selected object (Delete key).
+- Added command that duplicates the selected object (Insert key).
+- You can move the selected object. (Hold the Control key and use the arrow keys.)
+- Added command that deletes all objects of a specific class (F4 key).
+- Added command that resets the heights of all objects (F2 key).
+- The explosive cart now appears (wkbre now skips MOVEMENT_BAND correctly).
+- wkbre becomes idle if you minimize the window.
+- Set VSYNC to 2 to get good but CPU-intensive vertical synchronisation
+  (D3DPRESENT_INTERVAL_ONE).
+- The create object command now asks you where you want to put the new object.
+- ID and blueprint of selected object are displayed on the bottom of the screen.
+- Added commands which change the scale of the selected object
+  (multiply or divide the scale by 1.5, use the '*' and '/' keys).
+- New objects now get ID numbers that are not alreary used by other objects.
+- User-defined generals are now loaded (supports
+  LINK_GAME_SET "AI Generals\*.gsf").
+- EXECUTE_SEQUENCE_OVER_PERIOD and REPEAT_SEQUENCE_OVER_PERIOD are now read and
+  written. Light units can now recharge their ammunitions.
+- EXECUTE_SEQUENCE_AFTER_DELAY corrected to remove object IDs which don't exist
+  (otherwise WKB would display an error message and quit).
+- Object visibility check optimized.
+- Minimap position correction.
+- Added command that gives the selected object to a player.
+- Renamed simple.vsh to mesh.vsh
+- Other fixes/optimizations/features which I forgot to mention...
+
+[0.0.1/12] 19/12/2015
+- First release.

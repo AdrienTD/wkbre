@@ -1,0 +1,74 @@
+FIRST_EXECUTION may still stay 1 if the task is terminated in START_SEQUENCE.
+
+When the game is paused, when you assign an order, only the first task is
+executed (including its START_SEQUENCE).
+Also the current task of the order will still be the first even if it has
+been terminated in START_SEQUENCE.
+PROCESS_STATE = 5 if terminated in START_SEQUENCE.
+The next tasks are only executed after unpausing.
+
+PROCESS_STATE (conjecture)
+ 0 = never processed / uninitialized
+ 1 = in process (current task)
+ 2 = Paused/Interrupted (by another order assigned with DO_FIRST).
+ 5 = terminated
+Note: current_task may still link to a task with process_state 5.
+      In that case, the next task will be executed.
+      Or if current_task linked to task with state 2, order should be resumed.
+
+Found in executable and never seen in savegames:
+ 3 = Aborted
+ 4 = Cancelled
+States >= 6 don't seem to exist.
+
+(FIRST_EXECUTION = 1 probably means that the triggers haven't been initialized
+yet, as the triggers are not written in sav file in that case.)
+FIRST_EXECUTION can be 0 when the proximity is still not satisfied, and even
+when FIRST_EXECUTION = 0, triggers may still not be written in sav file.
+
+(?) In case where PROXIMITY = -1, when FIRST_EXECUTION = 1,
+then LAST_DESTINATION_VALID = 0, and vice versa.
+
+ORDER_CONFIGURATION is written without any ORDERs if there's a task with
+TERMINATE_THIS_ORDER in the START_SEQUENCE.
+
+If calling TERMINATE_THIS_ORDER in START_SEQUENCE, next order will have
+PROCESS_STATE 2, its task PROCESS_STATE 2 too. The start sequence of the task
+seems to be executed. To verify.
+
+If you assign an order using DO_FIRST, the previous current order will get
+PROCESS_STATE 2 and its tasks get PROCESS_STATE 2 too.
+
+When the game is in pause:
+-----------------------------------
+Order assign. mode		PROCESS_STATE of new order	P._S. of current order
+-----------------------------------------------------------------------------------------
+DO_FIRST		=>	1*				2
+FORGET_EVERYHING_ELSE	=>	1*				/
+DO_LAST²		=>	0				unchanged
+
+* can also be 5 if terminated directly at start.
+² if there are no previous orders in the config., it will be probably similar to
+  FORGET_EVERYTHING_ELSE.
+
+If current task PROCESS_STATE = 5, we must go to the next task.
+However, if the next task state is 5, we must reinitialize the task
+(and set the state to 1) before making it current.
+
+When an order is terminated, it is removed from the config.
+The next current order will stay with PROCESS_STATE = 0 until pause is removed.
+
+When processing an order with PROCESS_STATE 5, delete it. There's no need to
+run the TERMINATION_SEQUENCE, as it is already executed right before (setting
+PROCESS_STATE to 5 or) terminating/removing it.
+
+The TERMINATION_SEQUENCE must be executed in ACTION TERMINATE_(THIS_)ORDER?
+
+PROXIMITY_SATISFIED changes back to 0 if target is now far, and when it is near
+again PROXIMITY_SATISFIED becomes 1 and satisfaction sequence is executed again.
+
+For a TASK with PROCESS_STATE 0, the TARGET is always -1/4294967295, except for
+the first TASK, which contains the main target of the ORDER.
+In gameset TASK "Chop Tree", the TARGET FINDER will return the nearest tree. But
+if you select a peasant and right-click a tree, the TARGET of the first savegame
+task will be forced to this tree.

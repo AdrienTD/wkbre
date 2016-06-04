@@ -1,0 +1,112 @@
+<html>
+<head><title>wkbre Help file</title></head>
+<body>
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+</style>
+<h1>wkbre Help file</h1>
+<h2>Introduction</h2>
+<p>wkbre is a program in which you can load, edit and save saved games of Warrior Kings (Battles). Additionally, it loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
+<p>But wkbre is currently incomplete. There may be some bugs in it. It may not load and save games properly, it cannot edit everything and the landscape has only a green texture.</p>
+<h2>Start</h2>
+<p>If wkbre doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
+<p>First you need to configure the "settings.txt" file. Ensure that the GAME_DIR value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
+<p>After setting the GAME_DIR value you can start the executable (wkbre.exe). You will be asked which saved game you want to load. Select a file in the list then click OK or double-click on the file to open it.</p>
+<p>The landscape may look incorrect. If it does, press the '0' key repeatedly until the landscape is correct.</p>
+<p>Use the arrow, ‘E’ and ‘D’ keys to move the camera.</p>
+<p>Click an object to select it. Press the Control key and the arrow keys at the same time to move the selected object. You can also press the Insert key to duplicate the selected object, the Delete key to delete it, and the * or / key to change the size. Look at the menu bar in the program or the Keys section of this document for a list of available commands.</p>
+<p>Once you have finished doing some modifications in the level, press F3 and type the name of the new savegame. The name should end with “.sav”, otherwise the game won’t display it in its list.</p>
+<h2>Keys</h2>
+<p>The number (0-9) keys in the numeric keypad (NumPad) cannot be used.</p>
+<table>
+<thead><tr><th>Key</th><th>Function</th></tr></thead>
+<tbody>
+<tr><td colspan="2"><b>Camera</b></td></tr>
+<tr><td>Arrow key</td><td>Move camera</td></tr>
+<tr><td>Shift</td><td>Accelerates the movement if held down.</td></tr>
+<tr><td>E</td><td>Move up</td></tr>
+<tr><td>D</td><td>Move down</td></tr>
+<tr><td>T</td><td>Rotate up</td></tr>
+<tr><td>G</td><td>Rotate down</td></tr>
+<tr><td>U</td><td>Rotate left</td></tr>
+<tr><td>I</td><td>Rotate right</td></tr>
+<tr><td>1</td><td>Move to down-left corner</td></tr>
+<tr><td>2</td><td>Move to down-right corner</td></tr>
+<tr><td>3</td><td>Move to up-left corner</td></tr>
+<tr><td>4</td><td>Move to up-right corner</td></tr>
+<tr><td>5</td><td>Move to a selected player's manor</td></tr>
+<tr><td>6</td><td>Move to a position specified on the minimap.</td></tr>
+<tr><td>7</td><td>Reset orientation</td></tr>
+<tr><td>8</td><td>Move to client’s position</td></tr>
+<tr><td colspan="2"><b>Level editing</b></td></tr>
+<tr><td>Left mouse button</td><td>Select the object pointed by the mouse cursor (if the object is red).<br>(Hold Shift for multiple selection.)</td></tr>
+<tr><td>Insert</td><td>Duplicate selected object.</td></tr>
+<tr><td>Delete</td><td>Delete selected object.</td></tr>
+<tr><td>* (NumPad)</td><td>Multiply selected object’s scale by 1.5.</td></tr>
+<tr><td>/ (NumPad)</td><td>Divide selected object’s scale by 1.5.</td></tr>
+<tr><td>R</td><td>Rotate selected objects by 90°.</td></tr>
+<tr><td>Control + Arrow key</td><td>Move selected object (hold down Shift to move it faster)</td></tr>
+<tr><td>F2</td><td>Reset object heights</td></tr>
+<tr><td>F3</td><td>Save game</td></tr>
+<tr><td>F4</td><td>Delete all objects of selected class</td></tr>
+<tr><td>F5</td><td>Delete all objects of a selected type</td></tr>
+<tr><td>F6</td><td>Convert all objects of a selected type to another type</td></tr>
+<tr><td>F7</td><td>Give all objects of a selected type to a player</td></tr>
+<tr><td>F8</td><td>Create a new object</td></tr>
+<tr><td>F9</td><td>Delete last object created with F8</td></tr>
+<tr><td>F11</td><td>Randomize subtype of all objects</td></tr>
+<tr><td colspan="2"><b>Misc.</b></td></tr>
+<tr><td>F1</td><td>Display information about the program</td></tr>
+<tr><td>Escape</td><td>Exit</td></tr>
+<tr><td>M</td><td>Display/hide landscape</td></tr>
+<tr><td>9</td><td>Move the heightmap’s bit position in the BCM to the right.</td></tr>
+<tr><td>0</td><td>Move the heightmap’s bit position in the BCM to the left.</td></tr>
+<tr><td>Tab</td><td>Display/hide menu bar.</td></tr>
+<tr><td colspan="2"><b>Experimental keys (enabled via menu bar > Help > Enable/disable experimental keys)</b></td></tr>
+<tr><td>X</td><td>Execute action sequence</td></tr>
+<tr><td>C</td><td>Create a mapped type object via the selected object</td></tr>
+<tr><td>V</td><td>Create object, put it in the same position of the selected object and send the "On Stampdown" event to it.</td></tr>
+</tbody>
+</table>
+<p>There also more commands which can only be accessed from the menu bar.</p>
+<h2>Settings</h2>
+<p>In “settings.txt”:</p>
+<table>
+<thead><tr><th>Setting</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>GAME_DIR</td><td>Game directory (in quotation marks)</td></tr>
+<tr><td>FAR_Z_VALUE</td><td>The greater the value, the farther you can see.</td></tr>
+<tr><td>OCCLUSION_RATE</td><td>The greater the value, the more you can see.</td></tr>
+<tr><td>MAP_MAX_PART_SIZE</td><td>Maximum width and height (each in number of tiles) of a single part of the landscape.</td></tr>
+<tr><td>HARDWARE_VERTEX_PROCESSING</td><td>1 for hardware, 0 for software vertex processing</td></tr>
+<tr><td>TEXTURE_COMPRESSION</td><td>1 = texture compression (DXT1) enabled, 0 = disabled<br>(<b><u>NOTE:</u></b> In version 0.0.3, texture compression is always disabled. This may come back in future releases.)</td></tr>
+<tr><td>VSYNC</td><td>1 = vertical synchronization enabled, 2 = high resolution VSYNC enabled, 0 = disabled</td></tr>
+<tr><td>FOG</td><td>1 = fog enabled, 0 = fog disabled</td></tr>
+<tr><td>FONT</td><td>Path to a .font file used to draw text (Don’t forget the quotation marks!)</td></tr>
+</tbody>
+</table>
+<h2>Known issues</h2>
+<ul>
+<li><b>The landscape looks incorrect when using WKBattles files.</b>
+<br>Press the '0' key repeatedly until the landscape is correct.</li>
+<s>
+<li><b>Some parts of the manor and the village are black.</b>
+<br>To correct this issue, go to the settings.txt file and change the value of TEXTURE_COMPRESSION to 0.</li>
+</s>
+<li><b>Texture compression is disabled even with TEXTURE_COMPRESSION 0 in settings.txt</b>
+<br>The texture loading in version 0.0.3 has been rewritten, and the new code doesn’t support texture compression for various reasons.</li>
+<li><b>I don't see the landscape!</b>
+<br>The landscape mesh has too many primitives and your video card doesn’t support that. In “settings.txt” look for MAP_MAX_PART_SIZE and set lower values.</li>
+<li><b>wkbre is frozen / stops drawing.</b>
+<br>Minimize and restore the window.</li>
+<li><b>When I load a savegame made with wkbre in the original engine, there are some issues. The AI doesn’t work well, the formations move poorly, …</b>
+<br>This is going to be fixed in a next release.</li>
+<li><b>I don’t find my savegame in WKB.</b>
+<br>Look at every tab (skirmish, campaign, multiplayer).</li>
+</ul>
+<p>Enjoy! :) </p>
+<p>
+</body></html>

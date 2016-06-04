@@ -1,0 +1,126 @@
+//*** How to compile ***//
+
+Using the Microsoft (Visual) C/C++ compiler:
+	- Open a Windows SDK or Visual C++ command prompt (32 bits). You can
+	  find it in the Start menu/screen.
+	- cd to the directory of the source code.
+	- Type: vc_compall
+	- The new executable will be named "wkbre_vc.exe"
+
+Using MinGW-32:
+	- Open a command prompt. Be sure that the bin directory of the MinGW
+	  installation is in the environment path.
+	- cd to the directory of the source code.
+	- Type: mg_compall
+	- The new executable will be named "wkbre_mg.exe"
+
+vc_release.bat and mg_release.bat are similar to vc_compall.bat and
+mg_compall.bat, but they remove certain features of the program which aren't
+user-friendly, for example debugging features and incomplete features.
+
+//*** Code structure ***//
+
+bitmap.cpp		Bitmap loading and conversion
+bitmap.h		"
+defs.c			Contains strings for every definition in defs.h
+defs.h			Contains definitions
+defs.txt		File used to generate defs.c and defs.h
+dialog.cpp		Code for dialog boxes
+dialog.h		"
+drawing.cpp		Contains code for basic drawing
+drawing.h		"
+dynlist.h		DynList which is no other than a linked list
+file.cpp		Loading file from a BCP or a directory
+file.h			"
+font.cpp		Font loading and drawing
+font.h			"
+gfxcon.cpp		Graphical console to show savegame loading progress
+gfxcon.h		"
+global.h		Contains the essential and includes all header files
+growbuffer.cpp		Growable buffer and list
+growbuffer.h		"
+gui.h			Basic GUI (atm only used by the menu bar)
+language.cpp		Reads the Languages\Language.txt file.
+language.h		"
+lzrw_headers.h		Header for using LZRW3 code
+lzrw3.c			Code for LZRW3 (de)compression
+map.cpp			Loads and renders the landscape/terrain.
+map.h			"
+menu.cpp		Menu bar
+menu.h			"
+mesh.cpp		Loads and renders meshes in Mesh3 format.
+mesh.h			"
+minimap.cpp		Draws a minimap and also contains code for the Position dialog box.
+minimap.h		"
+resource.h		Executable resource definitions
+scene.cpp		Scene drawing and picking (landscape + objects)
+scene.h			"
+settings.cpp		Loads the settings.txt file
+settings.h		"
+texture.cpp		Makes from a bitmap a texture that can be used for rendering
+texture.h		"
+util.cpp		Contains useful routines.
+util.h			"
+vecmat.cpp		Vector and matrices
+vecmat.h		"
+window.cpp		Window creation/handling.
+window.h		"
+wkbre.cpp		Main code. Test7 is run by default.
+wkbre.rc		Resource script
+
+gameset\
+	gameset.h		Definitions related to game set loading
+	gs_command.cpp		Game set COMMAND
+	gs_command.h		"
+	gs_order.cpp		Game set ORDER, TASK and ORDER_ASSIGNMENT
+	gs_order.h		"
+	loadgameset.cpp		Main code for game set loading
+	objdef.cpp		Loads object type definitions
+	objdef.h		"
+	savegame.cpp		Main code for savegame loading
+	savegame.h		"
+	sg_clientstate.cpp	CLIENT_STATE in savegame
+	sg_clientstate.h	"
+	sg_diplostat.cpp	Implements diplomatic relations.
+	sg_diplostat.h		"
+	sg_order.cpp		Savegame ORDER_CONFIGURATION, ORDER, TASK and PARAM_BLOCK
+	sg_order.h		"
+
+play\
+	otproc.cpp		Order/task processing
+	otproc.h		"
+	play.cpp		Code that advances the current time of the game
+	play.h			"
+
+script\
+	action.cpp		Implements certain types of ACTIONs.
+	action.h		"
+	events.cpp		Implements the event mechanism.
+	events.h		"
+	finder.cpp		Implements certain types of object FINDERs.
+	finder.h		"
+	objCreation.cpp		Implements the OBJECT_CREATION blueprint.
+	objCreation.h		"
+	position.cpp		Implements certain types of POSITION determinators.
+	position.h		"
+	script.h		Global header for scripting.
+	value.cpp		Implements certain types of VALUE determinators.
+	value.h			"
+
+t2c\
+	table2c			Program used to generate defs.c and defs.h
+
+redata\
+	Directory containing files needed to run wkbre. The directory must be
+	in the same directory as the executable.
+
+notes\
+	This directory contains some notes I made while writing the program.
+	Please note that these notes may not be accurate, so please don't believe
+	that everything I wrote there is correct.
+	...
+	d3dx_dll.cpp		Dynamically loads D3DX9_??.DLL (unused atm)
+	d3dx_dll.h		"
+
+docs\
+	Help and important information

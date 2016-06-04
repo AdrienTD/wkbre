@@ -1,0 +1,56 @@
+#define CM_BGRA5551 (r, g, b, a) ( ((b)>>3) | (((g)>>3)<<5) | (((r)>>3)<<10) | (((a)>>7)<<15) )
+
+Bitmap *ConvertBitmapToB5G5R5A1(Bitmap *sb)
+{
+	Bitmap *bm = new Bitmap;
+	bm->w = sb->w; bm->h = sb->h;
+	bm->form = BMFORMAT_B5G5R5A1;
+	int l = bm->w * bm->h;
+	bm->pix = (uchar*)malloc(l * 2);
+	bm->pal = 0;
+	if(sb->form == BMFORMAT_B5G5R5A1)
+		memcpy(bm->pix, sb->pix, l * 2);
+	else if(sb->form == BMFORMAT_P8)
+	{
+		for(int i = 0; i < l; i++)
+			((ushort*)bm->pix)[i] =	CM_BGRA5551(sb->pal[sb->pix[i]*3+0],
+							sb->pal[sb->pix[i]*3+1],
+							sb->pal[sb->pix[i]*3+2],
+							255);
+	}
+	else if(sb->form == BMFORMAT_R8G8B8)
+	{
+		for(int i = 0; i < l; i++)
+			((ushort*)bm->pix)[i] =	CM_BGRA5551(sb->pix[i*3+0],
+							sb->pix[i*3+1],
+							sb->pix[i*3+2],
+							255);
+	}
+	else if(sb->form == BMFORMAT_B8G8R8)
+	{
+		for(int i = 0; i < l; i++)
+			((ushort*)bm->pix)[i] =	CM_BGRA5551(sb->pix[i*3+2],
+							sb->pix[i*3+1],
+							sb->pix[i*3+0],
+							255);
+	}
+	else if(sb->form == BMFORMAT_R8G8B8A8)
+	{
+		for(int i = 0; i < l; i++)
+			((ushort*)bm->pix)[i] =	CM_BGRA5551(sb->pix[i*4+0],
+							sb->pix[i*4+1],
+							sb->pix[i*4+2],
+							sb->pix[i*4+3]);
+	}
+	else if(sb->form == BMFORMAT_B8G8R8A8)
+	{
+		for(int i = 0; i < l; i++)
+			((ushort*)bm->pix)[i] =	CM_BGRA5551(sb->pix[i*4+0],
+							sb->pix[i*4+1],
+							sb->pix[i*4+2],
+							sb->pix[i*4+3]);
+	}
+	else	ferr("Failed to convert a bitmap to B5G5R5A1.");
+
+	return bm;
+}

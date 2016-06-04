@@ -1,0 +1,34 @@
+union vertexBuffer
+{
+	IDirect3DVertexBuffer9 *dd;
+	int gl;
+};
+
+union indexBuffer
+{
+	IDirect3DIndexBuffer9 *dd;
+	int gl;
+};
+
+struct VideoDriver
+{
+	virtual void Init(int w, int h);
+	virtual void Reset(int w, int h);
+
+	virtual void BeginDrawing();
+	virtual void EndDrawing();
+	virtual void SetTexture(int x, texture t);
+	virtual void NoTexture(int x);
+	virtual void SetTransformMatrix(Matrix *m);
+	virtual void InitRectDrawing();
+	virtual void DrawRect(int x, int y, int w, int h, int c,
+			float u = 0, float v = 0, float o = 1, float p = 1);
+
+	virtual void BeginMeshDrawing();
+	virtual void SetStream(...);
+	virtual void SetIndices(indexBuffer b);
+	virtual void SetAlphaTest(int s);
+	virtual void DrawIndexedPrimitive(...);
+
+	virtual void InitMapDrawing();
+};
