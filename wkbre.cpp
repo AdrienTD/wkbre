@@ -19,14 +19,19 @@
 #include <process.h>
 
 HINSTANCE hInstance;
-GUIPage gpTest;
-GUIPage *actualpage = (GUIPage*)0;
+GEContainer *actualpage = 0;
 int appexit = 0;
 float walkstep = 1.0f;
 char *farg = 0;
 char secret[] = {0xec,0xc9,0xdf,0xc4,0xc8,0xc3,0x8d,0xea,0xc8,0xc8,0xd9,0xde};
 int bo = 0;
-int playMode = 0, experimentalKeys = 0, enableObjTooltips = 0;
+int playMode = 0, enableObjTooltips = 0;
+
+#ifdef WKBRE_RELEASE
+int experimentalKeys = 0;
+#else
+int experimentalKeys = 1;
+#endif
 
 char *tooltip_str = "Hello!\nMy name is Mr. Tooltip!\nBye!"; int tooltip_x = 20, tooltip_y = 20;
 void DrawTooltip()
@@ -43,6 +48,50 @@ void DrawTooltip()
 	DrawFont(x, y, tooltip_str);
 }
 
+// Variables needed for GUI:
+GUIElement *getobringfront = 0; GESubmenu *actsubmenu = 0;
+GUIElement *movingguielement = 0; int movge_rx, movge_ry;
+
+// Menu
+char *menubarstr[] = {"File", "Object", "View", "Help"};
+MenuEntry menucmds[] = {
+{"Save as...", CMD_SAVE},
+{"Quit", CMD_QUIT},
+{0,0},
+{"Delete type...", CMD_DELETEOBJTYPE},
+{"Convert type...", CMD_CONVERTOBJTYPE},
+{"Give type...", CMD_GIVEOBJTYPE},
+{"Randomize subtypes", CMD_RANDOMSUBTYPE},
+{"Reset objects' heights", CMD_RESETOBJPOS},
+{"Delete class...", CMD_DELETEOBJCLASS},
+{"Create object...", CMD_CREATEOBJ},
+{"Delete last created object", CMD_DELETELASTCREATEDOBJ},
+{"Duplicate selected objects", CMD_DUPLICATESELOBJECT},
+{"Give selected objects to...", CMD_GIVESELOBJECT},
+{"Delete selected objects", CMD_DELETESELOBJECT},
+{"Scale selected objects by 1.5", CMD_SELOBJSCALEBIGGER},
+{"Scale selected objects by 1/1.5", CMD_SELOBJSCALESMALLER},
+{"Rotate selected objects by 90°", CMD_ROTATEOBJQP},
+{0,0},
+{"Move to...", CMD_CAMPOS},
+{"Move to down-left corner", CMD_CAMDOWNLEFT},
+{"Move to down-right corner", CMD_CAMDOWNRIGHT},
+{"Move to up-left corner", CMD_CAMUPLEFT},
+{"Move to up-right corner", CMD_CAMUPRIGHT},
+{"Move to player's manor...", CMD_CAMMANOR},
+{"Move to client's position...", CMD_CAMCLISTATE},
+{"Reset orientation", CMD_CAMRESETORI},
+{"Show/hide landscape", CMD_SHOWHIDELANDSCAPE},
+{"Show/hide representations", CMD_TOGGLEREPRENSATIONS},
+{"Show/hide object tooltips", CMD_TOGGLEOBJTOOLTIPS},
+{"BCM himap bit left", CMD_BCMHIMAPLEFT},
+{"BCM himap bit right", CMD_BCMHIMAPRIGHT},
+{0,0},
+{"Enable/disable experimental keys", CMD_TOGGLEEXPERIMENTALKEYS},
+{"About...", CMD_ABOUT},
+{0,0},
+};
+
 #ifndef WKBRE_RELEASE
 
 void OnTestButtonClick(void *param)
@@ -50,21 +99,6 @@ void OnTestButtonClick(void *param)
 	printf("You clicked on the button!\n");
 	//appexit = 1;
 }
-
-/*void TestMenu()
-{
-	gpTest.add(new GUISimpleButton(64, 64, OnTestButtonClick), 16, 16);
-	actualpage = &gpTest;
-	while(!appexit)
-	{
-		BeginDrawing();
-		InitRectDrawing();
-		//DrawRect(0, 0, 64, 64, 0xFF00FF);
-		gpTest.draw();
-		EndDrawing();
-		HandleWindow();
-	}
-}*/
 
 //#define dbg(i) putchar((i) + '0')
 
@@ -696,7 +730,7 @@ void DeselectAll()
 	UpdateSelectionInfo();
 }
 
-void T7ClickWindow()
+void T7ClickWindow(void *param)
 {
 	if(!keypressed[VK_SHIFT])
 		DeselectAll();
@@ -717,7 +751,7 @@ void Test7()
 	WriteGfxConsole("wkbre Version " WKBRE_VERSION); // " IN DEVELOPMENT"
 
 #ifdef _MSC_VER
-	WriteAndDrawGfxConsole("Compiled with Microsoft C/C++ compiler");
+	WriteAndDrawGfxConsole("Compiled with MSVC C/C++ compiler");
 #endif
 #ifdef __GNUC__
 	WriteAndDrawGfxConsole("Compiled with GNU C/C++ compiler");
@@ -733,9 +767,14 @@ void Test7()
 
 	loadinginfo("Savegame loaded!\n");
 
-	InitMenuBar();
-	actualpage = &menubar;
-	onClickWindow = T7ClickWindow;
+	//InitMenuBar();
+	actualpage = new GEContainer;
+	actualpage->buttonClick = T7ClickWindow;
+	GEMenuBar *menubar = new GEMenuBar(menubarstr, menucmds, 4, actualpage);
+	actualpage->add(menubar);
+	menubar->setRect(0, 0, 32767, 20);
+	menubar->bgColor = 0xC0000080;
+	//onClickWindow = T7ClickWindow;
 
 	while(!appexit)
 	{
@@ -753,7 +792,7 @@ void Test7()
 			DrawScene();
 			InitRectDrawing();
 			NoTexture(0);
-			if(actualpage) actualpage->draw();
+			if(actualpage) actualpage->draw(0, 0);
 			if(statustext)
 			{
 				NoTexture(0);
@@ -880,8 +919,7 @@ void Test7()
 
 		if(keypressed[VK_TAB])
 			{keypressed[VK_TAB] = 0; menuVisible = !menuVisible;
-			if(menuVisible)	actualpage = &menubar;
-			else		actualpage = 0;}
+			menubar->enabled = menuVisible;}
 
 		if(keypressed['7']) {keypressed['7'] = 0; CallCommand(CMD_CAMRESETORI);}
 
@@ -901,16 +939,9 @@ void Test7()
 
 	if(experimentalKeys)
 	{
-
 		//if(keypressed['A'])
 		//	{keypressed['A'] = 0; drawdebug = 1;}
 #ifndef WKBRE_RELEASE
-		if(keypressed['A'])
-		{
-			keypressed['A'] = 0;
-			AskCommand();
-		}
-
 		if(keypressed['W'])
 		{
 			keypressed['W'] = 0;
@@ -921,6 +952,15 @@ void Test7()
 				CreateObject(&objdef[t], levelobj);
 		}
 #endif
+		if(keypressed['A'])
+		{
+			keypressed['A'] = 0;
+			CCommand *c = AskCommand("Which command do you want to execute on the selected objects (with no target)?");
+			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+				if(e->value.valid())
+					ExecuteCommand(e->value.get(), c, 0);
+		}
+
 		if(keypressed['X']) {keypressed['X'] = 0; CallCommand(CMD_RUNACTSEQ);}
 
 		if(keypressed['C'])
@@ -1065,28 +1105,58 @@ void Test14()
 	}
 }
 
+char *mbs[2] = {"B1", "B2"};
+MenuEntry mbe[] = {
+{"x1", 1},
+{"x2", 2},
+{"x3", 3},
+{0,0},
+{"y1", 11},
+{"y2", 12},
+{0,0},
+};
+
 void Test15()
 {
 	InitWindow(); LoadBCP("data.bcp"); InitFont();
 
+/*
 	GUIPage gpage;
 	GUISimpleButton gbutton(2, 2, 64, 64, OnTestButtonClick);
 	GUITextButton gtxtbutton(2, 80, 100, 16, OnTestButtonClick, "Hello!");
 	gpage.add(&gbutton); gpage.add(&gtxtbutton);
 	//actualpage = &gpage;
-
 	InitMenuBar();
 	menubar.parent = &gpage;
 	actualpage = &menubar;
+*/
+
+	actualpage = new GEContainer;
+	GEMenuBar *b = new GEMenuBar(mbs, mbe, 2, actualpage);
+	actualpage->add(b);
+	b->setRect(0, 0, 640, 20);
+
+	GEWindow *win = new GEWindow;
+	actualpage->add(win);
+	win->setCaption("Test15");
+	win->setRect(32, 32, 150, 150);
+	win->onResize();
+	win->bgColor = 0x80008000;
+
+	GETextButton *t = new GETextButton;
+	win->add(t);
+	t->setRect(16, 36, 64, 64);
+	t->setCaption("LOL!");
 
 	while(!appexit)
 	{
 		BeginDrawing();
 		InitRectDrawing();
-		actualpage->draw();
+		actualpage->draw(0, 0);
 		EndDrawing();
 		HandleWindow();
 	}
+
 }
 
 void Test16()

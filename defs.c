@@ -142,7 +142,7 @@ char *POSITION_str[3] = {
 "LOCATION_OF",
 "OUT_AT_ANGLE",
 };
-char *ACTION_str[26] = {
+char *ACTION_str[27] = {
 "REMOVE",
 "CREATE_OBJECT",
 "EXECUTE_SEQUENCE",
@@ -169,6 +169,7 @@ char *ACTION_str[26] = {
 "TERMINATE_TASK",
 "TERMINATE_ORDER",
 "TERMINATE_THIS_ORDER",
+"CANCEL_ORDER",
 };
 char *OBJCREATE_str[6] = {
 "TYPE_TO_CREATE",

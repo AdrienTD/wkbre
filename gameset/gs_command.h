@@ -33,4 +33,6 @@ struct CCondition
 */
 
 void ReadCCommand(char **pntfp, char **fstline);
+int CanExecuteCommand(CObjectDefinition *od, CCommand *cc);
+void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg);
 //void ReadCCondition(char **pntfp, char **fstline);

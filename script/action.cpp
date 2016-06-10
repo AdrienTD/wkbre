@@ -333,7 +333,7 @@ struct ActionTerminateThisTask : public CAction
 	void run(SequenceEnv *env)
 	{
 		if(env->self.valid())
-			TerminateCurrentTask(env->self.get());
+			TerminateTask(env->self.get());
 	}
 };
 
@@ -342,7 +342,7 @@ struct ActionTerminateThisOrder : public CAction
 	void run(SequenceEnv *env)
 	{
 		if(env->self.valid())
-			TerminateCurrentOrder(env->self.get());
+			TerminateOrder(env->self.get());
 	}
 };
 
@@ -355,7 +355,7 @@ struct ActionTerminateTask : public CAction
 		f->begin(env);
 		GameObject *o;
 		while(o = f->getnext())
-			TerminateCurrentTask(o);
+			TerminateTask(o);
 	}
 };
 
@@ -368,7 +368,7 @@ struct ActionTerminateOrder : public CAction
 		f->begin(env);
 		GameObject *o;
 		while(o = f->getnext())
-			TerminateCurrentOrder(o);
+			TerminateOrder(o);
 	}
 };
 
@@ -392,6 +392,19 @@ struct ActionAssignOrderVia : public CAction
 		GameObject *o;
 		while(o = f->getnext())
 			AssignOrderVia(o, oa, env);
+	}
+};
+
+struct ActionCancelOrder : public CAction
+{
+	CFinder *f;
+	ActionCancelOrder(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o;
+		while(o = f->getnext())
+			CancelOrder(o);
 	}
 };
 
@@ -492,6 +505,8 @@ CAction *ReadAction(char **pntfp, char **word)
 			{w += 3;
 			COrderAssignment *oa = &(orderAssign[strOrderAssign.find(word[2])]);
 			return new ActionAssignOrderVia(oa, ReadFinder(&w));}
+		case ACTION_CANCEL_ORDER:
+			w += 2; return new ActionCancelOrder(ReadFinder(&w));
 	}
 	//ferr("Unknown action command."); return 0;
 	return new ActionUnknown();

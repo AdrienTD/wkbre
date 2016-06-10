@@ -47,6 +47,16 @@ int CanExecuteCommand(CObjectDefinition *od, CCommand *cc)
 	return 0;
 }
 
+void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg)
+{
+	if(!CanExecuteCommand(o->objdef, c)) return;
+	if(c->startSeq)
+	{
+		SequenceEnv env; env.self = o; env.target = tg;
+		c->startSeq->run(&env);
+	}
+}
+
 /*
 void ReadCCondition(char **pntfp, char **fstline)
 {

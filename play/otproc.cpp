@@ -34,13 +34,13 @@ void ProcessCurrentTask(GameObject *o)
 	STask *t = &s->task.getEntry(s->currentTask)->value;
 	CTask *c =  t->type;
 	if(t->processState == 0)
-		InitCurrentTask(o);
+		InitTask(o, 0);
 	if(t->processState == 1)
 	{
 		switch(c->type)
 		{
 			case ORDTSKTYPE_OBJECT_REFERENCE:
-				{if(!t->target.valid()) {TerminateCurrentTask(o); break;}
+				{if(!t->target.valid()) {TerminateTask(o, 0); break;}
 				if((o == t->target.get()) || (t->proximity < 0.0f)) break;
 				Vector3 v = t->target->position - o->position;
 				float d = v.len2xz();
@@ -63,12 +63,15 @@ void ProcessCurrentTask(GameObject *o)
 				}
 				break;}
 			case ORDTSKTYPE_MOVE:
-				{if(!t->destinations.len) {TerminateCurrentTask(o); break;}
+				{if(!t->destinations.len) {TerminateTask(o, 0); break;}
 				Vector3 h(t->destinations.first->value.x, 0, t->destinations.first->value.y);
 				Vector3 v = h - o->position;
 				float d = v.len2xz();
 				if(d < 0.1f)
-					TerminateCurrentTask(o);
+				{
+					t->destinations.remove(t->destinations.first);
+					if(!t->destinations.len) TerminateTask(o, 0);
+				}
 				else
 					ObjStepMove(o, h);
 				break;}
@@ -78,19 +81,16 @@ void ProcessCurrentTask(GameObject *o)
 	}
 	if(t->processState == 5)
 	{
-		DynListEntry<SOrder> *e = o->ordercfg.order.first;
-		//SOrder *s = &o->ordercfg.order.first->value;
 		s->currentTask++;
 		if(s->currentTask >= s->task.len)
 		{
 			if(s->cycled)
-				{s->currentTask = 0; InitCurrentTask(o);}
+				{s->currentTask = 0; InitTask(o, 0);}
 			else
-				//o->ordercfg.order.remove(e);
-				{s->currentTask--; TerminateCurrentOrder(o);}
+				{s->currentTask--; TerminateOrder(o, 0);}
 		}
 		else
-			InitCurrentTask(o);
+			InitTask(o, 0);
 	}
 }
 
@@ -102,11 +102,11 @@ void ProcessObjsOrder(GameObject *o)
 
 	if(s->processState == 0)
 		{s->currentTask = 0;
-		InitCurrentOrder(o);}
+		InitOrder(o, 0);}
 	else if(s->processState == 2)
 		{// resumption_sequence
-		ResumeCurrentOrder(o);}
-	else if(s->processState == 5)
+		ResumeOrder(o, 0);}
+	else if(s->processState >= 4)
 		{o->ordercfg.order.remove(o->ordercfg.order.first);
 		return;}
 
@@ -153,10 +153,10 @@ void ProcessAllOrders()
 
 //************//
 
-void InitCurrentTask(GameObject *o)
+void InitTask(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s = &o->ordercfg.order.first->value;
+	SOrder *s = &o->ordercfg.order.getEntry(x)->value;
 	STask *t = &s->task.getEntry(s->currentTask)->value;
 	if((t->processState != 0) && (t->processState != 5)) return;
 
@@ -166,23 +166,23 @@ void InitCurrentTask(GameObject *o)
 		SequenceEnv env; env.self = o;
 		t->target = t->type->target->getfirst(&env);
 	}
+	SequenceEnv env; env.self = o; env.target = t->target;
 	if(t->type->initSeq)
-	{
-		SequenceEnv env; env.self = o; env.target = t->target;
 		t->type->initSeq->run(&env);
-	}
-	if(t->type->startSeq)
+	// Only execute the start sequence if the order wasn't terminated by
+	// the initialisation sequence.
+	if(t->processState < 4)
 	{
-		SequenceEnv env; env.self = o; env.target = t->target;
-		t->type->startSeq->run(&env);
+		t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
+		if(t->type->startSeq)
+			t->type->startSeq->run(&env);
 	}
-	t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
 }
 
-void SuspendCurrentTask(GameObject *o)
+void SuspendTask(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s = &o->ordercfg.order.first->value;
+	SOrder *s = &o->ordercfg.order.getEntry(x)->value;
 	STask *t = &s->task.getEntry(s->currentTask)->value;
 	if(t->processState != 1) return;
 
@@ -194,10 +194,10 @@ void SuspendCurrentTask(GameObject *o)
 	}
 }
 
-void ResumeCurrentTask(GameObject *o)
+void ResumeTask(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s = &o->ordercfg.order.first->value;
+	SOrder *s = &o->ordercfg.order.getEntry(x)->value;
 	STask *t = &s->task.getEntry(s->currentTask)->value;
 	if(t->processState != 2) return;
 
@@ -209,10 +209,10 @@ void ResumeCurrentTask(GameObject *o)
 	}
 }
 
-void TerminateCurrentTask(GameObject *o)
+void TerminateTask(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s = &o->ordercfg.order.first->value;
+	SOrder *s = &o->ordercfg.order.getEntry(x)->value;
 	STask *t = &s->task.getEntry(s->currentTask)->value;
 	if(t->processState == 5) return;
 
@@ -244,7 +244,7 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 		st->flags = FSTASK_FIRST_EXECUTION;
 		st->processState = 0;
 		st->taskID = i;
-		SequenceEnv env; env.self = go; // TODO: env.target = ?
+		SequenceEnv env; env.self = go; env.target = tg;
 		st->proximity = ct->proxRequirement->get(&env);
 		st->spawnBlueprint = 0;
 	}
@@ -252,19 +252,20 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 	so->task.first->value.target = tg;
 }
 
-void InitCurrentOrder(GameObject *o)
+void InitOrder(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s; s = &o->ordercfg.order.first->value;
+	SOrder *s; s = &o->ordercfg.order.getEntry(x)->value;
 	if((s->processState != 0) && (s->processState != 5)) return;
 
 	s->processState = 1;
-	InitCurrentTask(o);
+	InitTask(o, x);
 	SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
 	if(s->type->initSeq)
 		s->type->initSeq->run(&env);
-	if(s->type->startSeq)
-		s->type->startSeq->run(&env);
+	if(s->processState < 4)
+		if(s->type->startSeq)
+			s->type->startSeq->run(&env);
 }
 
 void AssignOrderVia(GameObject *go, COrderAssignment *oa, SequenceEnv *env)
@@ -280,7 +281,7 @@ void AssignOrder(GameObject *go, COrder *ord, uint mode, GameObject *tg)
 	switch(mode)
 	{
 		case ORDERASSIGNMODE_DO_FIRST:
-			SuspendCurrentOrder(go);
+			SuspendOrder(go, 0);
 			go->ordercfg.order.addbegin();
 			so = &go->ordercfg.order.first->value;
 			break;
@@ -294,14 +295,14 @@ void AssignOrder(GameObject *go, COrder *ord, uint mode, GameObject *tg)
 	CreateOrder(go, so, ord, tg);
 }
 
-void SuspendCurrentOrder(GameObject *o)
+void SuspendOrder(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s; s = &o->ordercfg.order.first->value;
+	SOrder *s; s = &o->ordercfg.order.getEntry(x)->value;
 	if(s->processState != 1) return;
 
 	s->processState = 2;
-	SuspendCurrentTask(o);
+	SuspendTask(o, x);
 	if(s->type->suspendSeq)
 	{
 		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
@@ -309,14 +310,14 @@ void SuspendCurrentOrder(GameObject *o)
 	}
 }
 
-void ResumeCurrentOrder(GameObject *o)
+void ResumeOrder(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s; s = &o->ordercfg.order.first->value;
-	if(s->processState != 1) return;
+	SOrder *s; s = &o->ordercfg.order.getEntry(x)->value;
+	if(s->processState != 2) return;
 
 	s->processState = 1;
-	ResumeCurrentTask(o);
+	ResumeTask(o, x);
 	if(s->type->resumeSeq)
 	{
 		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
@@ -324,41 +325,38 @@ void ResumeCurrentOrder(GameObject *o)
 	}
 }
 
-void CancelCurrentOrder(GameObject *o)
+void CancelOrder(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s; s = &o->ordercfg.order.first->value;
-	if(s->processState == 4) return;
+	SOrder *s; s = &o->ordercfg.order.getEntry(x)->value;
+	if(s->processState >= 4) return;
 
 	s->processState = 4;
-	TerminateCurrentTask(o);
+	TerminateTask(o, x);
 	if(s->type->cancelSeq)
 	{
 		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
 		s->type->cancelSeq->run(&env);
 	}
-	o->ordercfg.order.remove(o->ordercfg.order.first);
 }
 
 void CancelAllOrders(GameObject *o)
 {
-	while(o->ordercfg.order.len)
-		CancelCurrentOrder(o);
+	for(int i = 0; i < o->ordercfg.order.len; i++)
+		CancelOrder(o, i);
 }
 
-void TerminateCurrentOrder(GameObject *o)
+void TerminateOrder(GameObject *o, int x)
 {
 	if(!o->ordercfg.order.len) return;
-	SOrder *s = &o->ordercfg.order.first->value;
-	if(s->processState == 5) return;
+	SOrder *s = &o->ordercfg.order.getEntry(x)->value;
+	if(s->processState >= 4) return;
 
 	s->processState = 5;
-	TerminateCurrentTask(o);
+	TerminateTask(o, x);
 	if(s->type->terminateSeq)
 	{
 		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
 		s->type->terminateSeq->run(&env);
 	}
-	
-	o->ordercfg.order.remove(o->ordercfg.order.first);
 }

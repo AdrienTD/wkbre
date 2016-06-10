@@ -109,6 +109,7 @@ void ReadCOrderAssignment(char **pntfp, char **fstline)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
 	COrderAssignment *co = &(orderAssign[strOrderAssign.find(fstline[1])]);
+	co->mode = 0; co->order = 0; co->target = 0;
 	while(**pntfp)
 	{
 		*pntfp = GetLine(*pntfp, wwl);

@@ -119,12 +119,12 @@ extern "C" {
 #include "dialog.h"
 #include "settings.h"
 #include "minimap.h"
-#include "menu.h"
+//#include "menu.h"
 //#include "script/script.h"
 #include "play/play.h"
 #include "play/otproc.h"
 
-extern GUIPage *actualpage;
+extern GEContainer *actualpage;
 extern int appexit;
 extern HINSTANCE hInstance;
 

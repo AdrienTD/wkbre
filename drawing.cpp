@@ -49,6 +49,18 @@ void DrawRect(int x, int y, int w, int h, int c, float u, float v, float o, floa
 	ddev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, verts, sizeof(MYVERTEX));
 }
 
+void DrawGradientRect(int x, int y, int w, int h, int c0, int c1, int c2, int c3)
+{
+	verts[0].x = x;		verts[0].y = y;		verts[0].u = 0;	verts[0].v = 0;
+	verts[1].x = x + w;	verts[1].y = y;		verts[1].u = 1;	verts[1].v = 0;
+	verts[2].x = x;		verts[2].y = y + h;	verts[2].u = 0;	verts[2].v = 1;
+	verts[3].x = x + w;	verts[3].y = y + h;	verts[3].u = 1;	verts[3].v = 1;
+	for(int i = 0; i < 4; i++) {verts[i].x -= 0.5f; verts[i].y -= 0.5f;}
+	verts[0].color = c0;	verts[1].color = c1;
+	verts[2].color = c2;	verts[3].color = c3;
+	ddev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, verts, sizeof(MYVERTEX));
+}
+
 void InitRectDrawing()
 {
 	ddev->SetFVF(FVF_MYVERTEX);

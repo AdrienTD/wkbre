@@ -20,6 +20,9 @@ struct texture
 		IDirect3DTexture9 *dd;
 		int gl;
 	};
+	texture() : dd(0) {}
+	boolean valid() {return dd?1:0;}
+	boolean operator==(texture &a) {return dd == a.dd;}
 };
 
 extern int TXCenabled;

@@ -1,1 +1,1 @@
-@g++ %1 %2 %3 %4 %5 %6 %7 %8 %9 -g -o wkbre_mg.exe *.o -ld3d9 -lgdi32 -lwinmm -mwindows
+@g++ %1 %2 %3 %4 %5 %6 %7 %8 %9 -g -o wkbre_mg.exe *.o -ld3d9 -lgdi32 -lwinmm

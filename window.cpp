@@ -47,25 +47,45 @@ void CALLBACK OnSecond(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
 	SetWindowText(hWindow, fpstbuf);
 }
 
+void GUIMouseMove()
+{
+	if(movingguielement)
+	{
+		movingguielement->posx = mouseX + movge_rx;
+		movingguielement->posy = mouseY + movge_ry;
+	}
+}
+
+void GUIMouseClick()
+{
+	if(actsubmenu)
+		if(!IsPointInRect(actsubmenu->posx, actsubmenu->posy, actsubmenu->width, actsubmenu->height, mouseX, mouseY))
+			actsubmenu->enabled = 0;
+	if(actualpage)
+		actualpage->onMouseClick(mouseX, mouseY);
+}
+
+void GUIMouseRelease()
+{
+	if(actualpage)
+		actualpage->onMouseRelease(mouseX, mouseY);
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
 		case WM_MOUSEMOVE:
 			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
-			if(actualpage)
-				actualpage->move(mouseX, mouseY);
+			GUIMouseMove();
 			break;
 		case WM_LBUTTONDOWN:
-			{int r = 0;
-			if(actualpage)
-				r = actualpage->click(LOWORD(lParam), HIWORD(lParam));
-			if((!r) && onClickWindow)
-				onClickWindow();
-			break;}
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseClick();
+			break;
 		case WM_LBUTTONUP:
-			if(actualpage)
-				actualpage->release(LOWORD(lParam), HIWORD(lParam));
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseRelease();
 			break;
 		case WM_KEYDOWN:
 			if(wParam & 0xFFFFFF00) break;

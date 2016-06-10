@@ -1,0 +1,30 @@
+struct DynText
+{
+	char *str;
+	GrowList<CValue*> values;
+	void get(char *out, SequenceEnv *c)
+	{
+		// TODO: Find a printf variant with a variable argument list using
+		//       an array instead of va_list.
+		switch(values.len)
+		{
+			case 0: strcpy(out, str); break;
+			case 1: sprintf(out, str, values[0]->get(c)); break;
+			case 2: sprintf(out, str, values[0]->get(c), values[1]->get(c)); break;
+			case 3: sprintf(out, str, values[0]->get(c), values[1]->get(c), values[2]->get(c)); break;
+			case 4: sprintf(out, str, values[0]->get(c), values[1]->get(c), values[2]->get(c), values[3]->get(c)); break;
+			case 5: sprintf(out, str, values[0]->get(c), values[1]->get(c), values[2]->get(c), values[3]->get(c), values[4]->get(c)); break;
+			default: strcpy(out, "<Too many percentages!>"); break;
+		}
+	}
+};
+
+void ReadDynText(DynText *dt, char **line, int fword, int nwords)
+{
+	dt->str = GetLocText(line[fword]);
+	char **w = fword + 1;
+	while((w - line) < nwords)
+	{
+		dt->values.add(ReadValue(&w));
+	}
+}

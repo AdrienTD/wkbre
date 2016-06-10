@@ -1,1 +1,1 @@
-@mg_compall -D WKBRE_RELEASE -static -Ofast
+@mg_compall -D WKBRE_RELEASE -static -Ofast -mwindows
