@@ -744,7 +744,7 @@ void T7ClickWindow(void *param)
 
 void Test7()
 {
-	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont();
+	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
 	memset(gameobj, 0, MAX_GAMEOBJECTS * sizeof(GameObject*));
 
 	InitGfxConsole();
@@ -776,6 +776,8 @@ void Test7()
 	menubar->bgColor = 0xC0000080;
 	//onClickWindow = T7ClickWindow;
 
+	ChangeCursor(LoadCursor("Interface\\C_DEFAULT.TGA"));
+
 	while(!appexit)
 	{
 #ifndef WKBRE_RELEASE
@@ -805,6 +807,8 @@ void Test7()
 			sprintf(st, "current_time = %f", current_time);
 			DrawFont(0, 80, st);
 #endif
+
+			DrawCursor();
 			EndDrawing();
 		}
 		HandleWindow();

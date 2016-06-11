@@ -123,6 +123,7 @@ extern "C" {
 //#include "script/script.h"
 #include "play/play.h"
 #include "play/otproc.h"
+#include "cursor.h"
 
 extern GEContainer *actualpage;
 extern int appexit;

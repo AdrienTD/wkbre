@@ -59,6 +59,19 @@ void ReadCOrder(char **pntfp, char **fstline)
 	ferr("UEOF"); return;
 }
 
+void ReadCTrigger(char **pntfp, char **fstline, CTask *s)
+{
+	CTrigger *g = s->triggers.addp();
+	g->seq = 0; g->period = 0;
+	g->type = stfind_cs(TASKTRIGGER_str, TASKTRIGGER_NUM, fstline[1]);
+	if(g->type == TASKTRIGGER_TIMER)
+	{
+		char **w = fstline + 2;
+		g->period = ReadValue(&w);
+	}
+	g->seq = ReadActSeq(pntfp);
+}
+
 void ReadCTask(char **pntfp, char **fstline)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords, strdex;
@@ -100,6 +113,8 @@ void ReadCTask(char **pntfp, char **fstline)
 				ct->terminateSeq = ReadActSeq(pntfp); break;
 			case CTASK_PROXIMITY_SATISFIED_SEQUENCE:
 				ct->proxSatisfiedSeq = ReadActSeq(pntfp); break;
+			case CTASK_TRIGGER:
+				ReadCTrigger(pntfp, word, ct); break;
 		}
 	}
 	ferr("UEOF"); return;

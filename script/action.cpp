@@ -408,6 +408,33 @@ struct ActionCancelOrder : public CAction
 	}
 };
 
+struct ActionTransferControl : public CAction
+{
+	CFinder *a, *b;
+	ActionTransferControl(CFinder *x, CFinder *y) : a(x), b(y) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o, *p = b->getfirst(env);
+		a->begin(env);
+		while(o = a->getnext())
+			SetObjectParent(o, p);
+	}
+};
+
+struct ActionSwitchAppearance : public CAction
+{
+	int apt; CFinder *f;
+	ActionSwitchAppearance(int a, CFinder *b) : apt(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext())
+			if(o->objdef->subtypes[o->subtype].appear[o->appearance])
+				o->appearance = apt;
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 
 CAction *ReadAction(char **pntfp, char **word)
@@ -507,6 +534,15 @@ CAction *ReadAction(char **pntfp, char **word)
 			return new ActionAssignOrderVia(oa, ReadFinder(&w));}
 		case ACTION_CANCEL_ORDER:
 			w += 2; return new ActionCancelOrder(ReadFinder(&w));
+		case ACTION_TRANSFER_CONTROL:
+			{w += 2;
+			CFinder *a = ReadFinder(&w);
+			CFinder *b = ReadFinder(&w);
+			return new ActionTransferControl(a, b);}
+		case ACTION_SWITCH_APPEARANCE:
+			{w += 3;
+			int apt = strAppearTag.find(word[2]); mustbefound(apt);
+			return new ActionSwitchAppearance(apt, ReadFinder(&w));}
 	}
 	//ferr("Unknown action command."); return 0;
 	return new ActionUnknown();

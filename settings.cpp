@@ -58,6 +58,8 @@ void ReadSettingsFile()
 				fogenabled = atoi(word[1]); break;
 			case SETTING_FONT:
 				dfontfn = _strdup(word[1]); break;
+			case SETTING_HARDWARE_CURSOR:
+				hardwareCursor = atoi(word[1]); break;
 		}
 	}
 

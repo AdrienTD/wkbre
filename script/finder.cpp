@@ -645,6 +645,8 @@ CFinder *ReadFinder(char ***wpnt)
 			*wpnt += 1; return new FinderSequenceExecutor();
 		case FINDER_LEVEL:
 			*wpnt += 1; return new FinderLevel();
+		case FINDER_TARGET:
+			*wpnt += 1; return new FinderTarget();
 	}
 	//ferr("Unknown finder."); return 0;
 rfunk:	*wpnt += 1;

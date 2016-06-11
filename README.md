@@ -1,15 +1,19 @@
 # wkbre
 
+![Banner](../gh-pages/images/header-bg.jpg)
+
 __wkbre__ is an engine reimplementation of __Warrior Kings (Battles)__ (a 3D RTS game by Black Cactus released in 2002-2003), now released under the __GPL3__ license. It can open the game data files, load the levels and render the game world.
 
 While currently it is impossible to play games in it, wkbre can still be used as a level editor. You can open savegames in it, make some changes like creating, moving or deleting characters, buildings, ..., then save the changes and load the new savegame in the original game engine.
 
-You need a copy of the game if you want to execute wkbre. The game is still available in Steam ([WK](http://store.steampowered.com/app/297570) / [WKB](http://store.steampowered.com/app/299070)) and GOG ([WK](https://www.gog.com/game/warrior_kings) / [WKB](https://www.gog.com/game/warrior_kings_battles)).
+You need a copy of the game if you want to execute wkbre. The game is still available on Steam ([WK](http://store.steampowered.com/app/297570) / [WKB](http://store.steampowered.com/app/299070)) and GOG ([WK](https://www.gog.com/game/warrior_kings) / [WKB](https://www.gog.com/game/warrior_kings_battles)).
 
 Currently, wkbre only works on __Windows__ (XP, Vista, 7, 8, 8.1, 10, and later). But a port to other OSs is planned.
 
+There's a video of an old version of wkbre on [YouTube](https://www.youtube.com/watch?v=K2LLjLelEJA).
+
 ## Compilation
-Note: It is recommended to compile the program in 32 bits, otherwise if you make a 64-bit executable it might not find all your savegames if the game is in the "Program Files" directory and you often run the game without administrator rights.
+__Note:__ It is recommended to build a 32-bit executable, otherwise if you make a 64-bit executable it might not find all your savegames (if the game is in the "Program Files" directory and you often run the game without administrator rights).
 * Open a Windows SDK/Visual Studio/MinGW-32 command prompt.
 * cd to wkbre's source code directory.
 * Type (before pressing ENTER)
@@ -22,6 +26,8 @@ For more information see [docs/codedoc.txt](docs/codedoc.txt).
 
 ## Execution
 To run wkbre, you must first open settings.txt and change the GAME_DIR value to the path of WK's game data (the directory with data.bcp and saved directory).
+
+When you start wkbre, you might be asked to enter a test number. Simply press ENTER to run the default main code.
 
 ## Conclusion
 I hope you find wkbre and its source code interesting and useful. Comments/suggestions/bug reports are really appreciated.

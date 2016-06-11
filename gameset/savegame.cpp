@@ -358,6 +358,18 @@ char *LoadGameObjectP1(char *fp, char **fline, int fwords, GameObject *parent)
 					c->y = atoi(word[2+i*2+1]);
 				}
 				break;}
+			case GAMEOBJ_SELECTABLE:
+				if(atoi(word[1]))
+					go->flags |= FGO_SELECTABLE;
+				else
+					go->flags &= ~FGO_SELECTABLE;
+				break;
+			case GAMEOBJ_TARGETABLE:
+				if(atoi(word[1]))
+					go->flags |= FGO_TARGETABLE;
+				else
+					go->flags &= ~FGO_TARGETABLE;
+				break;
 		}
 	}
 	ferr("UEOF"); return fp;
@@ -626,6 +638,11 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
 		fprintf(f, "%s\tINDIVIDUAL_REACTION \"%s\"\n", strtab, strReaction.getdp(e->value));
 
+	if(!(o->flags & FGO_SELECTABLE))
+		fprintf(f, "%s\tSELECTABLE 0\n", strtab);
+	if(!(o->flags & FGO_TARGETABLE))
+		fprintf(f, "%s\tTARGETABLE 0\n", strtab);
+
 	if(o->tiles)
 	{
 		int nt = o->tiles->len;
@@ -874,7 +891,7 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	SetRandomSubtypeAndAppearance(go);
 	if(parent) go->color = parent->color; else go->color = 0;
 	go->renderable = def->renderable;
-	go->flags = 0; go->rects = 0;
+	go->flags = FGO_SELECTABLE | FGO_TARGETABLE; go->rects = 0;
 	go->disableCount = 0;
 	if(go->objdef->type == CLASS_PLAYER)	go->player = go;
 	else if(go->parent)			go->player = go->parent->player;

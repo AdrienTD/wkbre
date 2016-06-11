@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-void DoDrawing();
+struct Cursor
+{
+	HCURSOR hc;
+	texture tx;
+	int w, h;
+	Cursor() : hc(0), w(0), h(0) {}
+};
 
-void SetRect(int x, int y, int w, int h);
-void DrawRect(int x, int y, int w, int h, int c = -1, float u = 0, float v = 0, float o = 1, float p = 1);
-void DrawGradientRect(int x, int y, int w, int h, int c0, int c1, int c2, int c3);
-void InitRectDrawing();
-void BeginDrawing();
-void EndDrawing();
+extern int hardwareCursor;
+extern Cursor *currentCursor;
 
-IDirect3DVertexShader9 *LoadVertexShader(char *filename);
-IDirect3DPixelShader9 *LoadPixelShader(char *filename);
-
-void SetTransformMatrix(Matrix *m);
-void SetTexture(uint x, texture t);
-void NoTexture(uint x);
+void InitCursor();
+Cursor *LoadCursor(char *str);
+void ChangeCursor(Cursor *c);
+void DrawCursor();

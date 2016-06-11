@@ -13,6 +13,12 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+struct CTrigger
+{
+	int type;
+	ActionSeq *seq;
+	CValue *period;
+};
 
 struct CTask
 {
@@ -20,7 +26,7 @@ struct CTask
 	uint type;
 	CFinder *target;
 	CValue *proxRequirement;
-	//GrowList<TaskTrigger> triggers;
+	GrowList<CTrigger> triggers;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq, *proxSatisfiedSeq;
 };

@@ -21,6 +21,7 @@ struct CCommand
 	texture cursor;
 	COrder *order;
 	ActionSeq *startSeq;
+	CCommand() : name(0), order(0), startSeq(0) {}
 };
 
 /*

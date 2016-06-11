@@ -26,6 +26,70 @@ void ObjStepMove(GameObject *o, Vector3 dest)
 
 	o->position += v * elapsed_time * 2;
 	o->position.y = GetHeight(o->position.x, o->position.z);
+
+	o->orientation.x = o->orientation.z = 0;
+	o->orientation.y = M_PI - atan2(v.x, v.z);
+}
+
+void StartCurrentTaskTriggers(GameObject *o)
+{
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if(t->flags & FSTASK_TRIGGERS_STARTED) return;
+
+	t->flags |= FSTASK_TRIGGERS_STARTED;
+	for(int i = 0; i < t->type->triggers.len; i++)
+	{
+		CTrigger *c = t->type->triggers.getpnt(i);
+		t->trigger.add();
+		t->trigger.last->value.id = i;
+		if(c->type == TASKTRIGGER_TIMER)
+		{
+			SequenceEnv env; env.self = o; env.target = t->target;
+			t->trigger.last->value.period = c->period->get(&env);
+		}
+		t->trigger.last->value.referenceTime = current_time;
+	}
+}
+
+void StopCurrentTaskTriggers(GameObject *o)
+{
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if(!(t->flags & FSTASK_TRIGGERS_STARTED)) return;
+
+	t->flags &= ~FSTASK_TRIGGERS_STARTED;
+	t->trigger.clear();
+}
+
+// For various reasons (notably because it is possible to terminate the order and
+// free its memory in the trigger action sequence), only one trigger is executed
+// (and only one time) in CheckCurrentTaskTriggers.
+
+void CheckCurrentTaskTriggers(GameObject *o)
+{
+	SOrder *s = &o->ordercfg.order.first->value;
+	STask *t = &s->task.getEntry(s->currentTask)->value;
+	if(!(t->flags & FSTASK_TRIGGERS_STARTED)) return;
+
+	for(DynListEntry<STrigger> *e = t->trigger.first; e; e = e->next)
+	{
+		STrigger *g = &e->value;
+		CTrigger *c = t->type->triggers.getpnt(g->id);
+		SequenceEnv env;
+		switch(c->type)
+		{
+			case TASKTRIGGER_TIMER:
+				if((g->referenceTime + g->period) > current_time)
+					break;
+				env.self = o; env.target = t->target;
+				g->referenceTime += g->period;
+				g->period = c->period->get(&env);
+				c->seq->run(&env);
+				return;
+		}
+		// continue loop only if trigger not executed
+	}
 }
 
 void ProcessCurrentTask(GameObject *o)
@@ -57,8 +121,11 @@ void ProcessCurrentTask(GameObject *o)
 							c->proxSatisfiedSeq->run(&env);
 						}
 					}
+					StartCurrentTaskTriggers(o);
+					CheckCurrentTaskTriggers(o);
 				} else {
 					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
+					StopCurrentTaskTriggers(o);
 					ObjStepMove(o, t->target->position);
 				}
 				break;}
@@ -161,6 +228,10 @@ void InitTask(GameObject *o, int x)
 	if((t->processState != 0) && (t->processState != 5)) return;
 
 	t->processState = 1;
+	if(!x) StopCurrentTaskTriggers(o);
+	t->flags &= ~(FSTASK_PROXIMITY_SATISFIED | FSTASK_START_SEQUENCE_EXECUTED);
+	t->flags |= FSTASK_FIRST_EXECUTION;
+	// TODO: FSTASK_LAST_DESTINATION_VALID ???
 	if(t->type->target)
 	{
 		SequenceEnv env; env.self = o;
