@@ -1,0 +1,14 @@
+"Activate Mother"
+"Activate Father"
+"Play Score"
+"Main Fort Task"
+
+Mother:
+TOTAL_ITEM_VALUE
+
+Father:
+EXECUTE_SEQUENCE_OVER_PERIOD
+
+Maestro:
+FORCE_PLAY_MUSIC
+IS_MUSIC_PLAYING

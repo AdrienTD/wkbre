@@ -36,6 +36,7 @@ GrowStringList strPRTrigger; CPRTrigger *prtrigger;
 GrowStringList strValueTag; CValue **defValueTag;
 GrowStringList strOrderAssign; COrderAssignment *orderAssign;
 GrowStringList strCommand; CCommand *gscommand;
+GrowStringList strOrderCat, strTaskCat;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -271,6 +272,10 @@ switch(ipass)
 			case CLASS_COMMAND:
 				strCommand.add(word[1]);
 				fp = SkipClass(fp, "END_COMMAND"); break;
+			case CLASS_ORDER_CATEGORY:
+				strOrderCat.add(word[1]); break;
+			case CLASS_TASK_CATEGORY:
+				strTaskCat.add(word[1]); break;
 		} break;
 
 /*******************************************************************/

@@ -18,9 +18,25 @@
 
 int scriptTraceOn = 1;
 
+GrowStringList strUnknownAction;
 struct ActionUnknown : public CAction
 {
-	void run(SequenceEnv *c) {ferr("Action of unknown type executed.");}
+	//void run(SequenceEnv *c) {ferr("Action of unknown type executed.");}
+	int x;
+	ActionUnknown(int a) : x(a) {}
+	void run(SequenceEnv *c)
+	{
+		char tb[1024];
+		strcpy(tb, "Action ");
+		strcat(tb, strUnknownAction.getdp(x));
+		strcat(tb, " is unknown.");
+		ferr(tb);
+	}
+};
+
+struct ActionDoNothing : public CAction
+{
+	void run(SequenceEnv *c) {;}
 };
 
 struct ActionRemove : public CAction
@@ -183,29 +199,12 @@ struct ActionAssignAlias : public CAction
 	}
 };
 
-void ClearAlias(uint t)
-{
-	alias[t].clear();
-}
-
 struct ActionClearAlias : public CAction
 {
 	uint t;
 	ActionClearAlias(uint a) : t(a) {}
 	void run(SequenceEnv *env) {ClearAlias(t);}
 };
-
-void UnaliasObj(GameObject *o, int t)
-{
-	DynListEntry<goref> *n;
-	for(DynListEntry<goref> *e = alias[t].first; e; e = n)
-	{
-		n = e->next;
-		if(e->value.valid())
-			if(e->value.get() == o)
-				{alias[t].remove(e); return;}
-	}
-}
 
 struct ActionUnassignAlias : public CAction
 {
@@ -247,21 +246,6 @@ struct ActionEnable : public CAction
 	}
 };
 
-void ClearAssociates(GameObject *o, int t)
-{
-	for(DynListEntry<GOAssociation> *e = o->association.first; e; e = e->next)
-		if(e->value.category == t)
-		{
-			DynListEntry<GameObjAndListEntry> *n;
-			for(DynListEntry<GameObjAndListEntry> *f = e->value.associates.first; f; f = n)
-			{
-				n = f->next;
-				f->value.l->remove(f->value.e);
-				e->value.associates.remove(f);
-			}
-		}
-}
-
 struct ActionClearAssociates : public CAction
 {
 	int t; CFinder *f;
@@ -286,6 +270,22 @@ struct ActionRegisterAssociates : public CAction
 			GameObject *a; es->begin(env);
 			while(a = es->getnext())
 				AssociateObjToObj(g, t, a);
+		}
+	}
+};
+
+struct ActionDeregisterAssociates : public CAction
+{
+	int t; CFinder *ors, *es;
+	ActionDeregisterAssociates(CFinder *a, int b, CFinder *c) : ors(a), t(b), es(c) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *g; ors->begin(env);
+		while(g = ors->getnext())
+		{
+			GameObject *a; es->begin(env);
+			while(a = es->getnext())
+				DisassociateObjToObj(g, t, a);
 		}
 	}
 };
@@ -435,6 +435,60 @@ struct ActionSwitchAppearance : public CAction
 	}
 };
 
+struct ActionConvertTo : public CAction
+{
+	CObjectDefinition *d; CFinder *f;
+	ActionConvertTo(CObjectDefinition *a, CFinder *b) : d(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext())
+			ConvertObject(o, d);
+	}
+};
+
+struct ActionConvertAccordingToTag : public CAction
+{
+	int t; CFinder *f;
+	ActionConvertAccordingToTag(int a, CFinder *b) : t(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext())
+			if(o->objdef->mappedType[t])
+				ConvertObject(o, o->objdef->mappedType[t]);
+	}
+};
+
+struct ActionExecuteSequenceAfterDelay : public CAction
+{
+	int x; CFinder *f; CValue *v;
+	ActionExecuteSequenceAfterDelay(int a, CFinder *b, CValue *c) : x(a), f(b), v(c) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o = f->getnext(); if(!o) return;
+		delayedSeq.add();
+		DelayedSequenceEntry *dse = &delayedSeq.last->value;
+		dse->time = current_time + v->get(env);
+		dse->actseq = x;
+		dse->executor = env->self;
+		dse->unk = 1;
+
+		GrowList<GameObject*> gl;
+		do {
+			gl.add(o);
+		} while(o = f->getnext());
+
+		dse->numobj = gl.len;
+		dse->obj = new goref[dse->numobj];
+		for(int i = 0; i < dse->numobj; i++)
+			dse->obj[i] = gl[i];
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 
 CAction *ReadAction(char **pntfp, char **word)
@@ -510,6 +564,12 @@ CAction *ReadAction(char **pntfp, char **word)
 			int t = strAssociateCat.find(*w); mustbefound(t); w++;
 			CFinder *b = ReadFinder(&w);
 			return new ActionRegisterAssociates(a, t, b);}
+		case ACTION_DEREGISTER_ASSOCIATES:
+			{w += 2;
+			CFinder *a = ReadFinder(&w);
+			int t = strAssociateCat.find(*w); mustbefound(t); w++;
+			CFinder *b = ReadFinder(&w);
+			return new ActionDeregisterAssociates(a, t, b);}
 		case ACTION_EXECUTE_ONE_AT_RANDOM:
 			return new ActionExecuteOneAtRandom(ReadActSeq(pntfp));
 		case ACTION_TRACE_VALUE:
@@ -543,9 +603,41 @@ CAction *ReadAction(char **pntfp, char **word)
 			{w += 3;
 			int apt = strAppearTag.find(word[2]); mustbefound(apt);
 			return new ActionSwitchAppearance(apt, ReadFinder(&w));}
+		case ACTION_CONVERT_TO:
+			{int d = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, word[2]), word[3]);
+			mustbefound(d);
+			w += 4;
+			return new ActionConvertTo(&objdef[d], ReadFinder(&w));}
+		case ACTION_CONVERT_ACCORDING_TO_TAG:
+			{int t = strTypeTag.find(word[2]); mustbefound(t);
+			w += 3;
+			return new ActionConvertAccordingToTag(t, ReadFinder(&w));}
+		case ACTION_EXECUTE_SEQUENCE_AFTER_DELAY:
+			{int d = strActionSeq.find(word[2]); mustbefound(d);
+			w += 3;
+			CFinder *f = ReadFinder(&w);
+			return new ActionExecuteSequenceAfterDelay(d, f, ReadValue(&w));}
+
+		// The following actions do nothing at the moment (but at least
+		// the program won't crash when these actions are executed).
+		case ACTION_STOP_SOUND:
+		case ACTION_PLAY_SOUND:
+		case ACTION_PLAY_SOUND_AT_POSITION:
+		case ACTION_PLAY_SPECIAL_EFFECT:
+		case ACTION_PLAY_ANIMATION_IF_IDLE:
+		case ACTION_ATTACH_SPECIAL_EFFECT:
+		case ACTION_ATTACH_LOOPING_SPECIAL_EFFECT:
+		case ACTION_DETACH_LOOPING_SPECIAL_EFFECT:
+		case ACTION_REVEAL_FOG_OF_WAR:
+		case ACTION_COLLAPSING_CIRCLE_ON_MINIMAP:
+		case ACTION_SHOW_BLINKING_DOT_ON_MINIMAP:
+			return new ActionDoNothing();
 	}
 	//ferr("Unknown action command."); return 0;
-	return new ActionUnknown();
+	//return new ActionUnknown();
+	int x = strUnknownAction.find(word[1]);
+	if(x == -1) {x = strUnknownAction.len; strUnknownAction.add(word[1]);}
+	return new ActionUnknown(x);
 }
 
 CAction *ReadActLine(char **pntfp)

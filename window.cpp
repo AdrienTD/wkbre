@@ -27,7 +27,7 @@ D3DPRESENT_PARAMETERS dpp = {0, 0, D3DFMT_UNKNOWN, 0, D3DMULTISAMPLE_NONE, 0,
 int scrw = 640, scrh = 480;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
 int mouseX = 0, mouseY = 0;
-int HWVPenabled = 1, VSYNCenabled = 1;
+int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 2;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
 
@@ -145,12 +145,21 @@ void InitWindow()
 	// Initializing Direct3D 9
 	dpp.hDeviceWindow = hWindow;
 	dpp.PresentationInterval = VSYNCenabled ? ((VSYNCenabled==2)?D3DPRESENT_INTERVAL_ONE:D3DPRESENT_INTERVAL_DEFAULT) : D3DPRESENT_INTERVAL_IMMEDIATE;
+	dpp.BackBufferCount = numBackBuffers;
 	d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
 	if(!d3d9) ferr("Direct3D 9 init failed.");
 
 	if(HWVPenabled)
+	{
+		if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
+		   D3DCREATE_HARDWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
+			return;
+		if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
+		   D3DCREATE_HARDWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
+			return;
+	}
 	if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
-	   D3DCREATE_HARDWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
+	   D3DCREATE_SOFTWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
 		return;
 	if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
 	   D3DCREATE_SOFTWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) != D3D_OK)

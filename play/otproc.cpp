@@ -62,6 +62,8 @@ void StopCurrentTaskTriggers(GameObject *o)
 	t->trigger.clear();
 }
 
+#define ANIMATION_LOOP_TRIGGER_SPEED 1
+
 // For various reasons (notably because it is possible to terminate the order and
 // free its memory in the trigger action sequence), only one trigger is executed
 // (and only one time) in CheckCurrentTaskTriggers.
@@ -87,6 +89,13 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				g->period = c->period->get(&env);
 				c->seq->run(&env);
 				return;
+			case TASKTRIGGER_ANIMATION_LOOP:
+				if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
+					break;
+				env.self = o; env.target = t->target;
+				g->referenceTime += ANIMATION_LOOP_TRIGGER_SPEED;
+				c->seq->run(&env);
+				return;
 		}
 		// continue loop only if trigger not executed
 	}
@@ -105,10 +114,10 @@ void ProcessCurrentTask(GameObject *o)
 		{
 			case ORDTSKTYPE_OBJECT_REFERENCE:
 				{if(!t->target.valid()) {TerminateTask(o, 0); break;}
-				if((o == t->target.get()) || (t->proximity < 0.0f)) break;
+				//if((o == t->target.get()) || (t->proximity < 0.0f)) break;
 				Vector3 v = t->target->position - o->position;
 				float d = v.len2xz();
-			  	if(d < t->proximity)
+			  	if((d < t->proximity) || (t->proximity <= -1))
 				{
 					if(!(t->flags & FSTASK_PROXIMITY_SATISFIED))
 					{
@@ -126,7 +135,8 @@ void ProcessCurrentTask(GameObject *o)
 				} else {
 					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
 					StopCurrentTaskTriggers(o);
-					ObjStepMove(o, t->target->position);
+					if(o != t->target.get())
+						ObjStepMove(o, t->target->position);
 				}
 				break;}
 			case ORDTSKTYPE_MOVE:
@@ -232,7 +242,7 @@ void InitTask(GameObject *o, int x)
 	t->flags &= ~(FSTASK_PROXIMITY_SATISFIED | FSTASK_START_SEQUENCE_EXECUTED);
 	t->flags |= FSTASK_FIRST_EXECUTION;
 	// TODO: FSTASK_LAST_DESTINATION_VALID ???
-	if(t->type->target)
+	if(!t->target.valid()) if(t->type->target)
 	{
 		SequenceEnv env; env.self = o;
 		t->target = t->type->target->getfirst(&env);
@@ -316,7 +326,10 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 		st->processState = 0;
 		st->taskID = i;
 		SequenceEnv env; env.self = go; env.target = tg;
-		st->proximity = ct->proxRequirement->get(&env);
+		if(ct->proxRequirement)
+			st->proximity = ct->proxRequirement->get(&env);
+		else
+			st->proximity = -1;
 		st->spawnBlueprint = 0;
 	}
 

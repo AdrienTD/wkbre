@@ -27,10 +27,26 @@ struct FinderNew : public CFinder
 };
 **********************/
 
-struct FinderUnknown : public CFinder
+/*struct FinderUnknown : public CFinder
 {
 	CFinder *clone() {return new FinderUnknown();}
 	void begin(SequenceEnv *env) {ferr("Cannot initialize a finder of unknown type.");}
+	GameObject *getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
+};*/
+
+GrowStringList strUnknownFinder;
+struct FinderUnknown : public CFinder
+{
+	int x;
+	FinderUnknown(int a) : x(a) {}
+	CFinder *clone() {return new FinderUnknown(x);}
+	void begin(SequenceEnv *env)
+	{
+		char tb[1024];
+		strcpy(tb, "Object finder "); strcat(tb, strUnknownFinder.getdp(x));
+		strcat(tb, " is unknown.");
+		ferr(tb);
+	}
 	GameObject *getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
 };
 
@@ -543,14 +559,21 @@ struct FinderAgSelection : public CFinder
 
 struct FinderFilter : public CFinder
 {
-	int eq; CFinder *f;
-	int nomore; SequenceEnv *env;
-	FinderFilter(int a, CFinder *b) : eq(a), f(b) {}
-	CFinder *clone() {return new FinderFilter(eq, f->clone());}
-	void begin(SequenceEnv *c) {nomore = 0; env = c; f->begin(env);}
+	int eq; CFinder *f; CValue *v;
+	int nomore, max, robjs; SequenceEnv *env;
+	FinderFilter(int a, CFinder *b, CValue *c) : eq(a), f(b), v(c) {}
+	CFinder *clone() {return new FinderFilter(eq, f->clone(), v);}
+	void begin(SequenceEnv *c)
+	{
+		nomore = 0; robjs = 0;
+		f->begin(env = c);
+		if(v) max = v->get(env);
+		else max = -1;
+	}
 	GameObject *getnext()
 	{
 		if(nomore) return 0;
+		if((max >= 0) && (robjs >= max)) {nomore = 1; return 0;}
 		GameObject *o; SequenceEnv c;
 		while(1)
 		{
@@ -560,7 +583,7 @@ struct FinderFilter : public CFinder
 			env->copyAll(&c);
 			c.candidate = o;
 			if(stpo(equation[eq]->get(&c)))
-				return o;
+				{robjs++; return o;}
 		}
 	}
 };
@@ -598,6 +621,78 @@ struct FinderLevel : public CFinder
 	GameObject *getnext()
 	{
 		if(f) {f = 0; return levelobj;}
+		return 0;
+	}
+};
+
+// Question: 2D or 3D? To determinate.
+struct FinderNearestCandidate : public CFinder
+{
+	CFinder *f;
+	int nomore; SequenceEnv *env;
+	FinderNearestCandidate(CFinder *a) : f(a) {}
+	CFinder *clone() {return new FinderNearestCandidate(f->clone());}
+	void begin(SequenceEnv *c) {f->begin(env = c); nomore = 0;}
+	GameObject *getnext()
+	{
+		if(nomore) return 0;
+		if(!env->self.valid()) {nomore = 1; return 0;}
+		GameObject *c = 0, *o, *s = env->self.get();
+		float sd = -1;
+		while(o = f->getnext())
+		{
+			float x = s->position.x - o->position.x;
+			float z = s->position.z - o->position.z;
+			float nd = x*x + z*z;
+			if((sd < 0) || (nd < sd)) {c = o; sd = nd;}
+		}
+		nomore = 1;
+		return c;
+	}
+};
+
+struct FinderAlternative : public CFinder
+{
+	int num; CFinder **f;
+	GameObject *ne; CFinder *x; int nomore;
+	FinderAlternative(int a, CFinder **b) : num(a), f(b) {}
+	CFinder *clone()
+	{
+		CFinder **b = new CFinder*[num];
+		for(int i = 0; i < num; i++)
+			b[i] = f[i]->clone();
+		return new FinderAlternative(num, b);
+	}
+	void begin(SequenceEnv *c)
+	{
+		for(int i = 0; i < num; i++)
+			if(ne = f[i]->getfirst(c))
+				{x = f[i]; nomore = 0; return;}
+		nomore = 1;
+	}
+	GameObject *getnext()
+	{
+		if(nomore) return 0;
+		GameObject *tr = ne;
+		if(!tr)	{nomore = 1; return 0;}
+		else	{ne = x->getnext(); return tr;}
+	}
+};
+
+struct FinderPackageSender : public CFinder
+{
+	SequenceEnv *env; int f;
+	FinderPackageSender() {}
+	CFinder *clone() {return new FinderPackageSender();}
+	void begin(SequenceEnv *c) {env = c; f = 1;}
+	GameObject *getnext()
+	{
+		if(f)
+		{
+			f = 0;
+			if(env->pkgsender.valid())
+				return env->pkgsender.get();
+		}
 		return 0;
 	}
 };
@@ -647,10 +742,15 @@ CFinder *ReadFinder(char ***wpnt)
 			*wpnt += 1; return new FinderLevel();
 		case FINDER_TARGET:
 			*wpnt += 1; return new FinderTarget();
+		case FINDER_PACKAGE_SENDER:
+			*wpnt += 1; return new FinderPackageSender();
 	}
 	//ferr("Unknown finder."); return 0;
-rfunk:	*wpnt += 1;
-	return new FinderUnknown();
+rfunk:	int x = strUnknownFinder.find(word[0]);
+	if(x == -1) {x = strUnknownFinder.len; strUnknownFinder.add(word[0]);}
+	*wpnt += 1;
+	return new FinderUnknown(x);
+	//return new FinderUnknown();
 };
 
 void ReadSubFinders(int &n, CFinder** &sf, char** word, char **&pntfp)
@@ -683,6 +783,9 @@ CFinder *ReadOFDLine(char **pntfp)
 			case FINDER_CHAIN:
 				ReadSubFinders(n, sf, word, pntfp);
 				return new FinderChain(n, sf);
+			case FINDER_ALTERNATIVE:
+				ReadSubFinders(n, sf, word, pntfp);
+				return new FinderAlternative(n, sf);
 			case FINDER_SUBORDINATES:
 				{int eq = -1, bn = 0, cl = -1, il = 0;
 				for(int w = 1; w < nwords; )
@@ -712,11 +815,18 @@ CFinder *ReadOFDLine(char **pntfp)
 			case FINDER_FILTER:
 				{CFinder *f = ReadOFDLine(pntfp);
 				int eq = strEquation.find(word[1]); mustbefound(eq);
-				return new FinderFilter(eq, f);}
+				return new FinderFilter(eq, f, 0);}
+			case FINDER_FILTER_FIRST:
+				{CFinder *f = ReadOFDLine(pntfp);
+				int eq = strEquation.find(word[1]); mustbefound(eq);
+				char **w = word + 2;
+				return new FinderFilter(eq, f, ReadValue(&w));}
 			case FINDER_FILTER_CANDIDATES:
 				{CFinder *f = ReadOFDLine(pntfp);
 				char **w = word + 1;
 				return new FinderFilterCandidates(ReadValue(&w), f);}
+			case FINDER_NEAREST_CANDIDATE:
+				return new FinderNearestCandidate(ReadOFDLine(pntfp));
 		}
 		char **pw = word;
 		return ReadFinder(&pw);

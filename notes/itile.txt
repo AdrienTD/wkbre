@@ -1,0 +1,23 @@
+struct ITile
+{
+	CTerrain *terrain;
+	DynList<goref> objs;
+};
+
+ITile *itiles;
+int numTilesX, numTilesZ;
+
+void GOPosChanged(GameObject *o)
+{
+	int x, z;
+	x = o->position.x / 5;
+	z = o->position.z / 5;
+	if((z < 0) || (z >= numTilesZ) || (x < 0) || (x >= numTilesX))
+		{o->tile = 0; return;}
+	ITile *nt = itiles[z*numTilesZ+x];
+	if(nt != o->tile)
+	{
+		o->tile->objs.move(o->tileole, &nt->objs);
+		o->tile = nt;
+	}
+}

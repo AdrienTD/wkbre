@@ -67,6 +67,7 @@ extern GrowStringList strPRTrigger; extern CPRTrigger *prtrigger;
 extern GrowStringList strValueTag; extern CValue **defValueTag;
 extern GrowStringList strOrderAssign; extern COrderAssignment *orderAssign;
 extern GrowStringList strCommand; extern CCommand *gscommand;
+extern GrowStringList strOrderCat, strTaskCat;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

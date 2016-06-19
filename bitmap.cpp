@@ -65,8 +65,12 @@ Bitmap *LoadTGA(char *data, int ds)
 	int s = bm->w * bm->h * e;
 	bm->pix = (uchar*)malloc(s);
 	//memcpy(bm->pix, dp, s);
-	for(int y = 0; y < bm->h; y++)
-		memcpy(bm->pix + ((bm->h-1-y) * bm->w * e), dp + (y * bm->w * e), bm->w * e);
+	if(data[17] & 32)
+		for(int y = 0; y < bm->h; y++)
+			memcpy(bm->pix + (y * bm->w * e), dp + (y * bm->w * e), bm->w * e);
+	else
+		for(int y = 0; y < bm->h; y++)
+			memcpy(bm->pix + ((bm->h-1-y) * bm->w * e), dp + (y * bm->w * e), bm->w * e);
 
 	return bm;
 }

@@ -395,8 +395,8 @@ void ReadSequenceOverPeriod(SequenceOverPeriodEntry *e, char **word)
 	e->executor = FindObjID(atoi(word[2]));
 	e->time = atof(word[3]);
 	e->period = atof(word[4]);
-	e->unk1 = atoi(word[5]);
-	e->unk2 = atoi(word[6]);
+	e->nloops = atoi(word[5]);
+	e->loopsexec = atoi(word[6]);
 	e->numobj = atoi(word[7]);
 	e->obj = (goref*)malloc(sizeof(goref) * e->numobj);
 	for(int i = 0; i < e->numobj; i++)
@@ -734,7 +734,7 @@ void SaveSaveGame(char *fn)
 		if(!e->value.executor.valid()) continue;
 		numexobj = NumValidGORinArray(e->value.obj, e->value.numobj);
 		if(!numexobj) continue;
-		fprintf(f, "EXECUTE_SEQUENCE_OVER_PERIOD \"%s\" %u %.2f %.2f %u %u %u", strActionSeq.getdp(e->value.actseq), e->value.executor.getID(), e->value.time, e->value.period, e->value.unk1, e->value.unk2, numexobj);
+		fprintf(f, "EXECUTE_SEQUENCE_OVER_PERIOD \"%s\" %u %.2f %.2f %u %u %u", strActionSeq.getdp(e->value.actseq), e->value.executor.getID(), e->value.time, e->value.period, e->value.nloops, e->value.loopsexec, numexobj);
 		WriteGORefArray(f, e->value.obj, e->value.numobj);
 		fprintf(f, "\n");
 	}
@@ -743,7 +743,7 @@ void SaveSaveGame(char *fn)
 		if(!e->value.executor.valid()) continue;
 		numexobj = NumValidGORinArray(e->value.obj, e->value.numobj);
 		if(!numexobj) continue;
-		fprintf(f, "REPEAT_SEQUENCE_OVER_PERIOD \"%s\" %u %.2f %.2f %u %u %u", strActionSeq.getdp(e->value.actseq), e->value.executor.getID(), e->value.time, e->value.period, e->value.unk1, e->value.unk2, numexobj);
+		fprintf(f, "REPEAT_SEQUENCE_OVER_PERIOD \"%s\" %u %.2f %.2f %u %u %u", strActionSeq.getdp(e->value.actseq), e->value.executor.getID(), e->value.time, e->value.period, e->value.nloops, e->value.loopsexec, numexobj);
 		WriteGORefArray(f, e->value.obj, e->value.numobj);
 		fprintf(f, "\n");
 	}
@@ -817,8 +817,40 @@ void SetRandomSubtypeAndAppearance(GameObject *o)
 	o->appearance = 0;
 }
 
+int AreObjsAssociated(GameObject *a, uint cat, GameObject *b)
+{
+	GOAssociation *x;
+	for(DynListEntry<GOAssociation> *e = a->association.first; e; e = e->next)
+		if(e->value.category == cat)
+			{x = &e->value; goto acf;}
+	return 0;
+
+acf:	for(DynListEntry<GameObjAndListEntry> *e = x->associates.first; e; e = e->next)
+		if(e->value.o == b)
+			return 1;
+	return 0;
+}
+
+
+void ClearAssociates(GameObject *o, int t)
+{
+	for(DynListEntry<GOAssociation> *e = o->association.first; e; e = e->next)
+		if(e->value.category == t)
+		{
+			DynListEntry<GameObjAndListEntry> *n;
+			for(DynListEntry<GameObjAndListEntry> *f = e->value.associates.first; f; f = n)
+			{
+				n = f->next;
+				f->value.l->remove(f->value.e);
+				e->value.associates.remove(f);
+			}
+		}
+}
+
 void AssociateObjToObj(GameObject *a, uint cat, GameObject *b)
 {
+	if(AreObjsAssociated(a, cat, b)) return;
+
 	GOAssociation *x, *y;
 
 	for(DynListEntry<GOAssociation> *e = a->association.first; e; e = e->next)
@@ -845,6 +877,25 @@ bcf:	x->associates.add();
 	y->associators.last->value.e = x->associates.last;
 }
 
+void DisassociateObjToObj(GameObject *a, uint cat, GameObject *b)
+{
+	GOAssociation *x;
+	for(DynListEntry<GOAssociation> *e = a->association.first; e; e = e->next)
+		if(e->value.category == cat)
+			{x = &e->value; goto acf;}
+	return;
+
+acf:	for(DynListEntry<GameObjAndListEntry> *e = x->associates.first; e; e = e->next)
+	{
+		if(e->value.o == b)
+		{
+			e->value.l->remove(e->value.e);
+			x->associates.remove(e);
+			return;
+		}
+	}
+}
+
 int IsInAlias(GameObject *a, uint c)
 {
 	for(DynListEntry<goref> *e = alias[c].first; e; e = e->next)
@@ -854,10 +905,23 @@ int IsInAlias(GameObject *a, uint c)
 	return 0;
 }
 
+void ClearAlias(uint t)
+{
+	alias[t].clear();
+}
+
 void AliasObj(GameObject *a, uint c)
 {
 	if(!IsInAlias(a, c))
 		{alias[c].add(); alias[c].last->value = a;}
+}
+
+void UnaliasObj(GameObject *a, uint c)
+{
+	for(DynListEntry<goref> *e = alias[c].first; e; e = e->next)
+		if(e->value.valid())
+			if(e->value.get() == a)
+				{alias[c].remove(e); return;}
 }
 
 GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
@@ -916,4 +980,11 @@ GameObject *DuplicateObject(GameObject *a)
 		{o->item.add(); o->item.last->value = e->value;}
 	o->color = a->color;
 	return o;
+}
+
+void ConvertObject(GameObject *o, CObjectDefinition *d)
+{
+	o->objdef = d;
+	o->appearance = 0;
+	SetRandomSubtypeAndAppearance(o);
 }

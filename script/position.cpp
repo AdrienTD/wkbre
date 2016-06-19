@@ -19,10 +19,39 @@
 Vector3 nullVec3(0, 0, 0);
 PosOri nullpo = {Vector3(0,0,0),Vector3(0,0,0)};
 
+int FinderToPosOri(PosOri *p, CFinder *f, SequenceEnv *env)
+{
+	int no = 0; GameObject *o;
+	p->pos.x = p->pos.y = p->pos.z = p->ori.x = p->ori.y = p->ori.z = 0;
+	f->begin(env);
+	while(o = f->getnext())
+	{
+		p->pos += o->position;
+		p->ori += o->orientation;
+		no++;
+	}
+	if(!no) return 0;
+	p->pos /= no;
+	p->ori /= no;
+	p->pos.y = GetHeight(p->pos.x, p->pos.z);
+	return no;
+}
+
+GrowStringList strUnknownPosition;
 struct PositionUnknown : public CPosition
 {
+	//void get(SequenceEnv *env, PosOri *po)
+	//	{ferr("Cannot determinate a position of unknown type.");}
+	int x;
+	PositionUnknown(int a) : x(a) {}
 	void get(SequenceEnv *env, PosOri *po)
-		{ferr("Cannot determinate a position of unknown type.");}
+	{
+		char tb[1024];
+		strcpy(tb, "Position determinator ");
+		strcat(tb, strUnknownPosition.getdp(x));
+		strcat(tb, " is unknown.");
+		ferr(tb);
+	}
 };
 
 struct PositionCentreOfMap : public CPosition
@@ -43,19 +72,7 @@ struct PositionLocationOf : public CPosition
 	PositionLocationOf(CFinder *a) : f(a) {}
 	void get(SequenceEnv *env, PosOri *po)
 	{
-		float x = 0, z = 0; int n = 0; GameObject *o;
-		f->begin(env);
-		while(o = f->getnext())
-		{
-			x += o->position.x;
-			z += o->position.z;
-			n++;
-		}
-		if(!n) {*po = nullpo; return;}
-		po->pos.x = x / n;
-		po->pos.z = z / n;
-		po->pos.y = GetHeight(po->pos.x, po->pos.z);
-		po->ori = nullVec3;
+		FinderToPosOri(po, f, env);
 	}
 };
 
@@ -97,6 +114,9 @@ CPosition *ReadCPosition(char ***wpnt)
 			return new PositionOutAtAngle(a, b, ReadValue(wpnt));}
 	}
 	//ferr("Unknown position type."); return 0;
+	int x = strUnknownPosition.find(word[0]);
+	if(x == -1) {x = strUnknownPosition.len; strUnknownPosition.add(word[0]);}
 	*wpnt += 1;
-	return new PositionUnknown();
+	return new PositionUnknown(x);
+	//return new PositionUnknown();
 }

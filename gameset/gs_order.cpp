@@ -21,6 +21,7 @@ void ReadCOrder(char **pntfp, char **fstline)
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords, strdex;
 	COrder *co = &(gsorder[strdex = strOrder.find(fstline[1])]);
 	co->name = strOrder.getdp(strdex);
+	co->cat = -2;
 	co->cycle = 0;
 	co->initSeq = co->startSeq = co->suspendSeq = co->resumeSeq = co->cancelSeq = co->terminateSeq = 0;
 	while(**pntfp)
@@ -36,6 +37,8 @@ void ReadCOrder(char **pntfp, char **fstline)
 			case CORDER_CLASS_TYPE:
 				co->type = stfind_cs(ORDTSKTYPE_str, ORDTSKTYPE_NUM, word[1]);
 				break;
+			case CORDER_IN_ORDER_CATEGORY:
+				co->cat = strOrderCat.find(word[1]); break;
 			case CORDER_USE_TASK:
 				co->tasks.add(&(gstask[strTask.find(word[1])])); break;
 			case CORDER_FLAG:
@@ -77,6 +80,7 @@ void ReadCTask(char **pntfp, char **fstline)
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords, strdex;
 	CTask *ct = &(gstask[strdex = strTask.find(fstline[1])]);
 	ct->name = strTask.getdp(strdex);
+	ct->cat = -2;
 	ct->target = 0; ct->proxRequirement = 0;
 	ct->initSeq = ct->startSeq = ct->suspendSeq = ct->resumeSeq = ct->cancelSeq = ct->terminateSeq = ct->proxSatisfiedSeq = 0;
 	while(**pntfp)
@@ -91,6 +95,8 @@ void ReadCTask(char **pntfp, char **fstline)
 			case CTASK_CLASS_TYPE:
 				ct->type = stfind_cs(ORDTSKTYPE_str, ORDTSKTYPE_NUM, word[1]);
 				break;
+			case CTASK_IN_TASK_CATEGORY:
+				ct->cat = strTaskCat.find(word[1]); break;
 			case CTASK_TASK_TARGET:
 				{char **w = word + 1;
 				ct->target = ReadFinder(&w);

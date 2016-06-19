@@ -18,10 +18,22 @@
 
 #define RANDZEROTOONE ((rand()%32768)/32768.0f)
 
+GrowStringList strUnknownValue;
 struct ValueUnknown : public CValue
 {
+	//valuetype get(SequenceEnv *env)
+	//	{ferr("Cannot determinate a value of unknown type."); return 0;}
+	int x;
+	ValueUnknown(int a) : x(a) {}
 	valuetype get(SequenceEnv *env)
-		{ferr("Cannot determinate a value of unknown type."); return 0;}
+	{
+		char tb[1024];
+		strcpy(tb, "Value determinator ");
+		strcat(tb, strUnknownValue.getdp(x));
+		strcat(tb, " is unknown.");
+		ferr(tb);
+		return 0;
+	}
 };
 
 struct ValueConstant : public CValue
@@ -179,6 +191,172 @@ struct ValueWaterBeneath : public CValue
 	}
 };
 
+struct ValueBlueprintItemValue : public CValue
+{
+	int item; CObjectDefinition *od;
+	ValueBlueprintItemValue(int a, CObjectDefinition *b) : item(a), od(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		return od->startItems[item];
+	}
+};
+
+struct ValueDistanceBetween : public CValue
+{
+	int mode; CFinder *x, *y;
+	ValueDistanceBetween(int a, CFinder *b, CFinder *c) : mode(a), x(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		PosOri a, b;
+		int n = FinderToPosOri(&a, x, env) && FinderToPosOri(&b, y, env);
+		if(!n) return 0;
+		switch(mode)
+		{
+			case DISTCALCMODE_3D:
+				{Vector3 s = a.pos - b.pos;
+				return sqrt(s.x*s.x + s.y*s.y + s.z*s.z);}
+			case DISTCALCMODE_HORIZONTAL:
+				{Vector3 s = a.pos - b.pos;
+				return sqrt(s.x*s.x + s.z*s.z);}
+			case DISTCALCMODE_VERTICAL:
+				return abs(a.pos.y - b.pos.y);
+		}
+		ferr("ValueDistanceBetween::get Unknown distance calculation mode.");
+		return 0;
+	}
+};
+
+int DiplomaticStatusAtLeast(int s, GameObject *x, GameObject *y)
+{
+	GameObject *a = x->player, *b = y->player;
+	if(a == b) return 1;
+	return GetDiplomaticStatus(a, b) >= s;
+}
+
+struct ValueDiplomaticStatusAtLeast : public CValue
+{
+	int s; CFinder *x, *y;
+	ValueDiplomaticStatusAtLeast(int a, CFinder *b, CFinder *c) : s(a), x(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *a, *b;
+		x->begin(env);
+		a = x->getnext(); if(!a) return 0;
+		do
+		{
+			y->begin(env);
+			b = y->getnext(); if(!b) return 0;
+			do
+			{
+				if(!DiplomaticStatusAtLeast(s, a, b))
+					return 0;
+			} while(b = y->getnext());
+		} while(a = x->getnext());
+		return 1;
+	}
+};
+
+struct ValueCurrentlyDoingOrder : public CValue
+{
+	int cat; CFinder *f;
+	ValueCurrentlyDoingOrder(int a, CFinder *b) : cat(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o = f->getnext();
+		if(!o) return 0;
+		do {
+			if(!o->ordercfg.order.len) return 0;
+			SOrder *s = &o->ordercfg.order.first->value;
+			if(s->processState >= 4) return 0;
+			if(s->type->cat != cat) return 0;
+		} while(o = f->getnext());
+		return 1;
+	}
+};
+
+struct ValueTotalItemValue : public CValue
+{
+	int x; CFinder *f;
+	ValueTotalItemValue(int a, CFinder *b) : x(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o; valuetype s = 0;
+		while(o = f->getnext())
+			s += o->getItem(x);
+		return s;
+	}
+};
+
+struct ValueHasAppearance : public CValue
+{
+	CFinder *f; int ap;
+	ValueHasAppearance(CFinder *a, int b) : f(a), ap(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TODO: What happens with more than 1 object?
+		GameObject *o = f->getfirst(env);
+		if(!o) return 0;
+		return o->appearance == ap;
+	}
+};
+
+struct ValueCanReach : public CValue
+{
+	CFinder *f; CPosition *p;
+	ValueCanReach(CFinder *a, CPosition *b) : f(a), p(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TODO: Correct answer later.
+		return 1;
+	}
+};
+
+struct ValueSamePlayer : public CValue
+{
+	CFinder *x, *y;
+	ValueSamePlayer(CFinder *b, CFinder *c) : x(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *a, *b;
+		x->begin(env);
+		a = x->getnext(); if(!a) return 0;
+		do
+		{
+			y->begin(env);
+			b = y->getnext(); if(!b) return 0;
+			do
+			{
+				if(a->player != b->player)
+					return 0;
+			} while(b = y->getnext());
+		} while(a = x->getnext());
+		return 1;
+	}
+};
+
+struct ValueAreAssociated : public CValue
+{
+	CFinder *x, *y; int t;
+	ValueAreAssociated(CFinder *a, int b, CFinder *c) : x(a), t(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *a, *b;
+		x->begin(env);
+		a = x->getnext(); if(!a) return 0;
+		do {
+			y->begin(env);
+			b = y->getnext(); if(!b) return 0;
+			do {
+				if(!AreObjsAssociated(b, t, a))
+					return 0;
+			} while(b = y->getnext());
+		} while(a = x->getnext());
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -221,10 +399,60 @@ CValue *ReadValue(char ***wpnt)
 		case VALUE_WATER_BENEATH:
 			{*wpnt += 1;
 			return new ValueWaterBeneath(ReadFinder(wpnt));}
+		case VALUE_BLUEPRINT_ITEM_VALUE:
+			{int i = strItems.find(word[1]); mustbefound(i);
+			int d = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, word[2]), word[3]);
+			mustbefound(d);
+			return new ValueBlueprintItemValue(i, &objdef[d]);}
+		case VALUE_DISTANCE_BETWEEN:
+			{int m = stfind_cs(DISTCALCMODE_str, DISTCALCMODE_NUM, word[1]);
+			mustbefound(m);
+			*wpnt += 2;
+			CFinder *a = ReadFinder(wpnt);
+			return new ValueDistanceBetween(m, a, ReadFinder(wpnt));}
+		case VALUE_DIPLOMATIC_STATUS_AT_LEAST:
+			{int m = strDiplomaticStatus.find(word[1]); mustbefound(m);
+			*wpnt += 2;
+			CFinder *a = ReadFinder(wpnt);
+			return new ValueDiplomaticStatusAtLeast(m, a, ReadFinder(wpnt));}
+		case VALUE_CURRENTLY_DOING_ORDER:
+			{int c = strOrderCat.find(word[1]);
+			*wpnt += 2;
+			return new ValueCurrentlyDoingOrder(c, ReadFinder(wpnt));}
+		case VALUE_TOTAL_ITEM_VALUE:
+			{int x = strItems.find(word[1]);
+			if(x == -1) x = 0; //mustbefound(x); // TODO: WARNING
+			*wpnt += 2;
+			return new ValueTotalItemValue(x, ReadFinder(wpnt));}
+		case VALUE_HAS_APPEARANCE:
+			{*wpnt += 1;
+			CFinder *f = ReadFinder(wpnt);
+			int x = strAppearTag.find(**wpnt);
+			*wpnt += 1;
+			return new ValueHasAppearance(f, x);}
+		case VALUE_CAN_REACH:
+			{*wpnt += 1;
+			CFinder *f = ReadFinder(wpnt);
+			CPosition *p = ReadCPosition(wpnt);
+			return new ValueCanReach(f, p);}
+		case VALUE_SAME_PLAYER:
+			{*wpnt += 1;
+			CFinder *a = ReadFinder(wpnt);
+			return new ValueSamePlayer(a, ReadFinder(wpnt));}
+		case VALUE_ARE_ASSOCIATED:
+			{*wpnt += 1;
+			CFinder *a = ReadFinder(wpnt);
+			int c = strAssociateCat.find(**wpnt); mustbefound(c);
+			*wpnt += 1;
+			return new ValueAreAssociated(a, c, ReadFinder(wpnt));}
+			
 	}
 	//ferr("Unknown value type."); return 0;
+	int x = strUnknownValue.find(word[0]);
+	if(x == -1) {x = strUnknownValue.len; strUnknownValue.add(word[0]);}
 	*wpnt += 1;
-	return new ValueUnknown();
+	return new ValueUnknown(x);
+	//return new ValueUnknown();
 };
 
 struct Enode1V : public CValue

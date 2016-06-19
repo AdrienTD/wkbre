@@ -47,7 +47,7 @@ int CanExecuteCommand(CObjectDefinition *od, CCommand *cc)
 	return 0;
 }
 
-void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg)
+void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg, int assignmode)
 {
 	if(!CanExecuteCommand(o->objdef, c)) return;
 	if(c->startSeq)
@@ -55,6 +55,8 @@ void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg)
 		SequenceEnv env; env.self = o; env.target = tg;
 		c->startSeq->run(&env);
 	}
+	if(c->order)
+		AssignOrder(o, c->order, assignmode, tg);
 }
 
 /*

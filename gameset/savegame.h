@@ -87,7 +87,7 @@ struct SequenceOverPeriodEntry
 {
 	uint actseq; goref executor;
 	float time, period;	// (?)
-	uint unk1, unk2;
+	uint nloops, loopsexec;
 	uint numobj; goref *obj;
 };
 
@@ -96,6 +96,9 @@ extern GameObject *levelobj;
 extern uint wkver;
 
 extern float current_time, previous_time, elapsed_time;
+
+extern DynList<DelayedSequenceEntry> delayedSeq;
+extern DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
 
 GameObject *SubFindObjID(int id, GameObject *p);
 GameObject *FindObjID(int id);
@@ -125,8 +128,15 @@ void SaveSaveGame(char *fn);
 
 void RemoveObject(GameObject *o);
 void SetObjectParent(GameObject *c, GameObject *p);
+int AreObjsAssociated(GameObject *a, uint cat, GameObject *b);
+void ClearAssociates(GameObject *o, int t);
 void AssociateObjToObj(GameObject *a, uint cat, GameObject *b);
+void DisassociateObjToObj(GameObject *a, uint cat, GameObject *b);
+int IsInAlias(GameObject *a, uint c);
+void ClearAlias(uint t);
 void AliasObj(GameObject *a, uint c);
+void UnaliasObj(GameObject *a, uint c);
 GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id = -1);
 void SetRandomSubtypeAndAppearance(GameObject *o);
 GameObject *DuplicateObject(GameObject *a);
+void ConvertObject(GameObject *o, CObjectDefinition *d);

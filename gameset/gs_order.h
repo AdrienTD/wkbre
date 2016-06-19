@@ -24,6 +24,7 @@ struct CTask
 {
 	char *name;
 	uint type;
+	int cat;
 	CFinder *target;
 	CValue *proxRequirement;
 	GrowList<CTrigger> triggers;
@@ -34,7 +35,9 @@ struct CTask
 struct COrder
 {
 	char *name;
-	uint type; boolean cycle;
+	uint type;
+	int cat;
+	boolean cycle;
 	GrowList<CTask *> tasks;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq;

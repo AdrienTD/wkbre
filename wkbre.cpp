@@ -296,11 +296,14 @@ void ReplaceObjsType(GameObject *o, CObjectDefinition *a, CObjectDefinition *b)
 		ReplaceObjsType(&e->value, a, b);
 	if(o->objdef == a)
 	{
+		ConvertObject(o, b);
+/*
 		o->objdef = b;
 		o->item.clear(); //memcpy(o->item, b->startItems, strItems.len * sizeof(valuetype));
 		o->appearance = 0;
 		o->subtype = (b->numsubtypes>1)?((rand()%(b->numsubtypes-1)) + 1):0;
 		o->renderable = b->renderable;
+*/
 	}
 }
 
@@ -482,6 +485,15 @@ void DeselectObject(GameObject *o)
 			selobjects.remove(e);
 	}			
 	UpdateSelectionInfo();
+}
+
+void CancelAllObjsOrders(GameObject *o)
+{
+	if(o->ordercfg.order.len)
+		//CancelAllOrders(o);
+		o->ordercfg.order.clear();
+	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+		CancelAllObjsOrders(&e->value);
 }
 
 void CallCommand(int cmd)
@@ -712,6 +724,8 @@ void CallCommand(int cmd)
 			game_speed *= 2.0f; break;
 		case CMD_GAME_SPEED_SLOWER:
 			game_speed /= 2.0f; break;
+		case CMD_CANCEL_ALL_OBJS_ORDERS:
+			CancelAllObjsOrders(levelobj); break;
 	}
 }
 
@@ -962,7 +976,7 @@ void Test7()
 			CCommand *c = AskCommand("Which command do you want to execute on the selected objects (with no target)?");
 			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
-					ExecuteCommand(e->value.get(), c, 0);
+					ExecuteCommand(e->value.get(), c, 0, ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
 		}
 
 		if(keypressed['X']) {keypressed['X'] = 0; CallCommand(CMD_RUNACTSEQ);}
@@ -999,6 +1013,8 @@ void Test7()
 				}
 			}
 		}
+
+		if(keypressed['Q']) {keypressed['Q'] = 0; CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);}
 	}
 	}
 }
