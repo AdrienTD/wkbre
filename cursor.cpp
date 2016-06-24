@@ -27,7 +27,7 @@ void InitCursor()
 		int maskand[1] = {-1};
 		int maskxor[1] = {0};
 		invisibleCursor = CreateCursor(hInstance, 0, 0, 1, 1, maskand, maskxor);
-		SetClassLongPtr(hWindow, GCL_HCURSOR, (LONG_PTR)invisibleCursor);
+		SetClassLongPtr(hWindow, GCLP_HCURSOR, (LONG_PTR)invisibleCursor);
 	}
 }
 
@@ -55,7 +55,7 @@ void ChangeCursor(Cursor *c)
 	currentCursor = c;
 	if(hardwareCursor)
 	{
-		SetClassLongPtr(hWindow, GCL_HCURSOR, (LONG_PTR)currentCursor->hc);
+		SetClassLongPtr(hWindow, GCLP_HCURSOR, (LONG_PTR)currentCursor->hc);
 		//SetCursor(c->hc);
 	}
 }

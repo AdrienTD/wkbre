@@ -29,6 +29,7 @@ struct ActionSeq
 	}
 };
 
+extern GrowStringList strUnknownAction;
 extern int scriptTraceOn;
 
 CAction *ReadAction(char **pntfp, char **word);

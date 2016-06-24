@@ -200,6 +200,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 			case CBLUEPRINT_STARTS_WITH_ITEM:
 			case CBLUEPRINT_ITEM:
 				//printf("(!) %s\n", word[1]);
+				if(nwords < 3) break;
 				y = strItems.find(word[1]); //mustbefound(y);
 				if(y == -1) break;
 				objdef[x].startItems[y] = atov(word[2]);

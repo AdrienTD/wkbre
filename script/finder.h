@@ -28,5 +28,23 @@ struct CFinder
 	GameObject *getfirst(SequenceEnv *env) {this->begin(env); return this->getnext();}
 };
 
+struct CObjFindCond
+{
+	int refobj;
+	// 0 = FINDER_SELF		1 = FINDER_CHAIN_ORIGINAL_SELF
+
+	int diplo;
+	// 0 = any player		1 = same player as refobj
+	// 2 = allied to refobj		3 = enemy to refobj
+
+	int otype;
+	// 0 = any class		1 = buildings only
+	// 2 = characters only		3 = buildings and characters only
+
+	CObjFindCond() : refobj(0), diplo(0), otype(0) {}
+};
+
+extern GrowStringList strUnknownFinder;
+
 CFinder *ReadFinder(char ***wpnt);
 CFinder *ReadOFDLine(char **pntfp);

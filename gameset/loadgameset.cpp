@@ -133,7 +133,7 @@ void LookAtFile(char *filename, int ipass)
 	while(*fp)
 	{
 		fp = GetLine(fp, line);
-		//printf("--> %s\n", line);
+		//printf("--> %s\n", line); fflush(stdout);
 		//printf("%i\r", ++gline);
 		strcpy(wwl, line);
 		nwords = GetWords(wwl, word);

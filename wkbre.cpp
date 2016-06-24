@@ -393,6 +393,17 @@ void RemoveObjOfClass(GameObject *o, int c)
 		RemoveObject(o);
 }
 
+void SendEventToObjAndSubord(GameObject *o, int v)
+{
+	SendGameEvent(0, o, v);
+	DynListEntry<GameObject> *n;
+	for(DynListEntry<GameObject> *e = o->children.first; e; e = n)
+	{
+		n = e->next;
+		SendEventToObjAndSubord(&e->value, v);
+	}
+}
+
 int AskClass(char *head = 0)
 {
 	GrowStringList sl;
@@ -557,6 +568,7 @@ void CallCommand(int cmd)
 			{
 				GameObject *o = CreateObject(d, p);
 				o->position = Vector3(px, GetHeight(px, pz), pz);
+				GOPosChanged(o);
 				createdObjects.add();
 				createdObjects.last->value = o;
 			}
@@ -799,6 +811,7 @@ void Test7()
 		{
 			AdvanceTime();
 			ProcessAllOrders();
+			CheckBattlesDelayedSequences();
 		}
 #endif
 		if(!winMinimized)
@@ -820,6 +833,20 @@ void Test7()
 			char st[256];
 			sprintf(st, "current_time = %f", current_time);
 			DrawFont(0, 80, st);
+			if(selobjects.len)
+			if(selobjects.first->value.valid())
+			{
+				int xf = strItems.find("Food"), xw = strItems.find("Wood"), xg = strItems.find("Gold"), xs = strItems.find("Stone");
+				if((xf + xw + xg + xs) >= 0)
+				{
+					sprintf(st, "--- Selected object ---\nFood: %f\nWood: %f\nGold: %f\nStone: %f",
+						selobjects.first->value->getItem(xf),
+						selobjects.first->value->getItem(xw),
+						selobjects.first->value->getItem(xg),
+						selobjects.first->value->getItem(xs));
+					DrawFont(0, 100, st);
+				}
+			}
 #endif
 
 			DrawCursor();
@@ -844,7 +871,8 @@ void Test7()
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position += n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);}
+					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
+					GOPosChanged(e->value.get());}
 		}
 		if(keypressed[VK_DOWN])
 		{
@@ -855,7 +883,8 @@ void Test7()
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position -= n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);}
+					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
+					GOPosChanged(e->value.get());}
 		}
 		if(keypressed[VK_LEFT])
 		{
@@ -866,7 +895,8 @@ void Test7()
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position += n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);}
+					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
+					GOPosChanged(e->value.get());}
 		}
 		if(keypressed[VK_RIGHT])
 		{
@@ -877,7 +907,8 @@ void Test7()
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position += n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);}
+					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
+					GOPosChanged(e->value.get());}
 		}
 		if(keypressed['E']) camerapos += Vector3(0.0f, walkstep, 0.0f);
 		if(keypressed['D']) camerapos -= Vector3(0.0f, walkstep, 0.0f);
@@ -990,7 +1021,11 @@ void Test7()
 				for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 				if(e->value->objdef->mappedType[t])
-					CreateObject(e->value->objdef->mappedType[t], e->value->parent)->position = e->value->position;
+				{
+					GameObject *o = CreateObject(e->value->objdef->mappedType[t], e->value->parent);
+					o->position = e->value->position;
+					GOPosChanged(o);
+				}
 			}
 		}
 
@@ -1008,6 +1043,7 @@ void Test7()
 				{
 					GameObject *o = CreateObject(od, p);
 					o->position = p->position;
+					GOPosChanged(o);
 					SequenceEnv ctx;
 					SendGameEvent(&ctx, o, PDEVENT_ON_STAMPDOWN);
 				}
@@ -1015,6 +1051,72 @@ void Test7()
 		}
 
 		if(keypressed['Q']) {keypressed['Q'] = 0; CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);}
+
+		if(keypressed['B'])
+		{
+			keypressed['B'] = 0;
+			if(selobjects.len) if(selobjects.first->value.valid())
+			{
+				GameObject *o = selobjects.first->value.get();
+				//printf("%i objects on same tile:\n", o->itile->objs.len);
+				//for(DynListEntry<goref> *e = o->itile->objs.first; e; e = e->next)
+				//	printf(" - %i\n", e->value.getID());
+				GrowList<goref> onm;
+				ListObjsInTiles(o->position.x/5-1, o->position.z/5-1, 3, 3, &onm);
+				printf("%i objects near it:\n", onm.len);
+				for(int i = 0; i < onm.len; i++)
+					printf(" - %i\n", onm.getpnt(i)->getID());
+			}
+		}
+
+		if(keypressed['S'])
+		{
+			keypressed['S'] = 0;
+			SendEventToObjAndSubord(levelobj, PDEVENT_ON_LEVEL_START);
+		}
+
+		if(keypressed['N'])
+		{
+			keypressed['N'] = 0;
+			printf("--- Unknown actions ---\n");
+			for(int i = 0; i < strUnknownAction.len; i++)
+				printf("%s\n", strUnknownAction.getdp(i));
+			printf("--- Unknown object finders ---\n");
+			for(int i = 0; i < strUnknownFinder.len; i++)
+				printf("%s\n", strUnknownFinder.getdp(i));
+			printf("--- Unknown position determinators ---\n");
+			for(int i = 0; i < strUnknownPosition.len; i++)
+				printf("%s\n", strUnknownPosition.getdp(i));
+			printf("--- Unknown value determinators ---\n");
+			for(int i = 0; i < strUnknownValue.len; i++)
+				printf("%s\n", strUnknownValue.getdp(i));
+		}
+
+		if(keypressed['O'])
+		{
+			keypressed['O'] = 0;
+			char s[256];
+			if(StrDlgBox(s, "Enter the ID of the object you'd like to select."))
+			{
+				GameObject *o = FindObjID(atoi(s));
+				if(!o) MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
+				else {DeselectAll(); SelectObject(o);}
+			}
+		}
+
+		if(keypressed['Z'])
+		{
+			keypressed['Z'] = 0;
+			for(DynListEntry<DelayedSequenceEntry> *e = delayedSeq.first; e; e = e->next)
+				delete [] e->value.obj;
+			delayedSeq.clear();
+			for(DynListEntry<SequenceOverPeriodEntry> *e = exePeriodSeq.first; e; e = e->next)
+				delete [] e->value.ola;
+			exePeriodSeq.clear();
+			for(DynListEntry<SequenceOverPeriodEntry> *e = repPeriodSeq.first; e; e = e->next)
+				delete [] e->value.ola;
+			repPeriodSeq.clear();
+		}
 	}
 	}
 }

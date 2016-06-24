@@ -14,24 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#define stpo(n) ((n)>0)
-
-struct SequenceEnv
+struct ITile
 {
-	goref self, exec, target, candidate, creator, ogiver, pkgsender, originalself;
-	void copySelf(SequenceEnv *e)
-		{e->self = self;}
-	void copyAllButNotSelf(SequenceEnv *e)
-		{e->exec = exec; e->target = target; e->candidate = candidate;
-		e->creator = creator; e->ogiver = ogiver; e->pkgsender = pkgsender;
-		e->originalself = originalself;}
-	void copyAll(SequenceEnv *e)
-		{copyAllButNotSelf(e); e->self = self;}
+	//CTerrain *terrain;
+	DynList<goref> objs;
 };
 
-#include "finder.h"
-#include "value.h"
-#include "position.h"
-#include "action.h"
-#include "objCreation.h"
-#include "events.h"
+extern ITile *itiles;
+extern int numTilesX, numTilesZ, numTilesS;
+extern DynList<goref> oobobjs;
+
+void InitITiles();
+void PutObjsInITiles(GameObject *o);
+void ResetITiles();
+void GOPosChanged(GameObject *o);
+void ListObjsInTiles(int tx, int tz, int l, int w, GrowList<goref> *r);

@@ -50,6 +50,7 @@ struct GOParamBlock
 };
 
 struct COrder;
+struct ITile;
 
 struct GameObject
 {
@@ -71,6 +72,7 @@ struct GameObject
 	wchar_t *name;
 	GOParamBlock *param;
 	GrowList<couple<uint> > *tiles;
+	ITile *itile; DynListEntry<goref> *itileole;
 
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);
@@ -88,7 +90,7 @@ struct SequenceOverPeriodEntry
 	uint actseq; goref executor;
 	float time, period;	// (?)
 	uint nloops, loopsexec;
-	uint numobj; goref *obj;
+	uint numobj; goref *obj, *ola;
 };
 
 extern GameObject *gameobj[MAX_GAMEOBJECTS];
@@ -140,3 +142,5 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id = -1
 void SetRandomSubtypeAndAppearance(GameObject *o);
 GameObject *DuplicateObject(GameObject *a);
 void ConvertObject(GameObject *o, CObjectDefinition *d);
+void AddReaction(GameObject *o, int r);
+void RemoveReaction(GameObject *o, int r);

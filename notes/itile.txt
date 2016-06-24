@@ -1,23 +1,77 @@
+/*
+struct GameObject
+{
+	ITile *itile;
+	DynListEntry<ITile> *itileole;
+};
+*/
+
 struct ITile
 {
 	CTerrain *terrain;
 	DynList<goref> objs;
 };
 
-ITile *itiles;
-int numTilesX, numTilesZ;
+ITile *itiles = 0;
+int numTilesX, numTilesZ, numTilesS;
+DynList<goref> oobobjs;
+
+void InitITiles()
+{
+	numTilesX = mapwidth - mapedge*2;
+	numTilesZ = mapheight - mapedge*2;
+	numTilesS = numTilesX * numTilesZ;
+	itiles = new ITile[numTilesS];
+}
+
+void PutObjsInITiles(GameObject *o)
+{
+	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+		PutObjsInITiles(&e->value);
+	int tx = o->position.x / 5, tz = o->position.z / 5;
+	if((z < 0) || (z >= numTilesZ) || (x < 0) || (x >= numTilesX))
+	{
+		oobobjs.add();
+		oobobjs.last->value = o;
+		o->itile = 0; o->itileole = oobobjs.last;
+	}
+	else
+	{
+		ITile *t = &(itiles[tz*numTilesZ+tx]);
+		t->objs.add();
+		t->objs.last->value = o;
+		o->itile = t; o->itileole = t->objs.last;
+	}
+}
+
+void ResetITiles()
+{
+	if(!itiles) return;
+	for(int i = 0; i < numTilesS; i++)
+		itiles[i].objs.clear();
+	PutObjsInITiles(levelobj);
+}
 
 void GOPosChanged(GameObject *o)
 {
 	int x, z;
-	x = o->position.x / 5;
-	z = o->position.z / 5;
+	x = o->position.x / 5; z = o->position.z / 5;
 	if((z < 0) || (z >= numTilesZ) || (x < 0) || (x >= numTilesX))
-		{o->tile = 0; return;}
-	ITile *nt = itiles[z*numTilesZ+x];
-	if(nt != o->tile)
 	{
-		o->tile->objs.move(o->tileole, &nt->objs);
-		o->tile = nt;
+		if(o->itile)
+		{
+			o->itile->objs.move(o->itileole, &oobobjs);
+			o->itile = 0;
+		}
+		return;
+	}
+	ITile *nt = itiles[z*numTilesZ+x];
+	if(nt != o->itile)
+	{
+		if(o->itile)
+			o->itile->objs.move(o->itileole, &nt->objs);
+		else
+			oobobjs.move(o->itileole, &nt->objs);
+		o->itile = nt;
 	}
 }

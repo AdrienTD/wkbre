@@ -24,5 +24,7 @@ struct CPosition
 	virtual void get(SequenceEnv *env, PosOri *p) = 0;
 };
 
+extern GrowStringList strUnknownPosition;
+
 int FinderToPosOri(PosOri *p, CFinder *f, SequenceEnv *env);
 CPosition *ReadCPosition(char ***wpnt);

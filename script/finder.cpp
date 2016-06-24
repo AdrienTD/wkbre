@@ -311,6 +311,7 @@ struct FinderChain : public CFinder
 		GameObject *o;
 		arl1.clear(); arl2.clear();
 		env->copyAll(&nc);
+		nc.originalself = env->self;
 		goref gr = env->self;
 		arl1.add(gr);
 		rli = &arl1; rlo = &arl2;
@@ -363,7 +364,7 @@ struct FinderAlias : public CFinder
 
 int IsFSOResult(SequenceEnv *s, GameObject *o, int q, CObjectDefinition *d, int cl)
 {
-	printf("IsFSOResult %i, q = %i\n", o->id, q);
+	//printf("IsFSOResult %i, q = %i\n", o->id, q);
 	if(cl != -1)
 		if(o->objdef->type != cl)
 			return 0;
@@ -424,7 +425,7 @@ struct FinderSubordinates : public CFinder
 			{
 				w = (DynListEntry<GameObject> *)(w->value.parent);	// !!!! //
 				if(&(w->value) == p)
-					{NextParent(); break;}
+					{NextParent(); return;}
 			}
 			w = w->next;
 		}
@@ -432,14 +433,14 @@ struct FinderSubordinates : public CFinder
 
 	void begin(SequenceEnv *env)
 	{
-		printf("----- FINDER_SUBORDINATES BEGIN -----\n");
+		//printf("----- FINDER_SUBORDINATES BEGIN -----\n");
 		nomore = 0;
 		fd->begin(ctx = env);
 		NextParent();
 	}
 	GameObject *getnext()
 	{
-		printf("FinderSubordinates::getnext\n");
+		//printf("FinderSubordinates::getnext\n");
 
 		//if(nomore) return 0;
 
@@ -447,11 +448,11 @@ struct FinderSubordinates : public CFinder
 		{
 			GameObject *o = &(w->value);
 			if(IsFSOResult(ctx, o, eq, bl, cl))
-				{NextCandidate(); printf("Return %i\n", o->id); return o;}
+				{NextCandidate(); /*printf("Return %i\n", o->id);*/ return o;}
 			NextCandidate();
 		}
 
-		printf("----- FINDER_SUBORDINATES END -----\n");
+		//printf("----- FINDER_SUBORDINATES END -----\n");
 		return 0;
 	}
 };
@@ -697,7 +698,282 @@ struct FinderPackageSender : public CFinder
 	}
 };
 
+struct FinderTileRadius : public CFinder
+{
+	CValue *v;
+	GrowList<goref> onm; int ob; SequenceEnv *env;
+	FinderTileRadius(CValue *a) : v(a) {}
+	CFinder *clone() {return new FinderTileRadius(v);}
+	void begin(SequenceEnv *c)
+	{
+		env = c;
+		onm.clear();
+		int r = v->get(c);
+		int x = c->self->position.x/5, z = c->self->position.z/5;
+		ListObjsInTiles(x-r, z-r, 2*r+1, 2*r+1, &onm);
+		ob = 0;
+	}
+	GameObject *getnext()
+	{
+		while(1)
+		{
+			if(ob >= onm.len)
+				return 0;
+			goref *x = onm.getpnt(ob++);
+			if(!x->valid())
+				continue;
+			GameObject *a = x->get();
+			if(env->self.valid())
+				if(a == env->self.get())
+					continue;
+			return a;
+		}
+	}
+};
+
+int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env);
+struct FinderMetreRadius : public CFinder
+{
+	CValue *v; CObjFindCond *fc; valuetype dist, dist2;
+	GrowList<goref> onm; int ob; SequenceEnv *env;
+	FinderMetreRadius(CValue *a, CObjFindCond *b) : v(a), fc(b) {} // barcelona or bayern?
+	CFinder *clone() {return new FinderMetreRadius(v, fc);}
+	void begin(SequenceEnv *c)
+	{
+		env = c;
+		onm.clear();
+		dist = v->get(c); dist2 = dist*dist;
+		int r = dist/5;		// TODO: :( (round up/down?)
+		int x = c->self->position.x/5, z = c->self->position.z/5;
+		ListObjsInTiles(x-r, z-r, 2*r+1, 2*r+1, &onm);
+		ob = 0;
+	}
+	GameObject *getnext()
+	{
+		while(1)
+		{
+			if(!env->self.valid())
+				return 0;
+
+			if(ob >= onm.len)
+				return 0;
+			goref *x = onm.getpnt(ob++);
+			if(!x->valid())
+				continue;
+			GameObject *a = x->get();
+			if(env->self.valid())
+				if(a == env->self.get())
+					continue;
+
+			if(!IsObjQualifiedByOFCond(a, fc, env))
+				continue;
+
+			Vector3 s = a->position - env->self->position;
+			if(((s.x*s.x) + (s.z*s.z)) >= dist2)
+				continue;
+
+			return a;
+		}
+	}
+};
+
+struct FinderNearestToSatisfy : public CFinder
+{
+	CValue *q, *v;
+	GrowList<goref> onm; int ob; SequenceEnv *env; float best; int nomore; goref bo;
+	FinderNearestToSatisfy(CValue *a, CValue *b) : q(a), v(b) {}
+	CFinder *clone() {return new FinderNearestToSatisfy(q, v);}
+	void begin(SequenceEnv *c)
+	{
+		env = c;
+		onm.clear();
+
+		nomore = 0; bo.deref();
+		if(!env->self.valid())
+			{nomore = 1; return;}
+
+		best = v->get(c);
+		int r = best;
+		best *= best;
+		int x = c->self->position.x/5, z = c->self->position.z/5;
+		ListObjsInTiles(x-r, z-r, 2*r+1, 2*r+1, &onm);
+		ob = 0;
+
+		while(1)
+		{
+			if(ob >= onm.len)
+				return;
+			goref *x = onm.getpnt(ob++);
+			if(!x->valid())
+				continue;
+			GameObject *a = x->get();
+			if(env->self.valid())
+				if(a == env->self.get())
+					continue;
+
+			SequenceEnv ne;
+			env->copyAll(&ne);
+			ne.candidate = a;
+			if(!stpo(q->get(&ne)))
+				continue;
+
+			float d = (a->position - env->self->position).sqlen2xz();
+			if(d < best)
+			{
+				best = d;
+				bo = a;
+			}
+		}
+	}
+	GameObject *getnext()
+	{
+		if(nomore) return 0;
+		nomore = 1;
+		return bo.valid() ? bo.get() : 0;
+	}
+};
+
+struct FinderDisabledAssociates : public CFinder
+{
+	int x;
+	DynListEntry<GameObjAndListEntry> *n;
+	FinderDisabledAssociates(int a) : x(a) {}
+	CFinder *clone() {return new FinderDisabledAssociates(x);}
+	void begin(SequenceEnv *env)
+	{
+		if(!env->self.valid()) {n = 0; return;}
+		GameObject *o = env->self.get();
+		for(DynListEntry<GOAssociation> *e = o->association.first; e; e = e->next)
+			if(e->value.category == x)
+				{n = e->value.associates.first; goto daacfnd;}
+		n = 0; return;
+daacfnd:	return;
+	}
+	GameObject *getnext()
+	{
+		GameObject *r;
+		while(1)
+		{
+			if(!n) return 0;
+			r = n->value.o;
+			n = n->next;
+			if(r->disableCount > 0)
+				break;
+		}
+		return r;
+	}
+};
+
+struct FinderGradeSelectCandidates : public CFinder
+{
+	int mode, eq; CValue *sel, *mx; CFinder *f;
+	DynList<goref> li; DynListEntry<goref> *tr; int no;
+	FinderGradeSelectCandidates(int a, int e, CValue *b, CValue *c, CFinder *d) : mode(a), eq(e), sel(b), mx(c), f(d) {}
+	CFinder *clone() {return new FinderGradeSelectCandidates(mode, eq, sel, mx, f->clone());}
+	void begin(SequenceEnv *env)
+	{
+		SequenceEnv ne; env->copyAll(&ne);
+		li.clear();
+		GameObject *o;
+		f->begin(env);
+		o = f->getnext(); if(!o) {tr = 0; return;}
+		li.add(); li.last->value = o;
+		while(o = f->getnext())
+		{
+			ne.candidate = o;
+			valuetype x = sel ? sel->get(&ne) : equation[eq]->get(&ne);
+			DynListEntry<goref> *e;
+			for(e = li.first; e; e = e->next)
+			{
+				ne.candidate = e->value;
+				valuetype y = sel ? sel->get(&ne) : equation[eq]->get(&ne);
+				if(mode ? (x > y) : (x < y))
+					break;
+			}
+			if(!e)	{li.add(); e = li.last;}
+			else	{li.addbefore(e); e = e->previous;}
+			e->value = o;
+		}
+		tr = li.first;
+		no = mx?mx->get(env):-1;
+		if(no <= 0) no = -1;
+	}
+	GameObject *getnext()
+	{
+		goref g;
+		//__asm int 3
+		while(1)
+		{
+			if(!no--) {tr = 0; return 0;}
+			if(!tr) return 0;
+			g = tr->value;
+			tr = tr->next;
+			if(g.valid())
+				break;
+		}
+		return g.get();
+	}	
+};
+
 //////////////////////////////////////////////////////////////////////////
+
+int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
+{
+	GameObject *r;
+	if(!c->refobj) r = env->self.get();
+	else r = env->originalself.get();
+
+	switch(c->diplo)
+	{
+		case 1: if(o->player != r->player) return 0; break;
+		case 2: if(GetDiplomaticStatus(o->player, r->player) >= 1) return 0; break;
+		case 3: if(GetDiplomaticStatus(o->player, r->player) <  2) return 0; break;
+	}
+
+	switch(c->otype)
+	{
+		case 1:	if(o->objdef->type != CLASS_BUILDING) return 0; break;
+		case 2:	if(o->objdef->type != CLASS_CHARACTER) return 0; break;
+		case 3:	if((o->objdef->type != CLASS_BUILDING) || (o->objdef->type != CLASS_CHARACTER))
+				return 0;
+			break;
+	}
+	return 1;
+}
+
+CObjFindCond *ReadCObjFindCond(char ***wpnt)
+{
+	CObjFindCond *c = new CObjFindCond;
+	while(1)
+	{
+		if(!**wpnt) return c;
+		switch(stfind_cs(OBJFINDCOND_str, OBJFINDCOND_NUM, **wpnt))
+		{
+			case OBJFINDCOND_SAME_PLAYER_UNITS:
+				c->refobj = 0; c->diplo = 1; break;
+			case OBJFINDCOND_ALLIED_UNITS:
+				c->refobj = 0; c->diplo = 2; break;
+			case OBJFINDCOND_ENEMY_UNITS:
+				c->refobj = 0; c->diplo = 3; break;
+			case OBJFINDCOND_ORIGINAL_SAME_PLAYER_UNITS:
+				c->refobj = 1; c->diplo = 1; break;
+			case OBJFINDCOND_ORIGINAL_ALLIED_UNITS:
+				c->refobj = 1; c->diplo = 2; break;
+			case OBJFINDCOND_ORIGINAL_ENEMY_UNITS:
+				c->refobj = 1; c->diplo = 3; break;
+			case OBJFINDCOND_BUILDINGS_ONLY:
+				c->otype = 1; break;
+			case OBJFINDCOND_CHARACTERS_ONLY:
+				c->otype = 2; break;
+			case OBJFINDCOND_CHARACTERS_AND_BUILDINGS_ONLY:
+				c->otype = 3; break;
+			default:
+				return c;
+		}
+		*wpnt += 1;
+	}
+	return c;
+}
 
 CFinder *ReadFinder(char ***wpnt)
 {
@@ -744,6 +1020,19 @@ CFinder *ReadFinder(char ***wpnt)
 			*wpnt += 1; return new FinderTarget();
 		case FINDER_PACKAGE_SENDER:
 			*wpnt += 1; return new FinderPackageSender();
+		case FINDER_TILE_RADIUS:
+			*wpnt += 1; return new FinderTileRadius(ReadValue(wpnt));
+		case FINDER_METRE_RADIUS:
+			{*wpnt += 1;
+			CValue *v = ReadValue(wpnt);
+			return new FinderMetreRadius(v, ReadCObjFindCond(wpnt));}
+		case FINDER_NEAREST_TO_SATISFY:
+			{*wpnt += 1;
+			CValue *v = ReadValue(wpnt);
+			return new FinderNearestToSatisfy(v, ReadValue(wpnt));}
+		case FINDER_DISABLED_ASSOCIATES:
+			{int x = strAssociateCat.find(word[1]); mustbefound(x);
+			*wpnt += 2; return new FinderDisabledAssociates(x);}
 	}
 	//ferr("Unknown finder."); return 0;
 rfunk:	int x = strUnknownFinder.find(word[0]);
@@ -827,6 +1116,20 @@ CFinder *ReadOFDLine(char **pntfp)
 				return new FinderFilterCandidates(ReadValue(&w), f);}
 			case FINDER_NEAREST_CANDIDATE:
 				return new FinderNearestCandidate(ReadOFDLine(pntfp));
+			case FINDER_GRADE_SELECT:
+				{int m = !stricmp(word[1], "BY_HIGHEST");
+				int x = strEquation.find(word[2]); mustbefound(x);
+				CValue *v = 0;
+				if(nwords > 3)
+					{char **w = word + 3;
+					v = ReadValue(&w);}
+				return new FinderGradeSelectCandidates(m, x, 0, v, ReadOFDLine(pntfp));}
+			case FINDER_GRADE_SELECT_CANDIDATES:
+				{int m = !stricmp(word[1], "BY_HIGHEST");
+				char **w = word + 2;
+				CValue *a = ReadValue(&w);
+				return new FinderGradeSelectCandidates(m, -1, a, ReadValue(&w), ReadOFDLine(pntfp));}
+			
 		}
 		char **pw = word;
 		return ReadFinder(&pw);

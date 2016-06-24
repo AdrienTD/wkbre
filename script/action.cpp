@@ -64,7 +64,7 @@ struct ActionCreateObject : public CAction
 		o = CreateObject(def, o->player);
 		PosOri po;
 		pos->get(c, &po);
-		o->position = po.pos;
+		o->position = po.pos; GOPosChanged(o);
 		o->orientation = po.ori;
 	}
 };
@@ -489,6 +489,132 @@ struct ActionExecuteSequenceAfterDelay : public CAction
 	}
 };
 
+struct ActionAddReaction : public CAction
+{
+	int x; CFinder *f;
+	ActionAddReaction(int a, CFinder *b) : x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o;
+		while(o = f->getnext())
+			AddReaction(o, x);
+	}
+};
+
+struct ActionRemoveReaction : public CAction
+{
+	int x; CFinder *f;
+	ActionRemoveReaction(int a, CFinder *b) : x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o;
+		while(o = f->getnext())
+			RemoveReaction(o, x);
+	}
+};
+
+struct ActionChangeReactionProfile : public CAction
+{
+	int m, x; CFinder *f;
+	ActionChangeReactionProfile(int c, int a, CFinder *b) : m(c), x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o;
+		while(o = f->getnext())
+		{
+			if(m)	RemoveReaction(o, x);
+			else	AddReaction(o, x);
+		}
+	}
+};
+
+struct ActionSetScale : public CAction
+{
+	CFinder *f; CValue *x, *y, *z;
+	ActionSetScale(CFinder *a, CValue *b, CValue *c, CValue *d) : f(a), x(b), y(c), z(d) {}
+	void run(SequenceEnv *env)
+	{
+		float a = x->get(env), b = y->get(env), c = z->get(env);
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext())
+		{
+			o->scale.x = a;
+			o->scale.y = b;
+			o->scale.z = c;
+		}
+	}
+};
+
+struct ActionTerminate : public CAction
+{
+	CFinder *f;
+	ActionTerminate(CFinder *a) : f(a) {}
+	void run(SequenceEnv *c)
+	{
+		f->begin(c);
+		GameObject *o;
+		while(o = f->getnext())
+		{
+			// TODO: send events like "On Termination" and/or "On Destruction"
+			RemoveObject(o);
+		}
+	}
+};
+
+struct ActionExecuteSequenceOverPeriod : public CAction
+{
+	int x; CFinder *f; CValue *v;
+	ActionExecuteSequenceOverPeriod(int a, CFinder *b, CValue *c) : x(a), f(b), v(c) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o = f->getnext(); if(!o) return;
+		exePeriodSeq.add();
+		SequenceOverPeriodEntry *se = &exePeriodSeq.last->value;
+		se->time = current_time;	se->period = v->get(env);
+		se->actseq = x;			se->executor = env->self;
+
+		GrowList<GameObject*> gl;
+		do gl.add(o); while(o = f->getnext());
+
+		se->numobj = gl.len;
+		se->ola = se->obj = new goref[se->numobj];
+		for(int i = 0; i < se->numobj; i++)
+			se->obj[i] = gl[i];
+
+		se->nloops = se->numobj; se->loopsexec = 0;
+	}
+};
+
+struct ActionRepeatSequenceOverPeriod : public CAction
+{
+	int x; CFinder *f; CValue *r, *v;
+	ActionRepeatSequenceOverPeriod(int a, CFinder *b, CValue *c, CValue *d) : x(a), f(b), r(c), v(d) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o = f->getnext(); if(!o) return;
+		repPeriodSeq.add();
+		SequenceOverPeriodEntry *se = &repPeriodSeq.last->value;
+		se->time = current_time;	se->period = v->get(env);
+		se->actseq = x;			se->executor = env->self;
+
+		GrowList<GameObject*> gl;
+		do gl.add(o); while(o = f->getnext());
+
+		se->numobj = gl.len;
+		se->ola = se->obj = new goref[se->numobj];
+		for(int i = 0; i < se->numobj; i++)
+			se->obj[i] = gl[i];
+
+		se->nloops = r->get(env); se->loopsexec = 0;
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 
 CAction *ReadAction(char **pntfp, char **word)
@@ -617,6 +743,36 @@ CAction *ReadAction(char **pntfp, char **word)
 			w += 3;
 			CFinder *f = ReadFinder(&w);
 			return new ActionExecuteSequenceAfterDelay(d, f, ReadValue(&w));}
+		case ACTION_ADD_REACTION:
+			{int x = strReaction.find(word[2]); mustbefound(x);
+			w += 3; return new ActionAddReaction(x, ReadFinder(&w));}
+		case ACTION_REMOVE_REACTION:
+			{int x = strReaction.find(word[2]); mustbefound(x);
+			w += 3; return new ActionRemoveReaction(x, ReadFinder(&w));}
+		case ACTION_CHANGE_REACTION_PROFILE:
+			{int m = stricmp(word[2], "REMOVE") ? 0 : 1;
+			int x = strReaction.find(word[3]); mustbefound(x);
+			w += 4; return new ActionChangeReactionProfile(m, x, ReadFinder(&w));}
+		case ACTION_SET_SCALE:
+			{w += 2;
+			CFinder *f = ReadFinder(&w);
+			CValue *x = ReadValue(&w);
+			CValue *y = ReadValue(&w);
+			CValue *z = ReadValue(&w);
+			return new ActionSetScale(f, x, y, z);}
+		case ACTION_TERMINATE:
+			w += 2; return new ActionTerminate(ReadFinder(&w));
+		case ACTION_EXECUTE_SEQUENCE_OVER_PERIOD:
+			{int d = strActionSeq.find(word[2]); mustbefound(d);
+			w += 3;
+			CFinder *f = ReadFinder(&w);
+			return new ActionExecuteSequenceOverPeriod(d, f, ReadValue(&w));}
+		case ACTION_REPEAT_SEQUENCE_OVER_PERIOD:
+			{int d = strActionSeq.find(word[2]); mustbefound(d);
+			w += 3;
+			CFinder *f = ReadFinder(&w);
+			CValue *v = ReadValue(&w);
+			return new ActionRepeatSequenceOverPeriod(d, f, v, ReadValue(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).

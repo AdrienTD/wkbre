@@ -357,6 +357,41 @@ struct ValueAreAssociated : public CValue
 	}
 };
 
+// TODO: An object is also idle if it has only cancelled/terminated sequences ???
+struct ValueIsIdle : public CValue
+{
+	CFinder *f;
+	ValueIsIdle(CFinder *a) : f(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		o = f->getnext(); if(!o) return 0;
+		do {
+			if(o->ordercfg.order.len)
+				return 0;
+		} while(o = f->getnext());
+		return 1;
+	}
+};
+
+struct ValueIsDisabled : public CValue
+{
+	CFinder *f;
+	ValueIsDisabled(CFinder *a) : f(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		o = f->getnext(); if(!o) return 0;
+		do {
+			if(o->disableCount <= 0)
+				return 0;
+		} while(o = f->getnext());
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -445,7 +480,12 @@ CValue *ReadValue(char ***wpnt)
 			int c = strAssociateCat.find(**wpnt); mustbefound(c);
 			*wpnt += 1;
 			return new ValueAreAssociated(a, c, ReadFinder(wpnt));}
-			
+		case VALUE_IS_IDLE:
+			{*wpnt += 1;
+			return new ValueIsIdle(ReadFinder(wpnt));}
+		case VALUE_IS_DISABLED:
+			{*wpnt += 1;
+			return new ValueIsDisabled(ReadFinder(wpnt));}
 	}
 	//ferr("Unknown value type."); return 0;
 	int x = strUnknownValue.find(word[0]);

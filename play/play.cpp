@@ -39,3 +39,75 @@ void AdvanceTime()
 	previous_time = current_time;
 	current_time += elapsed_time;
 }
+
+////////////////////////////////////////////////////////////
+
+void CheckBattlesDelayedSequences()
+{
+	// Execute delayed sequences
+	DynListEntry<DelayedSequenceEntry> *n;
+	for(DynListEntry<DelayedSequenceEntry> *e = delayedSeq.first; e; e = n)
+	{
+		n = e->next;
+		if(!e->value.numobj) {delete [] e->value.obj; delayedSeq.remove(e); continue;}
+		if(current_time >= e->value.time)
+		{
+			// execute sequence
+			SequenceEnv c;
+			c.exec = e->value.executor;
+			for(uint i = 0; i < e->value.numobj; i++)
+				if(e->value.obj[i].valid())
+				{
+					c.self = e->value.obj[i];
+					actionseq[e->value.actseq]->run(&c);
+				}
+
+			delete [] e->value.obj; delayedSeq.remove(e);
+		}
+	}
+
+	// Execute seqs. over periods
+	DynListEntry<SequenceOverPeriodEntry> *m;
+	for(DynListEntry<SequenceOverPeriodEntry> *e = exePeriodSeq.first; e; e = m)
+	{
+		m = e->next;
+		if((!e->value.numobj) || (e->value.loopsexec >= e->value.nloops))
+			{delete [] e->value.ola; repPeriodSeq.remove(e); continue;}
+		float lt = e->value.period / e->value.nloops;
+		while(current_time >= (e->value.time + (e->value.loopsexec+1) * lt))
+		{
+			if(e->value.obj[0].valid())
+			{
+				SequenceEnv c; c.exec = e->value.executor;
+				c.self = e->value.obj[0];
+				actionseq[e->value.actseq]->run(&c);
+			}
+			e->value.obj++; e->value.numobj--; e->value.loopsexec++;
+			if((!e->value.numobj) || (e->value.loopsexec >= e->value.nloops))
+				{delete [] e->value.ola; repPeriodSeq.remove(e); break;}
+		}
+	}
+
+	// Execute repeated seqs. over periods
+	//DynListEntry<SequenceOverPeriodEntry> *m;
+	for(DynListEntry<SequenceOverPeriodEntry> *e = repPeriodSeq.first; e; e = m)
+	{
+		m = e->next;
+		if((!e->value.numobj) || (e->value.loopsexec >= e->value.nloops))
+			{delete [] e->value.ola; repPeriodSeq.remove(e); continue;}
+		float lt = e->value.period / e->value.nloops;
+		while(current_time >= (e->value.time + (e->value.loopsexec+1) * lt))
+		{
+			for(uint i = 0; i < e->value.numobj; i++)
+				if(e->value.obj[i].valid())
+				{
+					SequenceEnv c; c.exec = e->value.executor;
+					c.self = e->value.obj[i];
+					actionseq[e->value.actseq]->run(&c);
+				}
+			e->value.loopsexec++;
+			if(e->value.loopsexec >= e->value.nloops)
+				{delete [] e->value.ola; repPeriodSeq.remove(e); break;}
+		}
+	}
+}

@@ -398,7 +398,7 @@ void ReadSequenceOverPeriod(SequenceOverPeriodEntry *e, char **word)
 	e->nloops = atoi(word[5]);
 	e->loopsexec = atoi(word[6]);
 	e->numobj = atoi(word[7]);
-	e->obj = (goref*)malloc(sizeof(goref) * e->numobj);
+	e->ola = e->obj = (goref*)malloc(sizeof(goref) * e->numobj);
 	for(int i = 0; i < e->numobj; i++)
 		e->obj[i] = FindObjID(atoi(word[i+8]));
 }
@@ -516,6 +516,9 @@ void LoadSaveGame(char *fn)
 	//SetAssociationsFromList();
 	FreePredec();
 	free(fcnt);
+
+	InitITiles();
+	ResetITiles();
 }
 
 //**********************/
@@ -968,6 +971,10 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	go->tiles = 0;
 	go->ordercfg.uniqueOrderID = 0;
 
+	go->itile = 0;
+	if(itiles)
+		PutObjsInITiles(go);
+
 	return go;
 }
 
@@ -975,6 +982,7 @@ GameObject *DuplicateObject(GameObject *a)
 {
 	GameObject *o = CreateObject(a->objdef, a->parent);
 	o->position = a->position; o->orientation = a->orientation; o->scale = a->scale;
+	GOPosChanged(o);
 	o->subtype = a->subtype; o->appearance = a->appearance;
 	for(DynListEntry<GOItem> *e = a->item.first; e; e = e->next)
 		{o->item.add(); o->item.last->value = e->value;}
@@ -985,6 +993,21 @@ GameObject *DuplicateObject(GameObject *a)
 void ConvertObject(GameObject *o, CObjectDefinition *d)
 {
 	o->objdef = d;
-	o->appearance = 0;
+	//o->appearance = 0;
 	SetRandomSubtypeAndAppearance(o);
+}
+
+void AddReaction(GameObject *o, int r)
+{
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
+		if(e->value == r)
+			return;
+	o->iReaction.add(r);
+}
+
+void RemoveReaction(GameObject *o, int r)
+{
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
+		if(e->value == r)
+			{o->iReaction.remove(e); return;}
 }

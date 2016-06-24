@@ -19,5 +19,7 @@ struct CValue
 	virtual valuetype get(SequenceEnv *env) = 0;
 };
 
+extern GrowStringList strUnknownValue;
+
 CValue *ReadValue(char ***wpnt);
 CValue *ReadEqLine(char **pntfp);

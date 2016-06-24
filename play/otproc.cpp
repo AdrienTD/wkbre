@@ -29,6 +29,8 @@ void ObjStepMove(GameObject *o, Vector3 dest)
 
 	o->orientation.x = o->orientation.z = 0;
 	o->orientation.y = M_PI - atan2(v.x, v.z);
+
+	GOPosChanged(o);
 }
 
 void StartCurrentTaskTriggers(GameObject *o)
@@ -90,6 +92,7 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				c->seq->run(&env);
 				return;
 			case TASKTRIGGER_ANIMATION_LOOP:
+			case TASKTRIGGER_ATTACHMENT_POINT:
 				if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
 					break;
 				env.self = o; env.target = t->target;

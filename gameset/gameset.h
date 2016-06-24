@@ -44,6 +44,7 @@ public:
 #include "gs_order.h"
 #include "sg_clientstate.h"
 #include "gs_command.h"
+#include "itile.h"
 
 // From loadgameset.cpp
 

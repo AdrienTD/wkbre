@@ -137,8 +137,11 @@ struct Vector3
 
 	void print() {printf("(%f, %f, %f)\n", x, y, z);}
 	valuetype len2xy() {return sqrt(x*x + y*y);}
+	valuetype sqlen2xy() {return x*x + y*y;}
 	valuetype len2xz() {return sqrt(x*x + z*z);}
+	valuetype sqlen2xz() {return x*x + z*z;}
 	valuetype len3() {return sqrt(x*x + y*y + z*z);}
+	valuetype sqlen3() {return x*x + y*y + z*z;}
 	Vector3 normal() {valuetype l = len3(); return Vector3(x/l, y/l, z/l);}
 	valuetype dot(Vector3 a) {return a.x * x + a.y * y + a.z * z;}
 };

@@ -82,24 +82,25 @@ int GetWords(char *str, char **list)
 	p = str;
 	while(*p)
 	{
-		while(isspace(*p)) p++;
-		if(!(*p)) return n;
+		while(isspace((uchar)*p)) p++;
+		if(!(*p)) goto wend;
 
 		if(*p != '\"')
 		{
 			list[n] = p;
-			n++; if(n >= MAX_WORDS_IN_LINE) return n;
-			while(!isspace(*p)) {if(!(*p)) return n; p++;}
-			if(!(*p)) return n; // Can be removed because isspace(0) = 0
-			*p = 0; p++; if(!(*p)) return n;
+			n++; if(n >= MAX_WORDS_IN_LINE) goto wend;
+			while(!isspace((uchar)*p)) {if(!(*p)) goto wend; p++;}
+			if(!(*p)) goto wend; // Can be removed because isspace(0) = 0
+			*p = 0; p++; if(!(*p)) goto wend;
 		} else {
-			p++; if(!(*p)) return n;
+			p++; if(!(*p)) goto wend;
 			list[n] = p;
-			n++; if(n >= MAX_WORDS_IN_LINE) return n;
-			while(*p != '\"') {if(!(*p)) return n; p++;}
-			*p = 0; p++; if(!(*p)) return n;
+			n++; if(n >= MAX_WORDS_IN_LINE) goto wend;
+			while(*p != '\"') {if(!(*p)) goto wend; p++;}
+			*p = 0; p++; if(!(*p)) goto wend;
 		}
 	}
+wend:	list[n] = 0;
 	return n;
 }
 

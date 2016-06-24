@@ -77,17 +77,15 @@ int CanBeTriggeredBy(SequenceEnv *ctx, CReaction *re, int ev)
 	{
 		CPRTrigger *prt = re->prts[i];
 		for(uint j = 0; j < prt->events.len; j++)
-			if(prt->events[i] == ev)
+			if(prt->events[j] == ev)
 			{
-				// OK if assessment true
+				// OK if assessments true
 				for(uint k = 0; k < prt->ass.len; k++)
 					if(!stpo(equation[prt->ass[k]]->get(ctx)))
-						return 0;
-				return 1; // If all assessments are false, there's no
-					  // need to check other events because
-					  // assessments are constant during this fct
-					  // (except if they use random values).
+						goto neprt;
+				return 1;
 			}
+	neprt:	;
 	}
 	return 0;
 }
@@ -95,9 +93,9 @@ int CanBeTriggeredBy(SequenceEnv *ctx, CReaction *re, int ev)
 void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 {
 	SequenceEnv ctx;
-	ie->copyAll(&ctx);
+	if(ie) ie->copyAll(&ctx);
 	ctx.self = o;
-	ctx.pkgsender = ie->self;
+	if(ie) ctx.pkgsender = ie->self;
 
 	goref gr = o;
 	for(uint i = 0; i < o->objdef->ireact.len; i++)

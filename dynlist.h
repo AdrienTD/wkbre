@@ -60,6 +60,28 @@ public:
 		len++;
 	}
 
+	void addafter(DynListEntry<T> *e)
+	{
+		if(!e->next) {add(); return;}
+		DynListEntry<T> *n = new DynListEntry<T>;
+		n->previous = e;
+		n->next = e->next;
+		e->next->previous = n;
+		e->next = n;
+		len++;
+	}
+
+	void addbefore(DynListEntry<T> *e)
+	{
+		if(!e->previous) {addbegin(); return;}
+		DynListEntry<T> *n = new DynListEntry<T>;
+		n->previous = e->previous;
+		n->next = e;
+		e->previous->next = n;
+		e->previous = n;
+		len++;
+	}
+
 	void add(T t)
 	{
 		this->add();

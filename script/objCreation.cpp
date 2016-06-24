@@ -83,6 +83,7 @@ void CObjectCreation::run(SequenceEnv *env, CFinder *findcreator)
 			o->position = creator->position;
 			o->orientation = creator->orientation;
 		}
+		GOPosChanged(o);
 
 		if(matchAppearOf)
 		{

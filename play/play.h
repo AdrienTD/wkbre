@@ -20,3 +20,4 @@ extern float game_speed;
 float GetElapsedTime();
 void InitTime();
 void AdvanceTime();
+void CheckBattlesDelayedSequences();
