@@ -164,8 +164,8 @@ void ProcessCurrentTask(GameObject *o)
 		s->currentTask++;
 		if(s->currentTask >= s->task.len)
 		{
-			if(s->cycled)
-				{s->currentTask = 0; InitTask(o, 0);}
+			if(s->type->cycle)
+				{s->cycled = 1; s->currentTask = 0; InitTask(o, 0);}
 			else
 				{s->currentTask--; TerminateOrder(o, 0);}
 		}
@@ -312,7 +312,7 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 {
 	so->type = co;
 	so->processState = 0;
-	so->cycled = co->cycle;
+	so->cycled = 0;
 	so->orderID = go->ordercfg.uniqueOrderID++;
 	so->uniqueTaskID = co->tasks.len;
 	so->currentTask = 0;

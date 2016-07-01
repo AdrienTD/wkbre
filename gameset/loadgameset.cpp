@@ -424,7 +424,7 @@ void LoadGameSet(char *filename)
 	memset(cobjcr, 0, sizeof(CObjectCreation) * strObjCreation.len);
 	reaction = new CReaction[strReaction.len];
 	prtrigger = new CPRTrigger[strPRTrigger.len];
-	defValueTag = new CValue*[strValueTag.len];
+	defValueTag = new CValue*[strValueTag.len]; memset(defValueTag, 0, sizeof(CValue*) * strValueTag.len);
 	gsorder = new COrder[strOrder.len];
 	gstask = new CTask[strTask.len];
 	orderAssign = new COrderAssignment[strOrderAssign.len];

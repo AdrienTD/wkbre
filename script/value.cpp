@@ -121,22 +121,18 @@ struct ValueObjectType : public CValue
 
 struct ValueValueTagInterpretation : public CValue
 {
-	int t; CFinder *f;
-	ValueValueTagInterpretation(int a, CFinder *b) : t(a), f(b) {}
+	int x; CFinder *f;
+	ValueValueTagInterpretation(int a, CFinder *b) : x(a), f(b) {}
 	valuetype get(SequenceEnv *env)
 	{
-		SequenceEnv c; goref z;
-		GameObject *o = f->getfirst(env);
-		if(!o) goto deftag;
-
-		env->copyAll(&c);
-		c.self = o;
-		if(o->objdef->valueTagInterpret[t])
-			return o->objdef->valueTagInterpret[t]->get(&c);
-
-deftag:		if(defValueTag[t])
-			return defValueTag[t]->get(&c);
-		return 0;
+		GameObject *o = f->getfirst(env); if(!o) return 0;
+		SequenceEnv c; env->copyAll(&c); c.self = o;
+		if(o->objdef->valueTagInterpret[x])
+			return o->objdef->valueTagInterpret[x]->get(&c);
+		else if(defValueTag[x])
+			return defValueTag[x]->get(&c);
+		else
+			return 0;
 	}
 };
 
@@ -392,6 +388,17 @@ struct ValueIsDisabled : public CValue
 	}
 };
 
+struct ValueIsMusicPlaying : public CValue
+{
+	CFinder *f;
+	ValueIsMusicPlaying(CFinder *a) : f(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -486,6 +493,13 @@ CValue *ReadValue(char ***wpnt)
 		case VALUE_IS_DISABLED:
 			{*wpnt += 1;
 			return new ValueIsDisabled(ReadFinder(wpnt));}
+		case VALUE_IS_MUSIC_PLAYING:
+			{*wpnt += 1;
+			return new ValueIsMusicPlaying(ReadFinder(wpnt));}
+		case VALUE_VALUE_TAG_INTERPRETATION:
+			{int x = strValueTag.find(word[1]); mustbefound(x);
+			*wpnt += 2;
+			return new ValueValueTagInterpretation(x, ReadFinder(wpnt));}
 	}
 	//ferr("Unknown value type."); return 0;
 	int x = strUnknownValue.find(word[0]);

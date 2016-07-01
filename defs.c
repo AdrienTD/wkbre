@@ -79,7 +79,7 @@ char *CBLUEPRINT_str[15] = {
 "INTERPRET_VALUE_TAG_AS",
 "REPRESENT_AS",
 };
-char *VALUE_str[21] = {
+char *VALUE_str[23] = {
 "CONSTANT",
 "DEFINED_VALUE",
 "ITEM_VALUE",
@@ -101,6 +101,8 @@ char *VALUE_str[21] = {
 "ARE_ASSOCIATED",
 "IS_IDLE",
 "IS_DISABLED",
+"IS_MUSIC_PLAYING",
+"VALUE_TAG_INTERPRETATION",
 };
 char *ENODE_str[23] = {
 "ADDITION",
