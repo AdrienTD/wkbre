@@ -43,6 +43,8 @@ DynList<DelayedSequenceEntry> delayedSeq;
 DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
 wchar_t *campaignName = 0;
 
+DynList<GameObject*> norefobjs;
+
 valuetype GameObject::getItem(int x)
 {
 	for(DynListEntry<GOItem> *e = this->item.first; e; e = e->next)
@@ -758,6 +760,20 @@ void SaveSaveGame(char *fn)
 // Editing tools
 //**********************/
 
+void RemoveObjReference(GameObject *o)
+{
+	if(!o->curtarget) return;
+	o->curtarget->referencers.move(o->ctgdle, &norefobjs);
+	o->curtarget = 0;
+}
+
+void SetObjReference(GameObject *o, GameObject *t)
+{
+	RemoveObjReference(o);
+	norefobjs.move(o->ctgdle, &t->referencers);
+	o->curtarget = t;
+}
+
 void RemoveObject(GameObject *o)
 {
 	if(o->children.len)
@@ -780,6 +796,15 @@ void RemoveObject(GameObject *o)
 	if(o->param) delete o->param;
 	if(o->tiles) delete o->tiles;
 	if(o->rects) delete o->rects;
+
+	RemoveObjReference(o);
+	DynListEntry<GameObject*> *n;
+	for(DynListEntry<GameObject*> *e = o->referencers.first; e; e = n)
+	{
+		n = e->next;
+		RemoveObjReference(e->value);
+	}
+	norefobjs.remove(o->ctgdle);
 
 	gameobj[o->handle] = 0;
 	if(o->parent)
@@ -974,6 +999,9 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	go->itile = 0;
 	if(itiles)
 		PutObjsInITiles(go);
+
+	norefobjs.add(go);
+	go->curtarget = 0; go->ctgdle = norefobjs.last;
 
 	return go;
 }

@@ -1,0 +1,98 @@
+struct GameObject
+{
+	// ...
+	DynList<GameObject*> referencers;
+
+	GameObject *curtarget;
+	DynListEntry<GameObject*> *ctgdle;
+};
+
+DynList<GameObject*> norefobjs;
+
+void CreateObject(...)
+{
+	// ...
+	norefobjs.add(o);
+	o->curtarget = 0; o->ctgdle = norefobjs.last;
+}
+
+void RemoveObject(...)
+{
+	// ...
+	RemoveObjReference(o);
+	DynListEntry<GameObject*> *n;
+	for(DynListEntry<GameObject*> *e = o->referencers.first; e; e = n)
+	{
+		n = e->next;
+		RemoveObjReference(e->value);
+	}
+	norefobjs.remove(o->ctgdle);
+}
+
+void RemoveObjReference(GameObject *o)
+{
+	if(!o->curtarget) return;
+	o->curtarget->referencers.move(o->ctgdle, &norefobjs);
+	o->curtarget = 0;
+}
+
+void SetObjReference(GameObject *o, GameObject *t)
+{
+	RemoveObjReference(o);
+	norefobjs.move(o->ctgdle, &t->referencers);
+	o->curtarget = t;
+}
+
+struct FinderReferencers : public CFinder
+{
+	int x;
+	DynListEntry<GameObject *o> *n;
+	FinderReferencers(int a) : x(a) {}
+	CFinder *clone() {return new FinderReferencers(x);}
+	void begin(SequenceEnv *env)
+	{
+		if(env->self.valid())
+			n = env->self->referencers.first;
+		else
+			n = 0;
+	}
+	GameObject *getnext()
+	{
+		while(n)
+		{
+			GameObject *o = n->value;
+			n = n->next;
+			if(o->ordercfg.order.len)
+			{
+				SOrder *s = &o->ordercfg.order.first->value;
+				STask *t = &s->task.getEntry(s->currentTask)->value;
+				if(t->type->cat == x)
+					return o;
+			}
+		}
+	}
+};
+
+// NOTE: I've only seen NUM_REFERENCERS with a single object.
+struct NumReferencers : public CValue
+{
+	int x; CFinder *f;
+	NumReferencers(int a, CFinder *b) : x(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return 0;
+		int n = 0;
+		for(DynListEntry<GameObject*> *e = o->referencers.first; e; e = e->next)
+		{
+			if(o->ordercfg.order.len)
+			{
+				SOrder *s = &o->ordercfg.order.first->value;
+				STask *t = &s->task.getEntry(s->currentTask)->value;
+				if(t->type->cat == x)
+					n++;
+			}
+		}
+		return n;
+	}
+};

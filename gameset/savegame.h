@@ -73,6 +73,8 @@ struct GameObject
 	GOParamBlock *param;
 	GrowList<couple<uint> > *tiles;
 	ITile *itile; DynListEntry<goref> *itileole;
+	DynList<GameObject*> referencers;
+	GameObject *curtarget; DynListEntry<GameObject*> *ctgdle;
 
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);
@@ -102,6 +104,8 @@ extern float current_time, previous_time, elapsed_time;
 extern DynList<DelayedSequenceEntry> delayedSeq;
 extern DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
 
+extern DynList<GameObject*> norefobjs;
+
 GameObject *SubFindObjID(int id, GameObject *p);
 GameObject *FindObjID(int id);
 
@@ -128,6 +132,8 @@ inline goref &goref::operator=(uint a) {set(FindObjID(a)); return *this;}
 void LoadSaveGame(char *fn);
 void SaveSaveGame(char *fn);
 
+void RemoveObjReference(GameObject *o);
+void SetObjReference(GameObject *o, GameObject *t);
 void RemoveObject(GameObject *o);
 void SetObjectParent(GameObject *c, GameObject *p);
 int AreObjsAssociated(GameObject *a, uint cat, GameObject *b);

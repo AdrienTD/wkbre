@@ -1,0 +1,68 @@
+struct PackItemMod
+{
+	int action, item; CValue *value;
+};
+
+struct CPackage
+{
+	GrowList<int> events;
+	GrowList<PackItemMod> mods;
+	CFinder *relatedParty;
+};
+
+void ReadCPackage(char **pntfp, char **fstline)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	CPackage *p = &(gs_package[strPackage.find(fstline[1])]);
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if( *((uint*)(word[0])) == '_DNE' )
+			return;
+		if(!stricmp(word[0], "GAME_EVENT"))
+		{
+			p->events.add(strGameEvent.find(word[1]));
+		}
+		else if(!stricmp(word[0], "ITEM_MODIFICATION"))
+		{
+			PackItemMod *m = p->mods.addp();
+			m->action = stfind_cs(PACKAGE_ITEM_MOD_str, PACKAGE_ITEM_MOD_NUM, word[1]);
+			m->item = strItems.find(word[2]);
+			char **w = word + 3;
+			m->value = ReadValue(&w);
+		}
+		else if(!stricmp(word[0], "RELATED_PARTY"))
+		{
+			char **w = word + 1;
+			p->relatedParty = ReadFinder(&w);
+		}
+	}
+}
+
+void SendCPackage(GameObject *o, CPackage *p, SequenceEnv *env)
+{
+	for(int i = 0; i < p->mods.len; i++)
+	{
+		PackItemMod *m = p->mods.getpnt(i);
+		valuetype v = p->value.get(env), n;
+		switch(m->action)
+		{
+			case PACKAGE_ITEM_MOD_REPLACE:
+				n = v; break;
+			case PACKAGE_ITEM_MOD_INCREASE:
+				n = o->getItem(x) + v; break;
+			case PACKAGE_ITEM_MOD_REDUCE:
+				n = o->getItem(x) - v; break;
+		}
+		o->setItem(x, n);
+	}
+
+	SequenceEnv ctx;
+	env->copyAll(&ctx);
+	ctx.relatedparty = m->relatedParty.getfirst(env);
+
+	for(int i = 0; i < p->events.len; i++)
+		SendGameEvent(&ctx, o, p->events[i]);
+}

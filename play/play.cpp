@@ -72,7 +72,7 @@ void CheckBattlesDelayedSequences()
 	{
 		m = e->next;
 		if((!e->value.numobj) || (e->value.loopsexec >= e->value.nloops))
-			{delete [] e->value.ola; repPeriodSeq.remove(e); continue;}
+			{delete [] e->value.ola; exePeriodSeq.remove(e); continue;}
 		float lt = e->value.period / e->value.nloops;
 		while(current_time >= (e->value.time + (e->value.loopsexec+1) * lt))
 		{
@@ -84,7 +84,7 @@ void CheckBattlesDelayedSequences()
 			}
 			e->value.obj++; e->value.numobj--; e->value.loopsexec++;
 			if((!e->value.numobj) || (e->value.loopsexec >= e->value.nloops))
-				{delete [] e->value.ola; repPeriodSeq.remove(e); break;}
+				{delete [] e->value.ola; exePeriodSeq.remove(e); break;}
 		}
 	}
 

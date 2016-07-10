@@ -42,12 +42,14 @@ struct Font
 	int GetWidth(char *s);
 	int GetSize(char *s, int *ow, int *oh);
 	void Draw(int x, int y, char *str, int c = -1);
+	void DrawInRect(int mw, int sx, int sy, char *str, int c = -1);
 };
 
 extern Font *deffont;
 extern char *dfontfn;
 
 void InitFont();
-void DrawFont(int x, int y, char *str);
+void DrawFont(int x, int y, char *str, int c = -1);
+void DrawFontInRect(int mx, int x, int y, char *str, int c = -1);
 void GetTextSize(char *str, int *x, int *y);
 void DeinitFont();

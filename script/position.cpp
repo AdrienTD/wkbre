@@ -97,6 +97,54 @@ struct PositionOutAtAngle : public CPosition
 	}
 };
 
+struct PositionNearestValidPositionFor : public CPosition
+{
+	CFinder *f; CPosition *p;
+	PositionNearestValidPositionFor(CFinder *a, CPosition *b) : f(a), p(b) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		// TO IMPLEMENT
+		p->get(env, po);
+	}
+};
+
+struct PositionNearestAttachmentPoint : public CPosition
+{
+	int t; CFinder *f; CPosition *p; CValue *v;
+	PositionNearestAttachmentPoint(int a, CFinder *b, CPosition *c, CValue *d) : t(a), f(b), p(c), v(d) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		// TO IMPLEMENT
+		GameObject *o = f->getfirst(env);
+		po->pos = o->position;
+		po->ori = o->orientation;
+	}
+};
+
+struct PositionAbsolutePosition : public CPosition
+{
+	float x, y, z, o, p;
+	PositionAbsolutePosition(float a, float b, float c, float d, float e) : x(a), y(b), z(c), o(d), p(e) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		po->pos.x = x; po->pos.y = y; po->pos.z = z;
+		po->ori.x = o; po->ori.y = p;
+	}
+};
+
+struct PositionSpawnTilePosition : public CPosition
+{
+	CFinder *f;
+	PositionSpawnTilePosition(CFinder *a) : f(a) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		// TO IMPLEMENT
+		GameObject *o = f->getfirst(env);
+		po->pos = o->position;
+		po->ori = o->orientation;
+	}
+};
+
 CPosition *ReadCPosition(char ***wpnt)
 {
 	char **word = *wpnt; CPosition *cv;
@@ -112,6 +160,32 @@ CPosition *ReadCPosition(char ***wpnt)
 			{*wpnt += 1; CFinder *a = ReadFinder(wpnt);
 			CValue *b = ReadValue(wpnt);
 			return new PositionOutAtAngle(a, b, ReadValue(wpnt));}
+		case POSITION_NEAREST_VALID_POSITION_FOR:
+			{*wpnt += 1;
+			CFinder *f = ReadFinder(wpnt);
+			return new PositionNearestValidPositionFor(f, ReadCPosition(wpnt));}
+		case POSITION_NEAREST_ATTACHMENT_POINT:
+			{int t = 0; //strAttachPointType.find(word[1]);
+			*wpnt += 2;
+			CFinder *f = ReadFinder(wpnt);
+			CPosition *p = ReadCPosition(wpnt);
+			CValue *v = 0;
+			if(**wpnt)
+				if(!stricmp(**wpnt, "CHOOSE_FROM_NEAREST"))
+					{*wpnt += 1; v = ReadValue(wpnt);}
+			return new PositionNearestAttachmentPoint(t, f, p, v);}
+		case POSITION_ABSOLUTE_POSITION:
+			//*wpnt += 6;
+			//return new PositionAbsolutePosition(atof(word[1]), atof(word[2]),
+			//	atof(word[3]), atof(word[4]), atof(word[5]));
+			{float a, b, c, d, e;
+			a = atof(word[1]); b = atof(word[2]); c = atof(word[3]);
+			if(word[4]) {d = atof(word[4]); e = atof(word[5]); *wpnt += 6;}
+			else {d = e = 0; *wpnt += 4;}
+			return new PositionAbsolutePosition(a, b, c, d, e);}
+		case POSITION_SPAWN_TILE_POSITION:
+			*wpnt += 1;
+			return new PositionSpawnTilePosition(ReadFinder(wpnt));
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

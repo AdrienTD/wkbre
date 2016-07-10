@@ -45,6 +45,7 @@ public:
 #include "sg_clientstate.h"
 #include "gs_command.h"
 #include "itile.h"
+#include "gs_gametextwindow.h"
 
 // From loadgameset.cpp
 
@@ -69,6 +70,8 @@ extern GrowStringList strValueTag; extern CValue **defValueTag;
 extern GrowStringList strOrderAssign; extern COrderAssignment *orderAssign;
 extern GrowStringList strCommand; extern CCommand *gscommand;
 extern GrowStringList strOrderCat, strTaskCat;
+extern GrowStringList strPackage; extern CPackage *gspackage;
+extern GrowStringList strGameTextWindow; extern CGameTextWindow *gsgametextwin;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

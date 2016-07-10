@@ -32,7 +32,7 @@ public:
 			DrawRect(dx, dy, width, height, bgColor);}
 	}
 
-	void setCaption(char *s) {if(caption) free(s); caption = strdup(s);}
+	void setCaption(char *s) {if(caption) free(caption); caption = strdup(s);}
 	void setRect(int x, int y, int w, int h) {posx = x; posy = y; width = w; height = h;}
 
 	void remove();
@@ -46,7 +46,7 @@ struct GEStaticText : public GUIElement
 	void draw(int dx, int dy)
 	{
 		GUIElement::draw(dx, dy);
-		DrawFont(dx, dy, caption);
+		if(caption) DrawFontInRect(width, dx, dy, caption);
 	}
 };
 
@@ -56,7 +56,7 @@ struct GEButton : public GUIElement
 	GEButton() : buttonClick(0) {}
 	void onMouseRelease(int mx, int my)
 	{
-		printf("Click! mx = %i, my = %i\n", mx, my);
+		//printf("Click! mx = %i, my = %i\n", mx, my);
 		if(buttonClick) buttonClick(cbparam);
 	}
 };
@@ -70,7 +70,7 @@ struct GETextButton : public GEButton
 		int mouseHover = IsPointInRect(dx, dy, width, height, mouseX, mouseY);
 		NoTexture(0);
 		DrawRect(dx, dy, width, height, mouseHover?(mouseClick?clrPressed:clrHover):clrNormal);
-		DrawFont(dx, dy, caption);
+		if(caption) DrawFont(dx, dy, caption);
 	}
 };
 
@@ -154,7 +154,7 @@ struct GEWindow : public GEContainer
 		NoTexture(0);
 		DrawGradientRect(dx, dy, width-20, 20, 0xFF0000FF, 0xFFC0C0FF, 0xFF0000FF, 0xFFC0C0FF);
 		DrawRect(dx, dy+20, width, height-20, bgColor);
-		DrawFont(dx, dy, caption);
+		if(caption) DrawFont(dx, dy, caption);
 		DrawSOS(dx, dy);
 	}
 	void onMouseClick(int mx, int my)

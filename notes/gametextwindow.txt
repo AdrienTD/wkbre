@@ -1,0 +1,180 @@
+/* NOTE: '*' means "optional".
+
+GAME_TEXT_WINDOW "GTWName"
+
+	BOTTOMLEFT_X %f
+	BOTTOMLEFT_Y %f
+	PIXEL_WIDTH %i
+*	FORCE_READ_ALL_PAGES 0/1
+*	PUT_AT_BOTTOM_OF_SCREEN		// WKB only
+
+	PAGE
+		TEXT_BODY <LANGLABEL>
+*		ACTIVATION_SOUND "WKGS\soundfile.wav"
+	PAGE_END
+
+	BUTTON
+		BOTTOMLEFT_X %i
+		BOTTOMLEFT_Y %i
+		PIXEL_WIDTH %i
+		PIXEL_HEIGHT %i
+		BUTTON_TEXT <LANGLABEL>
+		ON_CLICK_WINDOW_ACTION CLOSE_WINDOW/MOVE_PREVIOUS_PAGE/MOVE_NEXT_PAGE (/MOVE_FIRST_PAGE)
+*		ON_CLICK_SEQUENCE \n <actseq> \n END_ON_CLICK_SEQUENCE
+*		ON_CLICK_GAMESET_ACTION "ReactionName" <FINDER>
+	BUTTON_END
+
+GAME_TEXT_WINDOW
+*/
+
+struct GTWPage
+{
+	char *textBody;
+	//char *activationSound;
+};
+
+struct GTWButton
+{
+	CGameTextWindow *gtw;
+	int px, py, pw, ph;
+	char *text;
+	int ocwinaction;
+	ActionSeq *ocsequence;
+};
+
+struct CGameTextWindow
+{
+	float px, py; int pw;
+	boolean forceReadAllPages, putAtBottomOfScreen;
+	GrowList<GTWPage> pages;
+	GrowList<GTWButton> buttons;
+
+	GUIElement *ge; int curpage;
+};
+
+void ReadGTWPage(char **pntfp, GTWPage *g)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!stricmp(word[0], "PAGE_END"))
+			return;
+		else if(!stricmp(word[0], "TEXT_BODY"))
+			g->textBody = GetLocText(word[1]);
+	}
+	ferr("UEOF");
+}
+
+void ReadGTWButton(char **pntfp, GTWButton *g)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	g->ocsequence = 0;
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!stricmp(word[0], "BUTTON_END"))
+			return;
+		else if(!stricmp(word[0], "BOTTOMLEFT_X"))
+			g->px = atoi(word[1]);
+		else if(!stricmp(word[0], "BOTTOMLEFT_Y"))
+			g->py = atoi(word[1]);
+		else if(!stricmp(word[0], "PIXEL_WIDTH"))
+			g->pw = atoi(word[1]);
+		else if(!stricmp(word[0], "PIXEL_HEIGHT"))
+			g->ph = atoi(word[1]);
+		else if(!stricmp(word[0], "BUTTON_TEXT"))
+			g->text = GetLocText(word[1]);
+		else if(!stricmp(word[0], "ON_CLICK_WINDOW_ACTION"))
+			g->ocwinaction = stfind_cs(GTW_BUTTON_WINDOW_ACTION_str, GTW_BUTTON_WINDOW_ACTION_NUM, word[1]);
+		else if(!stricmp(word[0], "ON_CLICK_SEQUENCE"))
+			g->ocsequence = ReadActSeq(pntfp);
+	}
+	ferr("UEOF");
+}
+
+void ReadCGameTextWindow(char **pntfp)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	CGameTextWindow *c = &(gsgametextwin[strGameTextWindow.find(fstline[1])]);
+	c->forceReadAllPages = c->putAtBottomOfScreen = 0;
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!stricmp(word[0], "GAME_TEXT_WINDOW_END"))
+			return;
+		else if(!stricmp(word[0], "BOTTOMLEFT_X"))
+			c->px = atof(word[1]);
+		else if(!stricmp(word[0], "BOTTOMLEFT_Y"))
+			c->py = atof(word[1]);
+		else if(!stricmp(word[0], "PIXEL_WIDTH"))
+			c->pw = atoi(word[1]);
+		else if(!stricmp(word[0], "FORCE_READ_ALL_PAGES"))
+			c->forceReadAllPages = atoi(word[1]);
+		else if(!stricmp(word[0], "PUT_AT_BOTTOM_OF_SCREEN"))
+			c->putAtBottomOfScreen = 1;
+		else if(!stricmp(word[0], "PAGE"))
+			ReadGTWPage(pntfp, c->pages.addp());
+		else if(!stricmp(word[0], "BUTTON"))
+			{GTWButton *b = c->buttons.addp();
+			b->gtw = c;
+			ReadGTWButton(pntfp, b);}
+	}
+	ferr("UEOF");
+}
+
+void OnGTWButtonClick(void *param)
+{
+	GTWButton *b = (GTWButton*)param;
+	switch(b->ocwinaction)
+	{
+		case GTW_BUTTON_WINDOW_ACTION_CLOSE_WINDOW:
+			b->gtw->ge->enabled = 0; break;
+		case GTW_BUTTON_WINDOW_ACTION_MOVE_NEXT_PAGE:
+			b->gtw->curpage++; break;
+		case GTW_BUTTON_WINDOW_ACTION_MOVE_PREVIOUS_PAGE:
+			b->gtw->curpage--; break;
+		case GTW_BUTTON_WINDOW_ACTION_MOVE_FIRST_PAGE:
+			b->gtw->curpage = 0; break;
+	}
+	if(b->ocwinaction != GTW_BUTTON_WINDOW_ACTION_CLOSE_WINDOW)
+		;// Update text body.
+	if(b->ocsequence)
+	{
+		SequenceEnv env;
+		//env.self = curclient->player; // ???
+		b->ocsequence->run(&env);
+	}
+}
+
+void CreateGTW(CGameTextWindow *g)
+{
+	GEWindow *w = new GEWindow;
+	g->ge = w;
+	actualpage->add(w);
+	w->setRect(64, 64, 500, 160);
+	w->onResize();
+	w->bgColor = 0x80000080;
+
+	GEStaticText *t = new GEStaticText;
+	w->add(t);
+	t->setRect(0, 20, 500, 120);
+	t->setCaption(g->pages.getpnt(0)->textBody);
+
+	for(int i = 0; i < g->buttons.len; i++)
+	{
+		GTWButton *x = g->buttons.getpnt(i);
+		GETextButton *b = new GETextButton;
+		w->add(b);
+		b->setRect(i*100, 140, 95, 20);
+		b->setCaption(x->text);
+		b->buttonClick = OnGTWButtonClick;
+		b->cbParam = (void*)x;
+	}
+}

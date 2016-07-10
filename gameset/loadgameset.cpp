@@ -37,6 +37,8 @@ GrowStringList strValueTag; CValue **defValueTag;
 GrowStringList strOrderAssign; COrderAssignment *orderAssign;
 GrowStringList strCommand; CCommand *gscommand;
 GrowStringList strOrderCat, strTaskCat;
+GrowStringList strPackage; CPackage *gspackage;
+GrowStringList strGameTextWindow; CGameTextWindow *gsgametextwin;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -192,7 +194,8 @@ void LookAtFile(char *filename, int ipass)
 switch(ipass)
 {
 	int z;
-	// The first pass "converts strings to numbers".
+	// The first pass mainly looks for blueprint names and stores them
+	// in the corresponding "str..." list.
 	case 0:
 		switch(z = stfind_cs(CLASS_str, CLASS_NUM, word[0]))
 		{
@@ -276,12 +279,19 @@ switch(ipass)
 				strOrderCat.add(word[1]); break;
 			case CLASS_TASK_CATEGORY:
 				strTaskCat.add(word[1]); break;
+			case CLASS_PACKAGE:
+				strPackage.add(word[1]);
+				fp = SkipClass(fp, "END_PACKAGE"); break;
+			case CLASS_GAME_TEXT_WINDOW:
+				strGameTextWindow.add(word[1]);
+				fp = SkipClass(fp, "GAME_TEXT_WINDOW_END"); break;
 		} break;
 
 /*******************************************************************/
 
 	// The second pass will allocate the classes/blueprints.
-	// Strings are replaced through indices in the string lists.
+	// Names are replaced with indices in the string lists or pointers
+	// to other blueprints.
 	case 1:
 		switch(z = stfind_cs(CLASS_str, CLASS_NUM, word[0]))
 		{
@@ -357,6 +367,10 @@ switch(ipass)
 				ReadCOrderAssignment(&fp, word); break;
 			case CLASS_COMMAND:
 				ReadCCommand(&fp, word); break;
+			case CLASS_PACKAGE:
+				ReadCPackage(&fp, word); break;
+			case CLASS_GAME_TEXT_WINDOW:
+				ReadCGameTextWindow(&fp, word); break;
 		} break;
 
 /*******************************************************************/
@@ -429,6 +443,8 @@ void LoadGameSet(char *filename)
 	gstask = new CTask[strTask.len];
 	orderAssign = new COrderAssignment[strOrderAssign.len];
 	gscommand = new CCommand[strCommand.len];
+	gspackage = new CPackage[strPackage.len];
+	gsgametextwin = new CGameTextWindow[strGameTextWindow.len];
 
 	BeginLooking();
 	loadinginfo("Gameset pass 1\n"); LookAtFile(filename, 1);

@@ -51,6 +51,8 @@ void StartCurrentTaskTriggers(GameObject *o)
 			t->trigger.last->value.period = c->period->get(&env);
 		}
 		t->trigger.last->value.referenceTime = current_time;
+		//if(c->type == TASKTRIGGER_ATTACHMENT_POINT)
+		//	t->trigger.last->value.referenceTime -= 0.5f;
 	}
 }
 
@@ -106,6 +108,7 @@ void CheckCurrentTaskTriggers(GameObject *o)
 
 void ProcessCurrentTask(GameObject *o)
 {
+	goref g; g = o;
 	SOrder *s = &o->ordercfg.order.first->value;
 	STask *t = &s->task.getEntry(s->currentTask)->value;
 	CTask *c =  t->type;
@@ -131,6 +134,7 @@ void ProcessCurrentTask(GameObject *o)
 							env.self = o;
 							env.target = t->target;
 							c->proxSatisfiedSeq->run(&env);
+							if(!g.valid()) return;
 						}
 					}
 					StartCurrentTaskTriggers(o);
@@ -245,11 +249,13 @@ void InitTask(GameObject *o, int x)
 	t->flags &= ~(FSTASK_PROXIMITY_SATISFIED | FSTASK_START_SEQUENCE_EXECUTED);
 	t->flags |= FSTASK_FIRST_EXECUTION;
 	// TODO: FSTASK_LAST_DESTINATION_VALID ???
+	RemoveObjReference(o);
 	if(!t->target.valid()) if(t->type->target)
 	{
 		SequenceEnv env; env.self = o;
 		t->target = t->type->target->getfirst(&env);
 	}
+	if(t->target.valid()) SetObjReference(o, t->target.get());
 	SequenceEnv env; env.self = o; env.target = t->target;
 	if(t->type->initSeq)
 		t->type->initSeq->run(&env);
@@ -276,6 +282,8 @@ void SuspendTask(GameObject *o, int x)
 		SequenceEnv env; env.self = o; env.target = t->target;
 		t->type->suspendSeq->run(&env);
 	}
+
+	RemoveObjReference(o);
 }
 
 void ResumeTask(GameObject *o, int x)
@@ -291,6 +299,8 @@ void ResumeTask(GameObject *o, int x)
 		SequenceEnv env; env.self = o; env.target = t->target;
 		t->type->resumeSeq->run(&env);
 	}
+
+	if(t->target.valid()) SetObjReference(o, t->target.get());
 }
 
 void TerminateTask(GameObject *o, int x)
@@ -306,6 +316,8 @@ void TerminateTask(GameObject *o, int x)
 		SequenceEnv env; env.self = o; env.target = t->target;
 		t->type->terminateSeq->run(&env);
 	}
+
+	RemoveObjReference(o);
 }
 
 void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
@@ -357,8 +369,19 @@ void InitOrder(GameObject *o, int x)
 
 void AssignOrderVia(GameObject *go, COrderAssignment *oa, SequenceEnv *env)
 {
+	SequenceEnv nc;
+	env->copyAll(&nc);
+	nc.ogiver = nc.self;
+	nc.self = go;
+
 	GameObject *tg = 0;
-	if(oa->target) tg = oa->target->getfirst(env);
+	if(oa->target) tg = oa->target->getfirst(&nc);
+
+	if(!tg)
+		if(oa->mode != ORDERASSIGNMODE_DO_LAST)
+			if(oa->order->tasks[0]->target)
+				tg = oa->order->tasks[0]->target->getfirst(&nc);
+
 	AssignOrder(go, oa->order, oa->mode, tg);
 }
 

@@ -181,6 +181,44 @@ void Font::Draw(int sx, int y, char *str, int c)
 	}
 }
 
+void Font::DrawInRect(int mw, int sx, int sy, char *str, int c)
+{
+	char *td = str, *b; char *ns = str, *os; int wc, ow, oh;
+
+	while(*ns)
+	{
+		os = ns;
+		while(!isspace((uchar)*(ns++))) if(!*ns) break;
+		wc = ns - td;
+		b = new char[wc+1]; memcpy(b, td, wc); b[wc] = 0;
+/*
+		printf("\n -> ");
+		for(int i = 0; i < wc; i++)
+			putch(b[i]);
+*/
+		GetSize(b, &ow, &oh); delete [] b;
+
+		// Draw line
+		if(ow > mw)
+		{
+			wc = os - td;
+			if(wc)
+			{
+				b = new char[wc+1]; memcpy(b, td, wc); b[wc] = 0;
+				GetSize(b, &ow, &oh);
+				Draw(sx, sy, b, c);
+				delete [] b;
+				sy += oh;
+				td = os;
+			}
+		}
+
+		// Draw last line
+		if(!*ns)
+			Draw(sx, sy, td, c);
+	}
+}
+
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
@@ -191,14 +229,19 @@ void InitFont()
 	deffont = new Font(dfontfn);
 }
 
-void DrawFont(int x, int y, char *str)
+void DrawFont(int x, int y, char *str, int c)
 {
 /*	RECT r;
 	r.left = x; r.top = y;
 	r.right = r.bottom = 0;
 	dxfont->DrawText(NULL, str, -1, &r, DT_NOCLIP, D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f));
 */
-	deffont->Draw(x, y, str);
+	deffont->Draw(x, y, str, c);
+}
+
+void DrawFontInRect(int mx, int x, int y, char *str, int c)
+{
+	deffont->DrawInRect(mx, x, y, str, c);
 }
 
 void GetTextSize(char *str, int *x, int *y)

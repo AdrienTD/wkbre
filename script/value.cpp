@@ -226,7 +226,7 @@ int DiplomaticStatusAtLeast(int s, GameObject *x, GameObject *y)
 {
 	GameObject *a = x->player, *b = y->player;
 	if(a == b) return 1;
-	return GetDiplomaticStatus(a, b) >= s;
+	return GetDiplomaticStatus(a, b) <= s;
 }
 
 struct ValueDiplomaticStatusAtLeast : public CValue
@@ -399,6 +399,91 @@ struct ValueIsMusicPlaying : public CValue
 	}
 };
 
+struct ValueTileItem : public CValue
+{
+	int x; CFinder *f;
+	ValueTileItem(int a, CFinder *b) : x(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
+// NOTE: I've only seen NUM_REFERENCERS with a single object.
+struct ValueNumReferencers : public CValue
+{
+	int x; CFinder *f;
+	ValueNumReferencers(int a, CFinder *b) : x(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return 0;
+		int n = 0;
+		for(DynListEntry<GameObject*> *e = o->referencers.first; e; e = e->next)
+		{
+			if(o->ordercfg.order.len)
+			{
+				SOrder *s = &o->ordercfg.order.first->value;
+				STask *t = &s->task.getEntry(s->currentTask)->value;
+				if(t->type->cat == x)
+					n++;
+			}
+		}
+		return n;
+	}
+};
+
+struct ValueIsAccessible : public CValue
+{
+	CFinder *f, *g;
+	ValueIsAccessible(CFinder *a, CFinder *b) : f(a), g(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
+struct ValueHasDirectLineOfSightTo : public CValue
+{
+	CFinder *f; CPosition *p; CFinder *g;
+	ValueHasDirectLineOfSightTo(CFinder *a, CPosition *b, CFinder *c) : f(a), p(b), g(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
+// NOTE: If the second finder argument returns multiple objects and that for
+// every object the objfinddef returns the same object, this object is counted more than
+// one time. (There's no need to do a(n) union, simply an addition!)
+struct ValueFinderResultsCount : public CValue
+{
+	int x; CFinder *f;
+	CFinder *r;
+	ValueFinderResultsCount(int a, CFinder *b) : x(a), f(b), r(0) {}
+	valuetype get(SequenceEnv *env)
+	{
+		if(!r) r = finderdef[x]->clone();
+
+		int no = 0; GameObject *o;
+		f->begin(env);
+		SequenceEnv nc;
+		env->copyAll(&nc);
+
+		while(o = f->getnext())
+		{
+			nc.self = o;
+			r->begin(&nc);
+			while(r->getnext())
+				no++;
+		}
+		return no;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -500,6 +585,26 @@ CValue *ReadValue(char ***wpnt)
 			{int x = strValueTag.find(word[1]); mustbefound(x);
 			*wpnt += 2;
 			return new ValueValueTagInterpretation(x, ReadFinder(wpnt));}
+		case VALUE_TILE_ITEM:
+			{int x = strItems.find(word[1]); mustbefound(x);
+			*wpnt += 2;
+			return new ValueTileItem(x, ReadFinder(wpnt));}
+		case VALUE_NUM_REFERENCERS:
+			{int x = strTaskCat.find(word[1]); mustbefound(x);
+			*wpnt += 2;
+			return new ValueNumReferencers(x, ReadFinder(wpnt));}
+		case VALUE_IS_ACCESSIBLE:
+			{*wpnt += 1;
+			CFinder *a = ReadFinder(wpnt);
+			return new ValueIsAccessible(a, ReadFinder(wpnt));}
+		case VALUE_HAS_DIRECT_LINE_OF_SIGHT_TO:
+			{*wpnt += 1;
+			CFinder *a = ReadFinder(wpnt);
+			CPosition *b = ReadCPosition(wpnt);
+			return new ValueHasDirectLineOfSightTo(a, b, ReadFinder(wpnt));}
+		case VALUE_FINDER_RESULTS_COUNT:
+			{int x = strFinderDef.find(word[1]); mustbefound(x);
+			*wpnt += 2; return new ValueFinderResultsCount(x, ReadFinder(wpnt));}
 	}
 	//ferr("Unknown value type."); return 0;
 	int x = strUnknownValue.find(word[0]);

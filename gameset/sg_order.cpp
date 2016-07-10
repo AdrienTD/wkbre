@@ -156,7 +156,20 @@ char *ReadOrderConfiguration(char *fp, GameObject *o)
 		nwords = GetWords(wwl, word);
 		if(!nwords) continue;
 		if(!stricmp(word[0], "END_ORDER_CONFIGURATION"))
+		{
+			// Set the target reference (for FINDER_REFERENCERS).
+			if(o->ordercfg.order.len)
+			{
+				SOrder *s = &o->ordercfg.order.first->value;
+				if(s->task.len)
+				{
+					STask *t = &s->task.getEntry(s->currentTask)->value;
+					if(t->target.valid())
+						SetObjReference(o, t->target.get());
+				}
+			}
 			return fp;
+		}
 		if(!stricmp(word[0], "UNIQUE_ORDER_ID"))
 			o->ordercfg.uniqueOrderID = atoi(word[1]);
 		if(!stricmp(word[0], "ORDER"))

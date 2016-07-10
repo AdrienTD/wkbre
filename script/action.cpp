@@ -615,7 +615,135 @@ struct ActionRepeatSequenceOverPeriod : public CAction
 	}
 };
 
+struct ActionSinkAndRemove : public CAction
+{
+	CFinder *f;
+	ActionSinkAndRemove(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		// TODO: What about sinking?
+		f->begin(env);
+		GameObject *o;
+		while(o = f->getnext())
+			RemoveObject(o);
+	}
+};
+
+struct ActionSendPackage : public CAction
+{
+	int x; CFinder *f;
+	ActionSendPackage(int a, CFinder *b) : x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext())
+			SendCPackage(o, &(gspackage[x]), env);
+	}
+};
+
+struct ActionSetSelectable : public CAction
+{
+	int x; CFinder *f;
+	ActionSetSelectable(int a, CFinder *b) : x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext()) {
+			o->flags &= ~FGO_SELECTABLE;
+			if(x) o->flags |= FGO_SELECTABLE;
+		}
+	}
+};
+
+struct ActionSetTargetable : public CAction
+{
+	int x; CFinder *f;
+	ActionSetTargetable(int a, CFinder *b) : x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext()) {
+			o->flags &= ~FGO_TARGETABLE;
+			if(x) o->flags |= FGO_TARGETABLE;
+		}
+	}
+};
+
+struct ActionSwitchCondition : public CAction
+{
+	CValue *c; GrowList<ASwitchCase> *s; // must be allocated with malloc or new
+	ActionSwitchCondition(CValue *a, GrowList<ASwitchCase> *b) : c(a), s(b) {}
+	void run(SequenceEnv *env)
+	{
+		valuetype x = c->get(env);
+		for(uint i = 0; i < s->len; i++)
+			if(s->getpnt(i)->v->get(env) == x)
+				s->getpnt(i)->s->run(env);
+	}
+};
+
+struct ActionSwitchHighest : public CAction
+{
+	GrowList<ASwitchCase> *s; // must be allocated with malloc or new
+	ActionSwitchHighest(GrowList<ASwitchCase> *a) : s(a) {}
+	void run(SequenceEnv *env)
+	{
+		valuetype x, r; int c = -1;
+		for(uint i = 0; i < s->len; i++)
+		{
+			r = s->getpnt(i)->v->get(env);
+			if((c == -1) || (r > x))
+				{x = r; c = i;}
+		}
+		if(c != -1) s->getpnt(c)->s->run(env);
+	}
+};
+
+struct ActionDisplayGameTextWindow : public CAction
+{
+	CGameTextWindow *w; CFinder *f;
+	ActionDisplayGameTextWindow(CGameTextWindow *a, CFinder *b) : w(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(o->id != 1027) return;
+		EnableGTW(w);
+	}
+};
+
+struct ActionHideGameTextWindow : public CAction
+{
+	CGameTextWindow *w; CFinder *f;
+	ActionHideGameTextWindow(CGameTextWindow *a, CFinder *b) : w(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(o->id != 1027) return;
+		DisableGTW(w);
+	}
+};
+
+struct ActionHideCurrentGameTextWindow : public CAction
+{
+	CFinder *f;
+	ActionHideCurrentGameTextWindow(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(o->id != 1027) return;
+		for(int i = 0; i < strGameTextWindow.len; i++)
+			DisableGTW(&(gsgametextwin[i]));
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
+GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp);
 
 CAction *ReadAction(char **pntfp, char **word)
 {
@@ -773,6 +901,33 @@ CAction *ReadAction(char **pntfp, char **word)
 			CFinder *f = ReadFinder(&w);
 			CValue *v = ReadValue(&w);
 			return new ActionRepeatSequenceOverPeriod(d, f, v, ReadValue(&w));}
+		case ACTION_SINK_AND_REMOVE:
+			w += 2;
+			return new ActionSinkAndRemove(ReadFinder(&w));
+		case ACTION_SEND_PACKAGE:
+			{int x = strPackage.find(word[2]); mustbefound(x);
+			w += 3; return new ActionSendPackage(x, ReadFinder(&w));}
+		case ACTION_SET_SELECTABLE:
+			w += 3; return new ActionSetSelectable(atoi(word[2]), ReadFinder(&w));
+		case ACTION_SET_TARGETABLE:
+			w += 3; return new ActionSetTargetable(atoi(word[2]), ReadFinder(&w));
+		case ACTION_SWITCH_CONDITION:
+			{w += 2; CValue *v = ReadValue(&w);
+			return new ActionSwitchCondition(v, ReadSwitchCases(pntfp));}
+		case ACTION_SWITCH_HIGHEST:
+			return new ActionSwitchHighest(ReadSwitchCases(pntfp));
+		case ACTION_DISPLAY_GAME_TEXT_WINDOW:
+			{int x = strGameTextWindow.find(word[2]); mustbefound(x);
+			CGameTextWindow *g = &(gsgametextwin[x]);
+			w += 3; CFinder *f = ReadFinder(&w);
+			return new ActionDisplayGameTextWindow(g, f);}
+		case ACTION_HIDE_GAME_TEXT_WINDOW:
+			{int x = strGameTextWindow.find(word[2]); mustbefound(x);
+			CGameTextWindow *g = &(gsgametextwin[x]);
+			w += 3; CFinder *f = ReadFinder(&w);
+			return new ActionHideGameTextWindow(g, f);}
+		case ACTION_HIDE_CURRENT_GAME_TEXT_WINDOW:
+			w += 2; return new ActionHideCurrentGameTextWindow(ReadFinder(&w));
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -838,4 +993,26 @@ void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b)
 		c->code.add(ReadAction(pntfp, word));
 	}
 	ferr("UEOF"); return;
+}
+
+GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	GrowList<ASwitchCase> *g = new GrowList<ASwitchCase>;
+	while(*pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if( *((uint*)(word[0])) == '_DNE' )
+			return g;
+		if(!stricmp(word[0], "CASE"))
+		{
+			ASwitchCase *e = g->addp();
+			char **w = word + 1;
+			e->v = ReadValue(&w);
+			e->s = ReadActSeq(pntfp);
+		}
+	}
+	ferr("UEOF"); return 0;
 }

@@ -414,11 +414,11 @@ int AskClass(char *head = 0)
 	return stfind_cs(CLASS_str, CLASS_NUM, OBJTYPE_str[r]);
 }
 
-CCommand *AskCommand(char *head = 0)
+CCommand *AskCommand(char *head = 0, DynList<goref> *dl = &selobjects)
 {
 	GrowList<CCommand *> lc;
 	GrowStringList ls;
-	for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+	for(DynListEntry<goref> *e = dl->first; e; e = e->next)
 	{
 		if(!e->value.valid()) continue;
 		for(int i = 0; i < e->value->objdef->offeredCmds.len; i++)
@@ -498,11 +498,27 @@ void DeselectObject(GameObject *o)
 	UpdateSelectionInfo();
 }
 
+void DeselectAll()
+{
+	DynListEntry<goref> *n;
+	for(DynListEntry<goref> *e = selobjects.first; e; e = n)
+	{
+		n = e->next;
+		if(e->value.valid())
+		{
+			e->value->flags &= ~FGO_SELECTED;
+			selobjects.remove(e);
+		}
+	}
+	UpdateSelectionInfo();
+}
+
 void CancelAllObjsOrders(GameObject *o)
 {
 	if(o->ordercfg.order.len)
 		//CancelAllOrders(o);
 		o->ordercfg.order.clear();
+	RemoveObjReference(o);
 	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
 		CancelAllObjsOrders(&e->value);
 }
@@ -738,22 +754,17 @@ void CallCommand(int cmd)
 			game_speed /= 2.0f; break;
 		case CMD_CANCEL_ALL_OBJS_ORDERS:
 			CancelAllObjsOrders(levelobj); break;
-	}
-}
-
-void DeselectAll()
-{
-	DynListEntry<goref> *n;
-	for(DynListEntry<goref> *e = selobjects.first; e; e = n)
-	{
-		n = e->next;
-		if(e->value.valid())
+		case CMD_SELECT_OBJECT_ID:
 		{
-			e->value->flags &= ~FGO_SELECTED;
-			selobjects.remove(e);
-		}
+			char s[256];
+			if(StrDlgBox(s, "Enter the ID of the object you'd like to select."))
+			{
+				GameObject *o = FindObjID(atoi(s));
+				if(!o) MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
+				else {DeselectAll(); SelectObject(o);}
+			}
+		} break;
 	}
-	UpdateSelectionInfo();
 }
 
 void T7ClickWindow(void *param)
@@ -801,19 +812,20 @@ void Test7()
 	menubar->setRect(0, 0, 32767, 20);
 	menubar->bgColor = 0xC0000080;
 	//onClickWindow = T7ClickWindow;
+	InitGTWs();
 
 	ChangeCursor(LoadCursor("Interface\\C_DEFAULT.TGA"));
 
 	while(!appexit)
 	{
-#ifndef WKBRE_RELEASE
+//#ifndef WKBRE_RELEASE
 		if(playMode)
 		{
 			AdvanceTime();
 			ProcessAllOrders();
 			CheckBattlesDelayedSequences();
 		}
-#endif
+//#endif
 		if(!winMinimized)
 		{
 			objsdrawn = 0;
@@ -829,26 +841,31 @@ void Test7()
 				DrawFont(0, scrh-20, statustext);
 			}
 			if(enableObjTooltips) DrawTooltip();
-#ifndef WKBRE_RELEASE
-			char st[256];
+//#ifndef WKBRE_RELEASE
+		if(experimentalKeys)
+		{	char st[256];
 			sprintf(st, "current_time = %f", current_time);
 			DrawFont(0, 80, st);
 			if(selobjects.len)
 			if(selobjects.first->value.valid())
 			{
-				int xf = strItems.find("Food"), xw = strItems.find("Wood"), xg = strItems.find("Gold"), xs = strItems.find("Stone");
+				int xhp = strItems.find("Hit Points"), xhc = strItems.find("Hit Point Capacity"), xf = strItems.find("Food"), xw = strItems.find("Wood"), xg = strItems.find("Gold"), xs = strItems.find("Stone");
 				if((xf + xw + xg + xs) >= 0)
 				{
-					sprintf(st, "--- Selected object ---\nFood: %f\nWood: %f\nGold: %f\nStone: %f",
+					sprintf(st, "--- Selected object ---\nHP: %f/%f\nFood: %f\nWood: %f\nGold: %f\nStone: %f",
+						selobjects.first->value->getItem(xhp),
+						selobjects.first->value->getItem(xhc),
 						selobjects.first->value->getItem(xf),
 						selobjects.first->value->getItem(xw),
 						selobjects.first->value->getItem(xg),
 						selobjects.first->value->getItem(xs));
+					NoTexture(0);
+					DrawRect(0, 100, 280, 6*20, 0xC0000080);
 					DrawFont(0, 100, st);
 				}
 			}
-#endif
-
+//#endif
+		}
 			DrawCursor();
 			EndDrawing();
 		}
@@ -982,12 +999,14 @@ void Test7()
 		if(keypressed['R']) {keypressed['R'] = 0; CallCommand(CMD_ROTATEOBJQP);}
 		if(keypressed['8']) {keypressed['8'] = 0; CallCommand(CMD_CAMCLISTATE);}
 
+		if(keypressed['O']) {keypressed['O'] = 0; CallCommand(CMD_SELECT_OBJECT_ID);}
+
+	if(experimentalKeys)
+	{
 		if(keypressed['P']) {keypressed['P'] = 0; CallCommand(CMD_PAUSE);}
 		if(keypressed[VK_ADD]) {keypressed[VK_ADD] = 0; CallCommand(CMD_GAME_SPEED_FASTER);}
 		if(keypressed[VK_SUBTRACT]) {keypressed[VK_SUBTRACT] = 0; CallCommand(CMD_GAME_SPEED_SLOWER);}
 
-	if(experimentalKeys)
-	{
 		//if(keypressed['A'])
 		//	{keypressed['A'] = 0; drawdebug = 1;}
 #ifndef WKBRE_RELEASE
@@ -1008,6 +1027,17 @@ void Test7()
 			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					ExecuteCommand(e->value.get(), c, 0, ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+		}
+
+		if(keypressed['Y'])
+		{
+			keypressed['Y'] = 0;
+			if(selobjects.len >= 2)
+			{
+				DynList<goref> dl; dl.add(); dl.first->value = selobjects.first->value;
+				CCommand *c = AskCommand("Which command do you want to execute on the first selected object with the second selected object as the target?", &dl);
+				ExecuteCommand(selobjects.first->value.get(), c, selobjects.first->next->value.get(), ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+			}
 		}
 
 		if(keypressed['X']) {keypressed['X'] = 0; CallCommand(CMD_RUNACTSEQ);}
@@ -1061,11 +1091,15 @@ void Test7()
 				//printf("%i objects on same tile:\n", o->itile->objs.len);
 				//for(DynListEntry<goref> *e = o->itile->objs.first; e; e = e->next)
 				//	printf(" - %i\n", e->value.getID());
-				GrowList<goref> onm;
+			/*	GrowList<goref> onm;
 				ListObjsInTiles(o->position.x/5-1, o->position.z/5-1, 3, 3, &onm);
 				printf("%i objects near it:\n", onm.len);
 				for(int i = 0; i < onm.len; i++)
 					printf(" - %i\n", onm.getpnt(i)->getID());
+			*/
+				printf("%i referencers:\n", o->referencers.len);
+				for(DynListEntry<GameObject*> *e = o->referencers.first; e; e = e->next)
+					printf(" - %i\n", e->value->id);
 			}
 		}
 
@@ -1092,18 +1126,6 @@ void Test7()
 				printf("%s\n", strUnknownValue.getdp(i));
 		}
 
-		if(keypressed['O'])
-		{
-			keypressed['O'] = 0;
-			char s[256];
-			if(StrDlgBox(s, "Enter the ID of the object you'd like to select."))
-			{
-				GameObject *o = FindObjID(atoi(s));
-				if(!o) MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
-				else {DeselectAll(); SelectObject(o);}
-			}
-		}
-
 		if(keypressed['Z'])
 		{
 			keypressed['Z'] = 0;
@@ -1116,6 +1138,16 @@ void Test7()
 			for(DynListEntry<SequenceOverPeriodEntry> *e = repPeriodSeq.first; e; e = e->next)
 				delete [] e->value.ola;
 			repPeriodSeq.clear();
+		}
+
+		if(keypressed['H'])
+		{
+			keypressed['H'] = 0;
+			//for(int i = 0; i < strGameTextWindow.len; i++)
+			//	EnableGTW(&(gsgametextwin[i]));
+			int x = ListDlgBox(&strGameTextWindow, "Display this game text window:");
+			if(x != -1)
+				EnableGTW(&(gsgametextwin[x]));
 		}
 	}
 	}
@@ -1215,13 +1247,16 @@ void Test14()
 {
 	InitWindow();
 	LoadBCP("data.bcp"); InitFont();
+	ReadLanguageFile(); char *msg = GetLocText("AI_BIOG_PAUL_THE_SIMPLE");
 	while(!appexit)
 	{
 		BeginDrawing();
 		InitRectDrawing();
-		DrawRect(2, 2, 64, 64, 0xFF);
-		for(int i = 0; i < 40; i++)
-			DrawFont(i*12, i*12, "Hello! \x21\x22\x7d\x7e\xa1\xa2\xa3");
+		//DrawRect(2, 2, 64, 64, 0xFF);
+		//for(int i = 0; i < 40; i++)
+		//	DrawFont(i*12, i*12, "Hello! \x21\x22\x7d\x7e\xa1\xa2\xa3");
+		//DrawFont(0, 0, msg);
+		deffont->DrawInRect(scrw, 0, 0, msg, 0xFF00FFFF);
 		EndDrawing();
 		HandleWindow();
 	}

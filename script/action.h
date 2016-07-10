@@ -29,6 +29,11 @@ struct ActionSeq
 	}
 };
 
+struct ASwitchCase
+{
+	CValue *v; ActionSeq *s;
+};
+
 extern GrowStringList strUnknownAction;
 extern int scriptTraceOn;
 

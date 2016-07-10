@@ -915,6 +915,76 @@ struct FinderGradeSelectCandidates : public CFinder
 	}	
 };
 
+struct FinderReferencers : public CFinder
+{
+	int x;
+	DynListEntry<GameObject*> *n;
+	FinderReferencers(int a) : x(a) {}
+	CFinder *clone() {return new FinderReferencers(x);}
+	void begin(SequenceEnv *env)
+	{
+		if(env->self.valid())
+			n = env->self->referencers.first;
+		else
+			n = 0;
+	}
+	GameObject *getnext()
+	{
+		while(n)
+		{
+			GameObject *o = n->value;
+			n = n->next;
+			if(o->ordercfg.order.len)
+			{
+				SOrder *s = &o->ordercfg.order.first->value;
+				STask *t = &s->task.getEntry(s->currentTask)->value;
+				if(t->type->cat == x)
+					return o;
+			}
+		}
+		return 0;
+	}
+};
+
+struct FinderOrderGiver : public CFinder
+{
+	SequenceEnv *env; int f;
+	FinderOrderGiver() {}
+	CFinder *clone() {return new FinderOrderGiver();}
+	void begin(SequenceEnv *c) {env = c; f = 1;}
+	GameObject *getnext() {
+		if(f)	{f = 0;
+			if(env->ogiver.valid()) return env->ogiver.get();}
+		return 0;
+	}
+};
+
+struct FinderChainOriginalSelf : public CFinder
+{
+	SequenceEnv *env; int f;
+	FinderChainOriginalSelf() {}
+	CFinder *clone() {return new FinderChainOriginalSelf();}
+	void begin(SequenceEnv *c) {env = c; f = 1;}
+	GameObject *getnext() {
+		if(f)	{f = 0;
+			if(env->originalself.valid()) return env->originalself.get();}
+		return 0;
+	}
+};
+
+struct FinderPackageRelatedParty : public CFinder
+{
+	SequenceEnv *env; int f;
+	FinderPackageRelatedParty() {}
+	CFinder *clone() {return new FinderPackageRelatedParty();}
+	void begin(SequenceEnv *c) {env = c; f = 1;}
+	GameObject *getnext() {
+		if(f)	{f = 0;
+			if(env->relatedparty.valid()) return env->relatedparty.get();}
+		return 0;
+	}
+};
+
 //////////////////////////////////////////////////////////////////////////
 
 int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
@@ -926,15 +996,16 @@ int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
 	switch(c->diplo)
 	{
 		case 1: if(o->player != r->player) return 0; break;
-		case 2: if(GetDiplomaticStatus(o->player, r->player) >= 1) return 0; break;
-		case 3: if(GetDiplomaticStatus(o->player, r->player) <  2) return 0; break;
+		case 2: if(o->player != r->player) if(GetDiplomaticStatus(o->player, r->player) >= 1) return 0; break;
+		case 3: if(o->player == r->player) return 0;
+			if(GetDiplomaticStatus(o->player, r->player) <  2) return 0; break;
 	}
 
 	switch(c->otype)
 	{
 		case 1:	if(o->objdef->type != CLASS_BUILDING) return 0; break;
 		case 2:	if(o->objdef->type != CLASS_CHARACTER) return 0; break;
-		case 3:	if((o->objdef->type != CLASS_BUILDING) || (o->objdef->type != CLASS_CHARACTER))
+		case 3:	if((o->objdef->type != CLASS_BUILDING) && (o->objdef->type != CLASS_CHARACTER))
 				return 0;
 			break;
 	}
@@ -1033,6 +1104,15 @@ CFinder *ReadFinder(char ***wpnt)
 		case FINDER_DISABLED_ASSOCIATES:
 			{int x = strAssociateCat.find(word[1]); mustbefound(x);
 			*wpnt += 2; return new FinderDisabledAssociates(x);}
+		case FINDER_REFERENCERS:
+			{int x = strTaskCat.find(word[1]); mustbefound(x);
+			return new FinderReferencers(x);}
+		case FINDER_ORDER_GIVER:
+			*wpnt += 1; return new FinderOrderGiver();
+		case FINDER_CHAIN_ORIGINAL_SELF:
+			*wpnt += 1; return new FinderChainOriginalSelf();
+		case FINDER_PACKAGE_RELATED_PARTY:
+			*wpnt += 1; return new FinderPackageRelatedParty();
 	}
 	//ferr("Unknown finder."); return 0;
 rfunk:	int x = strUnknownFinder.find(word[0]);

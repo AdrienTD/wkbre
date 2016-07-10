@@ -14,26 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#define stpo(n) ((n)>0)
-
-struct SequenceEnv
+struct PackItemMod
 {
-	goref self, exec, target, candidate, creator, ogiver, pkgsender,
-		originalself, relatedparty;
-	void copySelf(SequenceEnv *e)
-		{e->self = self;}
-	void copyAllButNotSelf(SequenceEnv *e)
-		{e->exec = exec; e->target = target; e->candidate = candidate;
-		e->creator = creator; e->ogiver = ogiver; e->pkgsender = pkgsender;
-		e->originalself = originalself; e->relatedparty = relatedparty;}
-	void copyAll(SequenceEnv *e)
-		{copyAllButNotSelf(e); e->self = self;}
+	int action, item; CValue *value;
 };
 
-#include "finder.h"
-#include "value.h"
-#include "position.h"
-#include "action.h"
-#include "objCreation.h"
-#include "events.h"
-#include "package.h"
+struct CPackage
+{
+	GrowList<int> events;
+	GrowList<PackItemMod> mods;
+	CFinder *relatedParty;
+};
+
+void ReadCPackage(char **pntfp, char **fstline);
+void SendCPackage(GameObject *o, CPackage *p, SequenceEnv *env);
