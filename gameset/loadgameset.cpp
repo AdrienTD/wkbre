@@ -39,6 +39,8 @@ GrowStringList strCommand; CCommand *gscommand;
 GrowStringList strOrderCat, strTaskCat;
 GrowStringList strPackage; CPackage *gspackage;
 GrowStringList strGameTextWindow; CGameTextWindow *gsgametextwin;
+GrowStringList str3DClip; C3DClip *gs3dclip;
+GrowStringList strCameraPath; CCameraPath *gscamerapath;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -285,6 +287,12 @@ switch(ipass)
 			case CLASS_GAME_TEXT_WINDOW:
 				strGameTextWindow.add(word[1]);
 				fp = SkipClass(fp, "GAME_TEXT_WINDOW_END"); break;
+			case CLASS_3D_CLIP:
+				str3DClip.add(word[1]);
+				fp = SkipClass(fp, "END_3D_CLIP"); break;
+			case CLASS_CAMERA_PATH:
+				strCameraPath.add(word[1]);
+				fp = SkipClass(fp, "END_CAMERA_PATH"); break;
 		} break;
 
 /*******************************************************************/
@@ -371,6 +379,10 @@ switch(ipass)
 				ReadCPackage(&fp, word); break;
 			case CLASS_GAME_TEXT_WINDOW:
 				ReadCGameTextWindow(&fp, word); break;
+			case CLASS_3D_CLIP:
+				ReadC3DClip(&fp, word); break;
+			case CLASS_CAMERA_PATH:
+				ReadCCameraPath(&fp, word); break;
 		} break;
 
 /*******************************************************************/
@@ -445,6 +457,8 @@ void LoadGameSet(char *filename)
 	gscommand = new CCommand[strCommand.len];
 	gspackage = new CPackage[strPackage.len];
 	gsgametextwin = new CGameTextWindow[strGameTextWindow.len];
+	gs3dclip = new C3DClip[str3DClip.len];
+	gscamerapath = new CCameraPath[strCameraPath.len];
 
 	BeginLooking();
 	loadinginfo("Gameset pass 1\n"); LookAtFile(filename, 1);

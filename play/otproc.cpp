@@ -94,6 +94,7 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				c->seq->run(&env);
 				return;
 			case TASKTRIGGER_ANIMATION_LOOP:
+			case TASKTRIGGER_UNINTERRUPTIBLE_ANIMATION_LOOP:
 			case TASKTRIGGER_ATTACHMENT_POINT:
 				if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
 					break;
@@ -159,6 +160,10 @@ void ProcessCurrentTask(GameObject *o)
 				else
 					ObjStepMove(o, h);
 				break;}
+			case ORDTSKTYPE_UPGRADE:
+				StartCurrentTaskTriggers(o);
+				CheckCurrentTaskTriggers(o);
+				break;
 		}
 
 		t->flags &= ~FSTASK_FIRST_EXECUTION;
@@ -250,19 +255,23 @@ void InitTask(GameObject *o, int x)
 	t->flags |= FSTASK_FIRST_EXECUTION;
 	// TODO: FSTASK_LAST_DESTINATION_VALID ???
 	RemoveObjReference(o);
-	if(!t->target.valid()) if(t->type->target)
-	{
-		SequenceEnv env; env.self = o;
-		t->target = t->type->target->getfirst(&env);
-	}
-	if(t->target.valid()) SetObjReference(o, t->target.get());
-	SequenceEnv env; env.self = o; env.target = t->target;
+
+	SequenceEnv env; env.self = o;
 	if(t->type->initSeq)
 		t->type->initSeq->run(&env);
-	// Only execute the start sequence if the order wasn't terminated by
+
+	// Only execute the start sequence if the task wasn't terminated by
 	// the initialisation sequence.
 	if(t->processState < 4)
 	{
+		if(!t->target.valid()) if(t->type->target)
+		{
+			SequenceEnv env; env.self = o;
+			t->target = t->type->target->getfirst(&env);
+		}
+		if(t->target.valid()) SetObjReference(o, t->target.get());
+		env.target = t->target;
+
 		t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
 		if(t->type->startSeq)
 			t->type->startSeq->run(&env);
@@ -358,13 +367,16 @@ void InitOrder(GameObject *o, int x)
 	if((s->processState != 0) && (s->processState != 5)) return;
 
 	s->processState = 1;
-	InitTask(o, x);
-	SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+	SequenceEnv env; env.self = o;
 	if(s->type->initSeq)
 		s->type->initSeq->run(&env);
 	if(s->processState < 4)
+	{
+		InitTask(o, x);
+		env.target = s->task.first->value.target;
 		if(s->type->startSeq)
 			s->type->startSeq->run(&env);
+	}
 }
 
 void AssignOrderVia(GameObject *go, COrderAssignment *oa, SequenceEnv *env)

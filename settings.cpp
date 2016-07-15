@@ -60,6 +60,10 @@ void ReadSettingsFile()
 				dfontfn = _strdup(word[1]); break;
 			case SETTING_HARDWARE_CURSOR:
 				hardwareCursor = atoi(word[1]); break;
+			case SETTING_FULLSCREEN:
+				fullscreen = atoi(word[1]); break;
+			case SETTING_SCREEN_SIZE:
+				scrw = atoi(word[1]); scrh = atoi(word[2]); break;
 		}
 	}
 

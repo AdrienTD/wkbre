@@ -72,6 +72,7 @@ MenuEntry menucmds[] = {
 {"Scale selected objects by 1.5", CMD_SELOBJSCALEBIGGER},
 {"Scale selected objects by 1/1.5", CMD_SELOBJSCALESMALLER},
 {"Rotate selected objects by 90°", CMD_ROTATEOBJQP},
+{"Select object by ID...", CMD_SELECT_OBJECT_ID},
 {0,0},
 {"Move to...", CMD_CAMPOS},
 {"Move to down-left corner", CMD_CAMDOWNLEFT},
@@ -87,7 +88,7 @@ MenuEntry menucmds[] = {
 {"BCM himap bit left", CMD_BCMHIMAPLEFT},
 {"BCM himap bit right", CMD_BCMHIMAPRIGHT},
 {0,0},
-{"Enable/disable experimental keys", CMD_TOGGLEEXPERIMENTALKEYS},
+{"Enable/disable experimental features", CMD_TOGGLEEXPERIMENTALKEYS},
 {"About...", CMD_ABOUT},
 {0,0},
 };

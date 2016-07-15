@@ -22,6 +22,7 @@ char *ReadClientState(char *fp, char **fstline)
 {
 	ClientState *c = clistates.addp();
 	c->obj = FindObjID(atoi(fstline[1]));
+	if(c->obj.valid()) c->obj->client = c;
 	c->winDiplomacy = c->winReport = c->winTributes = 0;
 
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;

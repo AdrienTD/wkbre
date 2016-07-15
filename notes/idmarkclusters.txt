@@ -1,0 +1,53 @@
+struct ActionIdentifyAndMarkClusters : public CAction
+{
+	CObjectDefinition *de; CFinder *f; CValue *vcr, *vir, *vmr;
+	ActionIdentifyAndMarkClusters(CObjectDefinition *x, CFinder *y, CValue *z, CValue *w, CValue *v) : de(x), f(y), vcr(z), vir(w), vmr(v) {}
+	void run(SequenceEnv *env)
+	{
+		GrowList<goref> gl; GameObject *o;
+		f->begin(env);
+		while(o = f->getnext()) gl.addp()->set(o);
+		int nf = gl.len;
+
+		float rad = vcr->get(env), fmr = vmr->get(env);
+		rad *= rad;
+
+		boolean *us = new boolean[nf];
+		for(int i = 0; i < nf; i++) us[i] = 0;
+
+		for(int i = 0; i < nf; i++)
+		{
+			if(us[i]) continue;
+			if(!gl.getpnt(i)->valid()) continue;
+			o = gl.getpnt(i)->get();
+
+			float clrat = 0;
+			for(int j = 0; j < nf; j++)
+			{
+				if(us[j]) continue;
+				if(!gl.getpnt(j)->valid()) continue;
+				GameObject *p = gl.getpnt(j)->get();
+
+				if((p->position - o->position).sqlen2xz() > rad) continue;
+
+				SequenceEnv nc; nc.self = p;
+				clrat += vir->get(&nc);
+			}
+
+			if(clrat >= fmr)
+			{
+				GameObject *mark = CreateObject(de, env->self->player);
+				mark->position = o->position;
+				GOPosChanged(mark);
+				for(int j = 0; j < nf; j++)
+				{
+					if(us[j]) continue;
+					if(!gl.getpnt(j)->valid()) continue;
+					GameObject *p = gl.getpnt(j)->get();
+					if((p->position - o->position).sqlen2xz() <= rad)
+						us[j] = 1;
+				}
+			}
+		}
+	}
+};

@@ -14,3 +14,6 @@ FOG 1
 FONT "Fonts\Proportional\20\Proportional - 20.font"
 //FONT "Fonts\Morpheus\20\Morpheus - 20.font"
 HARDWARE_CURSOR 1
+
+FULLSCREEN 0
+SCREEN_SIZE 640 480

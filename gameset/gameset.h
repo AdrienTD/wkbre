@@ -46,6 +46,8 @@ public:
 #include "gs_command.h"
 #include "itile.h"
 #include "gs_gametextwindow.h"
+#include "gs_3dclip.h"
+#include "gs_campath.h"
 
 // From loadgameset.cpp
 
@@ -72,6 +74,8 @@ extern GrowStringList strCommand; extern CCommand *gscommand;
 extern GrowStringList strOrderCat, strTaskCat;
 extern GrowStringList strPackage; extern CPackage *gspackage;
 extern GrowStringList strGameTextWindow; extern CGameTextWindow *gsgametextwin;
+extern GrowStringList str3DClip; extern C3DClip *gs3dclip;
+extern GrowStringList strCameraPath; extern CCameraPath *gscamerapath;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

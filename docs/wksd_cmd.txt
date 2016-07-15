@@ -1,0 +1,28 @@
+COMMAND "CommandName"
+
+	BUTTON_ENABLED "pic.tga"	// for normal order button
+	BUTTON_IMPOSSIBLE "pic.tga"
+	BUTTON_WAIT "pic.tga"
+	BUTTON_AVAILABLE "pic.tga"	// for stampdown, spawn, upgrade button
+	BUTTON_DEPRESSED "pic.tga"
+	BUTTON_HIGHLIGHTED "pic.tga"
+	BUTTON_WAIT_NOT_REQUIRED	// do not display button if waiting needed?
+
+*	CONDITION_IMPOSSIBLE "CondName"
+*	CONDITION_WAIT "CondName"
+*	CONDITION_WARNING "CondName"
+*	CONDITION_DISPLAY <VALUE>
+*	ICON_CONDITION "EquationName"
+
+	DEFAULT_HINT "LanguageLabel" <VALUE> ...
+
+*	CURSOR_CONDITION "EquationName"
+*	CURSOR_AVAILABLE "CondName" "pic.tga"
+	CURSOR "pic.tga"
+
+	USE_ORDER "OrderName"
+	START_SEQUENCE <actseq>
+
+(* = can be put multiple times)
+
+END_COMMAND

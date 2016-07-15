@@ -27,9 +27,10 @@ D3DPRESENT_PARAMETERS dpp = {0, 0, D3DFMT_UNKNOWN, 0, D3DMULTISAMPLE_NONE, 0,
 int scrw = 640, scrh = 480;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
 int mouseX = 0, mouseY = 0;
-int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 2;
+int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 3;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
+int fullscreen = 0;
 
 void ResetDevice()
 {
@@ -94,7 +95,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if(wParam & 0xFFFFFF00) break;
 			keypressed[wParam] = 0; break;
 		case WM_SIZE:
-			if(wParam == SIZE_MINIMIZED) winMinimized = 1;
+			if(wParam == SIZE_MINIMIZED) {winMinimized = 1; break;}
 			else if(wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED) winMinimized = 0;
 
 			if((scrw == LOWORD(lParam)) && (scrh == HIWORD(lParam))) break;
@@ -128,15 +129,18 @@ void HandleWindow()
 
 void InitWindow()
 {
+	fullscreen = 0; // Buggy atm.
+
 	WNDCLASS wndclass = {0, WndProc, 0, 0, hInstance,
 			LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), LoadCursor(NULL, IDC_ARROW), (HBRUSH)(COLOR_WINDOW+1), NULL, className};
-	RECT rect = {0, 0, 640, 480};
+	RECT rect = {0, 0, scrw, scrh};
 	wndclass.hInstance = hInstance;
 
 	// Creating Window
+	int wstyle = fullscreen ? (WS_POPUP | WS_SYSMENU | WS_MINIMIZEBOX) : WS_OVERLAPPEDWINDOW;
 	if(!RegisterClass(&wndclass)) ferr("Class registration failed.");
-	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
-	hWindow = CreateWindow(className, appName, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+	AdjustWindowRect(&rect, wstyle, FALSE);
+	hWindow = CreateWindow(className, appName, wstyle, CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right-rect.left, rect.bottom-rect.top, NULL, NULL, hInstance, NULL);
 	if(!hWindow) ferr("Window creation failed.");
 	ShowWindow(hWindow, SW_SHOWNORMAL);
@@ -146,6 +150,15 @@ void InitWindow()
 	dpp.hDeviceWindow = hWindow;
 	dpp.PresentationInterval = VSYNCenabled ? ((VSYNCenabled==2)?D3DPRESENT_INTERVAL_ONE:D3DPRESENT_INTERVAL_DEFAULT) : D3DPRESENT_INTERVAL_IMMEDIATE;
 	dpp.BackBufferCount = numBackBuffers;
+	dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
+	if(fullscreen)
+	{
+		dpp.BackBufferWidth = scrw;
+		dpp.BackBufferHeight = scrh;
+		dpp.Windowed = 0;
+		//dpp.FullScreen_RefreshRateInHz = 60;
+	}
+
 	d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
 	if(!d3d9) ferr("Direct3D 9 init failed.");
 

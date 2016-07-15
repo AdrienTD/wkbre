@@ -23,6 +23,7 @@
 #define FGO_SELECTED		16
 #define FGO_SELECTABLE		32
 #define FGO_TARGETABLE		64
+#define FGO_RENDERABLE		128
 
 #define WKVER_UNKNOWN		0
 #define WKVER_ORIGINAL		1
@@ -51,6 +52,7 @@ struct GOParamBlock
 
 struct COrder;
 struct ITile;
+struct ClientState;
 
 struct GameObject
 {
@@ -75,6 +77,7 @@ struct GameObject
 	ITile *itile; DynListEntry<goref> *itileole;
 	DynList<GameObject*> referencers;
 	GameObject *curtarget; DynListEntry<GameObject*> *ctgdle;
+	ClientState *client;
 
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);

@@ -145,6 +145,23 @@ struct PositionSpawnTilePosition : public CPosition
 	}
 };
 
+struct PositionThisSideOf : public CPosition
+{
+	CFinder *x, *y; CValue *v;
+	PositionThisSideOf(CFinder *a, CFinder *b, CValue *c) : x(a), y(b), v(c) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		PosOri o, p; FinderToPosOri(&o, x, env); FinderToPosOri(&p, y, env);
+		Vector3 d = (o.pos - p.pos).normal();
+		//float a = M_PI - atan2(d.x, d.z);
+		float a = atan2(d.x, -d.z);
+		d *= v->get(env);
+		po->pos = p.pos + d;
+		po->ori.x = po->ori.z = 0;
+		po->ori.y = a;
+	}
+};
+
 CPosition *ReadCPosition(char ***wpnt)
 {
 	char **word = *wpnt; CPosition *cv;
@@ -186,6 +203,11 @@ CPosition *ReadCPosition(char ***wpnt)
 		case POSITION_SPAWN_TILE_POSITION:
 			*wpnt += 1;
 			return new PositionSpawnTilePosition(ReadFinder(wpnt));
+		case POSITION_THIS_SIDE_OF:
+			{*wpnt += 1;
+			CFinder *x = ReadFinder(wpnt);
+			CFinder *y = ReadFinder(wpnt);
+			return new PositionThisSideOf(x, y, ReadValue(wpnt));}
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

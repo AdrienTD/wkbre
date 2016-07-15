@@ -27,6 +27,7 @@ extern int scrw, scrh;
 extern int mouseX, mouseY;
 extern voidfunc onClickWindow;
 extern int winMinimized;
+extern int fullscreen;
 
 void HandleWindow();
 void InitWindow();

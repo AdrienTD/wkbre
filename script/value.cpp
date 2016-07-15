@@ -484,6 +484,52 @@ struct ValueFinderResultsCount : public CValue
 	}
 };
 
+// Only works in WKO and as an ENODE in an EQUATION. (I could use an Enode0V struct.)
+struct ValueNumAssociates : public CValue
+{
+	int x; CFinder *f;
+	ValueNumAssociates(int a, CFinder *b) : x(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		int n = 0;
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			for(DynListEntry<GOAssociation> *e = o->association.first; e; e = e->next)
+				if(e->value.category == x)
+				{
+					for(DynListEntry<GameObjAndListEntry> *g = e->value.associates.first; g; g = g->next)
+						n++;
+					break;
+				}
+		}
+		return n;
+	}
+};
+
+// Only works in WKO and as an ENODE in an EQUATION. (I could use an Enode0V struct.)
+struct ValueNumAssociators : public CValue
+{
+	int x; CFinder *f;
+	ValueNumAssociators(int a, CFinder *b) : x(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		int n = 0;
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			for(DynListEntry<GOAssociation> *e = o->association.first; e; e = e->next)
+				if(e->value.category == x)
+				{
+					for(DynListEntry<GameObjAndListEntry> *g = e->value.associators.first; g; g = g->next)
+						n++;
+					break;
+				}
+		}
+		return n;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -605,6 +651,17 @@ CValue *ReadValue(char ***wpnt)
 		case VALUE_FINDER_RESULTS_COUNT:
 			{int x = strFinderDef.find(word[1]); mustbefound(x);
 			*wpnt += 2; return new ValueFinderResultsCount(x, ReadFinder(wpnt));}
+
+		// These values are in fact ENODEs (operands) with 0 subnodes, as such
+		// why not make them work as normal value determinators?
+		case VALUE_NUM_ASSOCIATES:
+			{*wpnt += 2;
+			int x = strAssociateCat.find(word[1]); mustbefound(x);
+			return new ValueNumAssociates(x, ReadFinder(wpnt));}
+		case VALUE_NUM_ASSOCIATORS:
+			{*wpnt += 2;
+			int x = strAssociateCat.find(word[1]); mustbefound(x);
+			return new ValueNumAssociators(x, ReadFinder(wpnt));}
 	}
 	//ferr("Unknown value type."); return 0;
 	int x = strUnknownValue.find(word[0]);

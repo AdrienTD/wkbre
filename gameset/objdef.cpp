@@ -229,7 +229,8 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				int z = strTypeTag.find(word[1]); mustbefound(z);
 				objdef[x].mappedType[z] = &objdef[y]; break;}
 			case CBLUEPRINT_INTRINSIC_REACTION:
-				objdef[x].ireact.add(&(reaction[strReaction.find(word[1])])); break;
+				{y = strReaction.find(word[1]);
+				if(y != -1) objdef[x].ireact.add(&(reaction[y])); break;}
 			case CBLUEPRINT_INTERPRET_VALUE_TAG_AS:
 				{char **wp = word + 2;
 				int i = strValueTag.find(word[1]); mustbefound(i);

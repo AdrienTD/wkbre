@@ -985,6 +985,16 @@ struct FinderPackageRelatedParty : public CFinder
 	}
 };
 
+struct FinderBeingTransferredToMe : public CFinder
+{
+	// Always returns 0 as it is useless.
+	CFinder *f;
+	FinderBeingTransferredToMe(CFinder *a) : f(a) {}
+	CFinder *clone() {return new FinderBeingTransferredToMe(f->clone());}
+	void begin(SequenceEnv *c) {;}
+	GameObject *getnext() {return 0;}
+};
+
 //////////////////////////////////////////////////////////////////////////
 
 int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
@@ -1113,6 +1123,8 @@ CFinder *ReadFinder(char ***wpnt)
 			*wpnt += 1; return new FinderChainOriginalSelf();
 		case FINDER_PACKAGE_RELATED_PARTY:
 			*wpnt += 1; return new FinderPackageRelatedParty();
+		case FINDER_BEING_TRANSFERRED_TO_ME:
+			*wpnt += 1; return new FinderBeingTransferredToMe(ReadFinder(wpnt));
 	}
 	//ferr("Unknown finder."); return 0;
 rfunk:	int x = strUnknownFinder.find(word[0]);

@@ -50,7 +50,7 @@ void SetConstantMatrices()
 	CreateLookAtLHViewMatrix(&matView, &camerapos, &vLookatPt, &vUpVec);
 	//ddev->SetTransform( D3DTS_VIEW, &matView );
 
-	CreatePerspectiveMatrix( &matProj, M_PI / 4, (float)scrw/(float)scrh, 1.0f, farzvalue );
+	CreatePerspectiveMatrix( &matProj, M_PI / 3.5, (float)scrw/(float)scrh, 1.0f, farzvalue );
 	//ddev->SetTransform( D3DTS_PROJECTION, &matProj );
 
 	MultiplyMatrices(&vpmatrix, &matView, &matProj);

@@ -672,6 +672,21 @@ struct ActionSetTargetable : public CAction
 	}
 };
 
+struct ActionSetRenderable : public CAction
+{
+	int x; CFinder *f;
+	ActionSetRenderable(int a, CFinder *b) : x(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext()) {
+			o->flags &= ~FGO_RENDERABLE;
+			if(x) o->flags |= FGO_RENDERABLE;
+		}
+	}
+};
+
 struct ActionSwitchCondition : public CAction
 {
 	CValue *c; GrowList<ASwitchCase> *s; // must be allocated with malloc or new
@@ -739,6 +754,108 @@ struct ActionHideCurrentGameTextWindow : public CAction
 		if(o->id != 1027) return;
 		for(int i = 0; i < strGameTextWindow.len; i++)
 			DisableGTW(&(gsgametextwin[i]));
+	}
+};
+
+struct ActionPlayClip : public CAction
+{
+	C3DClip *c; CFinder *f;
+	ActionPlayClip(C3DClip *a, CFinder *b) : c(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(o->id != 1027) return;
+		Play3DClip(c);
+	}
+};
+
+struct ActionSnapCameraToPosition : public CAction
+{
+	CPosition *p; CFinder *f;
+	ActionSnapCameraToPosition(CPosition *a, CFinder *b) : p(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(o->id != 1027) return;
+
+		PosOri x;
+		p->get(env, &x);
+		camerapos = x.pos;
+		camyaw = -x.ori.y;
+		campitch = -x.ori.x;
+	}
+};
+
+struct ActionFaceTowards : public CAction
+{
+	CFinder *x, *y;
+	ActionFaceTowards(CFinder *a, CFinder *b) : x(a), y(b) {}
+	void run(SequenceEnv *env)
+	{
+		PosOri p;
+		FinderToPosOri(&p, y, env);
+		GameObject *o; x->begin(env);
+		while(o = x->getnext())
+		{
+			Vector3 d = p.pos - o->position;
+			o->orientation.y = atan2(d.x, -d.z);
+		}
+	}
+};
+
+struct ActionIdentifyAndMarkClusters : public CAction
+{
+	CObjectDefinition *de; CFinder *f; CValue *vcr, *vir, *vmr;
+	ActionIdentifyAndMarkClusters(CObjectDefinition *x, CFinder *y, CValue *z, CValue *w, CValue *v) : de(x), f(y), vcr(z), vir(w), vmr(v) {}
+	void run(SequenceEnv *env)
+	{
+		GrowList<goref> gl; GameObject *o;
+		f->begin(env);
+		while(o = f->getnext()) gl.addp()->set(o);
+		int nf = gl.len;
+
+		float rad = vcr->get(env), fmr = vmr->get(env);
+		rad *= rad;
+
+		boolean *us = new boolean[nf];
+		for(int i = 0; i < nf; i++) us[i] = 0;
+
+		for(int i = 0; i < nf; i++)
+		{
+			if(us[i]) continue;
+			if(!gl.getpnt(i)->valid()) continue;
+			o = gl.getpnt(i)->get();
+
+			float clrat = 0;
+			for(int j = 0; j < nf; j++)
+			{
+				if(us[j]) continue;
+				if(!gl.getpnt(j)->valid()) continue;
+				GameObject *p = gl.getpnt(j)->get();
+
+				if((p->position - o->position).sqlen2xz() > rad) continue;
+
+				SequenceEnv nc; nc.self = p;
+				clrat += vir->get(&nc);
+			}
+
+			if(clrat >= fmr)
+			{
+				GameObject *mark = CreateObject(de, env->self->player);
+				mark->position = o->position;
+				GOPosChanged(mark);
+				for(int j = 0; j < nf; j++)
+				{
+					if(us[j]) continue;
+					if(!gl.getpnt(j)->valid()) continue;
+					GameObject *p = gl.getpnt(j)->get();
+					if((p->position - o->position).sqlen2xz() <= rad)
+						us[j] = 1;
+				}
+			}
+		}
 	}
 };
 
@@ -911,6 +1028,8 @@ CAction *ReadAction(char **pntfp, char **word)
 			w += 3; return new ActionSetSelectable(atoi(word[2]), ReadFinder(&w));
 		case ACTION_SET_TARGETABLE:
 			w += 3; return new ActionSetTargetable(atoi(word[2]), ReadFinder(&w));
+		case ACTION_SET_RENDERABLE:
+			w += 3; return new ActionSetRenderable(atoi(word[2]), ReadFinder(&w));
 		case ACTION_SWITCH_CONDITION:
 			{w += 2; CValue *v = ReadValue(&w);
 			return new ActionSwitchCondition(v, ReadSwitchCases(pntfp));}
@@ -928,6 +1047,22 @@ CAction *ReadAction(char **pntfp, char **word)
 			return new ActionHideGameTextWindow(g, f);}
 		case ACTION_HIDE_CURRENT_GAME_TEXT_WINDOW:
 			w += 2; return new ActionHideCurrentGameTextWindow(ReadFinder(&w));
+		case ACTION_PLAY_CLIP:
+			{int x = str3DClip.find(word[2]); mustbefound(x);
+			w += 3; return new ActionPlayClip(&(gs3dclip[x]), ReadFinder(&w));}
+		case ACTION_SNAP_CAMERA_TO_POSITION:
+			{w += 2; CPosition *p = ReadCPosition(&w);
+			return new ActionSnapCameraToPosition(p, ReadFinder(&w));}
+		case ACTION_FACE_TOWARDS:
+			{w += 2; CFinder *x = ReadFinder(&w);
+			return new ActionFaceTowards(x, ReadFinder(&w));}
+		case ACTION_IDENTIFY_AND_MARK_CLUSTERS:
+			{w += 3;
+			CObjectDefinition *x = &(objdef[FindObjDef(CLASS_MARKER, word[2])]);
+			CFinder *y = ReadFinder(&w);
+			CValue *z = ReadValue(&w);
+			CValue *a = ReadValue(&w);
+			return new ActionIdentifyAndMarkClusters(x, y, z, a, ReadValue(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -942,6 +1077,17 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_REVEAL_FOG_OF_WAR:
 		case ACTION_COLLAPSING_CIRCLE_ON_MINIMAP:
 		case ACTION_SHOW_BLINKING_DOT_ON_MINIMAP:
+		case ACTION_ENABLE_GAME_INTERFACE:
+		case ACTION_DISABLE_GAME_INTERFACE:
+		case ACTION_PLAY_CAMERA_PATH:
+		case ACTION_STOP_CAMERA_PATH_PLAYBACK:
+		case ACTION_INTERPOLATE_CAMERA_TO_POSITION:
+		case ACTION_SET_ACTIVE_MISSION_OBJECTIVES:
+		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY:
+		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY_INACTIVE:
+		case ACTION_TRACK_OBJECT_POSITION_FROM_MISSION_OBJECTIVES_ENTRY:
+		case ACTION_STOP_INDICATING_POSITION_OF_MISSION_OBJECTIVES_ENTRY:
+		case ACTION_FORCE_PLAY_MUSIC:
 			return new ActionDoNothing();
 	}
 	//ferr("Unknown action command."); return 0;

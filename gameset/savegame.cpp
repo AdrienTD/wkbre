@@ -372,6 +372,12 @@ char *LoadGameObjectP1(char *fp, char **fline, int fwords, GameObject *parent)
 				else
 					go->flags &= ~FGO_TARGETABLE;
 				break;
+			case GAMEOBJ_RENDERABLE:
+				if(atoi(word[1]))
+					go->flags |= FGO_RENDERABLE;
+				else
+					go->flags &= ~FGO_RENDERABLE;
+				break;
 		}
 	}
 	ferr("UEOF"); return fp;
@@ -647,6 +653,8 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 		fprintf(f, "%s\tSELECTABLE 0\n", strtab);
 	if(!(o->flags & FGO_TARGETABLE))
 		fprintf(f, "%s\tTARGETABLE 0\n", strtab);
+	if(!(o->flags & FGO_RENDERABLE))
+		fprintf(f, "%s\tRENDERABLE 0\n", strtab);
 
 	if(o->tiles)
 	{
@@ -983,7 +991,7 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	SetRandomSubtypeAndAppearance(go);
 	if(parent) go->color = parent->color; else go->color = 0;
 	go->renderable = def->renderable;
-	go->flags = FGO_SELECTABLE | FGO_TARGETABLE; go->rects = 0;
+	go->flags = FGO_SELECTABLE | FGO_TARGETABLE | FGO_RENDERABLE; go->rects = 0;
 	go->disableCount = 0;
 	if(go->objdef->type == CLASS_PLAYER)	go->player = go;
 	else if(go->parent)			go->player = go->parent->player;
@@ -1002,6 +1010,8 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 
 	norefobjs.add(go);
 	go->curtarget = 0; go->ctgdle = norefobjs.last;
+
+	go->client = 0;
 
 	return go;
 }
