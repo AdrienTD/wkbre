@@ -430,7 +430,7 @@ struct ActionSwitchAppearance : public CAction
 		GameObject *o;
 		f->begin(env);
 		while(o = f->getnext())
-			if(o->objdef->subtypes[o->subtype].appear[o->appearance])
+			if(o->objdef->subtypes[o->subtype].appear[apt])
 				o->appearance = apt;
 	}
 };
@@ -776,15 +776,14 @@ struct ActionSnapCameraToPosition : public CAction
 	ActionSnapCameraToPosition(CPosition *a, CFinder *b) : p(a), f(b) {}
 	void run(SequenceEnv *env)
 	{
-		GameObject *o = f->getfirst(env);
-		if(!o) return;
-		if(o->id != 1027) return;
-
-		PosOri x;
-		p->get(env, &x);
-		camerapos = x.pos;
-		camyaw = -x.ori.y;
-		campitch = -x.ori.x;
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			if(!o->client) continue;
+			PosOri x; p->get(env, &x);
+			o->client->camerapos = x.pos;
+			o->client->cameraori = x.ori;
+		}
 	}
 };
 
@@ -856,6 +855,154 @@ struct ActionIdentifyAndMarkClusters : public CAction
 				}
 			}
 		}
+	}
+};
+
+struct ActionStoreCameraPosition : public CAction
+{
+	CFinder *f;
+	ActionStoreCameraPosition(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			if(!o->client) continue;
+			o->client->storedpos = o->client->camerapos;
+			o->client->storedori = o->client->cameraori;
+		}
+	}
+};
+
+struct ActionSnapCameraToStoredPosition : public CAction
+{
+	CFinder *f;
+	ActionSnapCameraToStoredPosition(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			if(!o->client) continue;
+			o->client->camerapos = o->client->storedpos;
+			o->client->cameraori = o->client->storedori;
+		}
+	}
+};
+
+struct ActionSetIndexedItem : public CAction
+{
+	int x; CValue *y; CFinder *f; CValue *v;
+	ActionSetIndexedItem(int a, CValue *b, CFinder *c, CValue *d) : x(a), y(b), f(c), v(d) {}
+	void run(SequenceEnv *env)
+	{
+		valuetype a = v->get(env), i = y->get(env);
+		GameObject *o; f->begin(env); 
+		while(o = f->getnext())
+			o->setIndexedItem(x, i, a);
+	}
+};
+
+struct ActionIncreaseIndexedItem : public CAction
+{
+	int x; CValue *y; CFinder *f; CValue *v;
+	ActionIncreaseIndexedItem(int a, CValue *b, CFinder *c, CValue *d) : x(a), y(b), f(c), v(d) {}
+	void run(SequenceEnv *env)
+	{
+		valuetype a = v->get(env), i = y->get(env);
+		GameObject *o; f->begin(env); 
+		while(o = f->getnext())
+			o->setIndexedItem(x, i, o->getIndexedItem(x, i) + a);
+	}
+};
+
+struct ActionDecreaseIndexedItem : public CAction
+{
+	int x; CValue *y; CFinder *f; CValue *v;
+	ActionDecreaseIndexedItem(int a, CValue *b, CFinder *c, CValue *d) : x(a), y(b), f(c), v(d) {}
+	void run(SequenceEnv *env)
+	{
+		valuetype a = v->get(env), i = y->get(env);
+		GameObject *o; f->begin(env); 
+		while(o = f->getnext())
+			o->setIndexedItem(x, i, o->getIndexedItem(x, i) - a);
+	}
+};
+
+struct ActionSetReconnaissance : public CAction
+{
+	CFinder *f;
+	ActionSetReconnaissance(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o; f->begin(env); 
+		while(o = f->getnext())
+			o->flags |= FGO_RECONNAISSANCE;
+	}
+};
+
+struct ActionEnableDiplomaticReportWindow : public CAction
+{
+	char *s; CFinder *f;
+	ActionEnableDiplomaticReportWindow(char *a, CFinder *b) : s(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(!o->client) return;
+		o->client->winReport = 1;
+	}
+};
+
+struct ActionDisableDiplomaticReportWindow : public CAction
+{
+	char *s; CFinder *f;
+	ActionDisableDiplomaticReportWindow(char *a, CFinder *b) : s(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(!o->client) return;
+		o->client->winReport = 0;
+	}
+};
+
+struct ActionEnableTributesWindow : public CAction
+{
+	char *s; CFinder *f;
+	ActionEnableTributesWindow(char *a, CFinder *b) : s(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(!o->client) return;
+		o->client->winTributes = 1;
+	}
+};
+
+struct ActionDisableTributesWindow : public CAction
+{
+	char *s; CFinder *f;
+	ActionDisableTributesWindow(char *a, CFinder *b) : s(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(!o->client) return;
+		o->client->winTributes = 0;
+	}
+};
+
+struct ActionCopyFacingOf : public CAction
+{
+	CFinder *f, *g;
+	ActionCopyFacingOf(CFinder *a, CFinder *b) : f(a), g(b) {}
+	void run(SequenceEnv *env)
+	{
+		PosOri p; FinderToPosOri(&p, g, env);
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+			o->orientation = p.ori;
 	}
 };
 
@@ -1063,6 +1210,42 @@ CAction *ReadAction(char **pntfp, char **word)
 			CValue *z = ReadValue(&w);
 			CValue *a = ReadValue(&w);
 			return new ActionIdentifyAndMarkClusters(x, y, z, a, ReadValue(&w));}
+		case ACTION_STORE_CAMERA_POSITION:
+			w += 2; return new ActionStoreCameraPosition(ReadFinder(&w));
+		case ACTION_SNAP_CAMERA_TO_STORED_POSITION:
+			w += 2; return new ActionSnapCameraToStoredPosition(ReadFinder(&w));
+		case ACTION_SET_INDEXED_ITEM:
+			{int d = strItems.find(word[2]); //mustbefound(d);
+			w += 3; CValue *y = ReadValue(&w);
+			CFinder *f = ReadFinder(&w);
+			return new ActionSetIndexedItem(d, y, f, ReadValue(&w));}
+		case ACTION_INCREASE_INDEXED_ITEM:
+			{int d = strItems.find(word[2]); //mustbefound(d);
+			w += 3; CValue *y = ReadValue(&w);
+			CFinder *f = ReadFinder(&w);
+			return new ActionIncreaseIndexedItem(d, y, f, ReadValue(&w));}
+		case ACTION_DECREASE_INDEXED_ITEM:
+			{int d = strItems.find(word[2]); //mustbefound(d);
+			w += 3; CValue *y = ReadValue(&w);
+			CFinder *f = ReadFinder(&w);
+			return new ActionDecreaseIndexedItem(d, y, f, ReadValue(&w));}
+		case ACTION_SET_RECONNAISSANCE:
+			w += 2; return new ActionSetReconnaissance(ReadFinder(&w));
+		case ACTION_ENABLE_DIPLOMATIC_REPORT_WINDOW:
+			{char *s = GetLocText(word[2]); w += 3;
+			return new ActionEnableDiplomaticReportWindow(s, ReadFinder(&w));}
+		case ACTION_DISABLE_DIPLOMATIC_REPORT_WINDOW:
+			{char *s = GetLocText(word[2]); w += 3;
+			return new ActionDisableDiplomaticReportWindow(s, ReadFinder(&w));}
+		case ACTION_ENABLE_TRIBUTES_WINDOW:
+			{char *s = GetLocText(word[2]); w += 3;
+			return new ActionEnableTributesWindow(s, ReadFinder(&w));}
+		case ACTION_DISABLE_TRIBUTES_WINDOW:
+			{char *s = GetLocText(word[2]); w += 3;
+			return new ActionDisableTributesWindow(s, ReadFinder(&w));}
+		case ACTION_COPY_FACING_OF:
+			{w += 2; CFinder *f = ReadFinder(&w);
+			return new ActionCopyFacingOf(f, ReadFinder(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -1070,6 +1253,7 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_PLAY_SOUND:
 		case ACTION_PLAY_SOUND_AT_POSITION:
 		case ACTION_PLAY_SPECIAL_EFFECT:
+		case ACTION_PLAY_SPECIAL_EFFECT_BETWEEN:
 		case ACTION_PLAY_ANIMATION_IF_IDLE:
 		case ACTION_ATTACH_SPECIAL_EFFECT:
 		case ACTION_ATTACH_LOOPING_SPECIAL_EFFECT:
@@ -1088,6 +1272,8 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_TRACK_OBJECT_POSITION_FROM_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_STOP_INDICATING_POSITION_OF_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_FORCE_PLAY_MUSIC:
+		case ACTION_ADOPT_APPEARANCE_FOR:
+		case ACTION_ADOPT_DEFAULT_APPEARANCE_FOR:
 			return new ActionDoNothing();
 	}
 	//ferr("Unknown action command."); return 0;

@@ -1,0 +1,13 @@
+.CAMERAPATH file format
+-----------------------
+
+Name	Type	Explanation
+---------------------------------
+head	i32	"CPth"
+ver	i32	Version: 1
+nnodes	i32	Number of path nodes
+gtime	i32	Time length of the whole camera path
+
+--- For every camera path node ---
+time	i32	Start time of node
+f	f32[7]

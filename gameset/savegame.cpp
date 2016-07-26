@@ -41,7 +41,7 @@ uint num_human_players = 0; GrowList<uint> humanplayers;
 uint wkver = 0;
 DynList<DelayedSequenceEntry> delayedSeq;
 DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
-wchar_t *campaignName = 0;
+wchar_t *campaignName = 0, *serverName = 0;
 
 DynList<GameObject*> norefobjs;
 
@@ -61,6 +61,27 @@ void GameObject::setItem(int x, valuetype v)
 	this->item.add();
 	this->item.last->value.num = x;
 	this->item.last->value.value = v;
+}
+
+valuetype GameObject::getIndexedItem(int x, int y)
+{
+	for(DynListEntry<GOIndexedItem> *e = this->indexeditem.first; e; e = e->next)
+		if(e->value.num == x)
+			if(e->value.index == y)
+				return e->value.value;
+	return 0;
+}
+
+void GameObject::setIndexedItem(int x, int y, valuetype v)
+{
+	for(DynListEntry<GOIndexedItem> *e = this->indexeditem.first; e; e = e->next)
+		if(e->value.num == x)
+			if(e->value.index == y)
+				{e->value.value = v; return;}
+	this->indexeditem.add();
+	this->indexeditem.last->value.num = x;
+	this->indexeditem.last->value.index = y;
+	this->indexeditem.last->value.value = v;
 }
 
 GameObject *SubFindObjID(int id, GameObject *p)
@@ -457,6 +478,7 @@ void LoadSaveGame(char *fn)
 			case SAVEGAME_GAME_TYPE:
 				game_type = atoi(word[1]); break;
 			case SAVEGAME_PART_OF_CAMPAIGN:
+				// NOTE: WKO does support PART_OF_CAMPAIGN
 				{if(wkver < WKVER_BATTLES) break;
 				if(campaignName) delete [] campaignName;
 				int nc = atoi(word[1]);
@@ -464,6 +486,15 @@ void LoadSaveGame(char *fn)
 				for(int i = 0; i < nc; i++)
 					campaignName[i] = atoi(word[2+i]);
 				campaignName[nc] = 0;
+				break;}
+			case SAVEGAME_SERVER_NAME:
+				{if(wkver < WKVER_BATTLES) break;
+				if(serverName) delete [] serverName;
+				int nc = atoi(word[1]);
+				serverName = new wchar_t[nc+1];
+				for(int i = 0; i < nc; i++)
+					serverName[i] = atoi(word[2+i]);
+				serverName[nc] = 0;
 				break;}
 			case SAVEGAME_NUM_HUMAN_PLAYERS:
 				num_human_players = atoi(word[1]);
@@ -620,6 +651,8 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	for(int i = 0; i < strItems.len; i++)
 		if(o->getItem(i) != o->objdef->startItems[i])
 			fprintf(f, "%s\tITEM \"%s\" %.2f\n", strtab, strItems.getdp(i), o->getItem(i));
+	for(DynListEntry<GOIndexedItem> *e = o->indexeditem.first; e; e = e->next)
+		fprintf(f, "%s\tITEM \"%s %i\" %.2f\n", strtab, strItems.getdp(e->value.num), e->value.index, e->value.value);
 	if(o->flags & FGO_TERMINATED)
 		fprintf(f, "%s\tTERMINATED\n", strtab);
 	if(o->flags & FGO_PLAYER_TERMINATED)
@@ -721,6 +754,14 @@ void SaveSaveGame(char *fn)
 		fprintf(f, "PART_OF_CAMPAIGN %u", nc);
 		for(int i = 0; i < nc; i++)
 			fprintf(f, " %u", campaignName[i]);
+		fprintf(f, "\n");
+	}
+	if(serverName) if(wkver >= WKVER_BATTLES)
+	{
+		int nc = wcslen(serverName);
+		fprintf(f, "SERVER_NAME %u", nc);
+		for(int i = 0; i < nc; i++)
+			fprintf(f, " %u", serverName[i]);
 		fprintf(f, "\n");
 	}
 		

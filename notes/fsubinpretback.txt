@@ -1,0 +1,16 @@
+Which object type classes given to FINDER_SUBORDINATES are returned back?
+
+CLASS		
+----------------------------------------
+CHARACTER	Yes
+BUILDING	Yes
+CONTAINER	Yes
+PROP		Yes
+MARKER		Yes
+PLAYER		No
+CITY		No
+TOWN		No
+LEVEL		No
+ARMY		No
+FORMATION	No
+LANDSCAPE	

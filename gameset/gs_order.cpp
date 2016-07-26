@@ -82,6 +82,9 @@ void ReadCTask(char **pntfp, char **fstline)
 	ct->name = strTask.getdp(strdex);
 	ct->cat = -2;
 	ct->target = 0; ct->proxRequirement = 0;
+	ct->usePreviousTaskTarget = ct->rejectTargetIfItIsTerminated = 0;
+	ct->terminateEntireOrderIfNoTarget = ct->identifyTargetEachCycle = 0;
+	ct->satf = 0;
 	ct->initSeq = ct->startSeq = ct->suspendSeq = ct->resumeSeq = ct->cancelSeq = ct->terminateSeq = ct->proxSatisfiedSeq = 0;
 	while(**pntfp)
 	{
@@ -121,6 +124,17 @@ void ReadCTask(char **pntfp, char **fstline)
 				ct->proxSatisfiedSeq = ReadActSeq(pntfp); break;
 			case CTASK_TRIGGER:
 				ReadCTrigger(pntfp, word, ct); break;
+			case CTASK_USE_PREVIOUS_TASK_TARGET:
+				ct->usePreviousTaskTarget = 1; break;
+			case CTASK_SYNCH_ANIMATION_TO_FRACTION:
+				{char **w = word + 1;
+				ct->satf = ReadValue(&w); break;}
+			case CTASK_REJECT_TARGET_IF_IT_IS_TERMINATED:
+				ct->rejectTargetIfItIsTerminated = 1; break;
+			case CTASK_TERMINATE_ENTIRE_ORDER_IF_NO_TARGET:
+				ct->terminateEntireOrderIfNoTarget = 1; break;
+			case CTASK_IDENTIFY_TARGET_EACH_CYCLE:
+				ct->identifyTargetEachCycle = 1; break;
 		}
 	}
 	ferr("UEOF"); return;

@@ -26,8 +26,11 @@ struct CTask
 	uint type;
 	int cat;
 	CFinder *target;
+	boolean usePreviousTaskTarget, rejectTargetIfItIsTerminated,
+		terminateEntireOrderIfNoTarget, identifyTargetEachCycle;
 	CValue *proxRequirement;
 	GrowList<CTrigger> triggers;
+	CValue *satf;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq, *proxSatisfiedSeq;
 };

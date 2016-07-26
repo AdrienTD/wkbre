@@ -153,12 +153,57 @@ struct PositionThisSideOf : public CPosition
 	{
 		PosOri o, p; FinderToPosOri(&o, x, env); FinderToPosOri(&p, y, env);
 		Vector3 d = (o.pos - p.pos).normal();
-		//float a = M_PI - atan2(d.x, d.z);
-		float a = atan2(d.x, -d.z);
-		d *= v->get(env);
-		po->pos = p.pos + d;
-		po->ori.x = po->ori.z = 0;
-		po->ori.y = a;
+		po->pos = p.pos + (d * v->get(env));
+		po->ori.x = po->ori.z = 0; po->ori.y = atan2(d.x, -d.z);
+	}
+};
+
+struct PositionTheOtherSideOf : public CPosition
+{
+	CFinder *x, *y; CValue *v;
+	PositionTheOtherSideOf(CFinder *a, CFinder *b, CValue *c) : x(a), y(b), v(c) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		PosOri o, p; FinderToPosOri(&o, x, env); FinderToPosOri(&p, y, env);
+		Vector3 d = (p.pos - o.pos).normal();
+		po->pos = p.pos + (d * v->get(env));
+		po->ori.x = po->ori.z = 0; po->ori.y = atan2(d.x, -d.z);
+	}
+};
+
+struct PositionAwayFrom : public CPosition
+{
+	CFinder *x, *y; CValue *v;
+	PositionAwayFrom(CFinder *a, CFinder *b, CValue *c) : x(a), y(b), v(c) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		PosOri o, p; FinderToPosOri(&o, x, env); FinderToPosOri(&p, y, env);
+		Vector3 d = (o.pos - p.pos).normal();
+		po->pos = o.pos + (d * v->get(env));
+		po->ori.x = po->ori.z = 0; po->ori.y = atan2(d.x, -d.z);
+	}
+};
+
+struct PositionInFrontOf : public CPosition
+{
+	CFinder *f; CValue *v;
+	PositionInFrontOf(CFinder *a, CValue *b) : f(a), v(b) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		FinderToPosOri(po, f, env);
+		Vector3 d; d.x = sin(po->ori.y); d.y = 0; d.z = -cos(po->ori.y);
+		po->pos += d * v->get(env);
+	}
+};
+
+struct PositionFiringAttachmentPoint : public CPosition
+{
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		if(!env->self.valid())
+			{*po = nullpo; return;}
+		po->pos = env->self->position + Vector3(0, 1, 0);
+		po->ori = env->self->orientation;
 	}
 };
 
@@ -205,9 +250,22 @@ CPosition *ReadCPosition(char ***wpnt)
 			return new PositionSpawnTilePosition(ReadFinder(wpnt));
 		case POSITION_THIS_SIDE_OF:
 			{*wpnt += 1;
-			CFinder *x = ReadFinder(wpnt);
-			CFinder *y = ReadFinder(wpnt);
+			CFinder *x = ReadFinder(wpnt); CFinder *y = ReadFinder(wpnt);
 			return new PositionThisSideOf(x, y, ReadValue(wpnt));}
+		case POSITION_THE_OTHER_SIDE_OF:
+			{*wpnt += 1;
+			CFinder *x = ReadFinder(wpnt); CFinder *y = ReadFinder(wpnt);
+			return new PositionTheOtherSideOf(x, y, ReadValue(wpnt));}
+		case POSITION_AWAY_FROM:
+			{*wpnt += 1;
+			CFinder *x = ReadFinder(wpnt); CFinder *y = ReadFinder(wpnt);
+			return new PositionAwayFrom(x, y, ReadValue(wpnt));}
+		case POSITION_IN_FRONT_OF:
+			{*wpnt += 1;
+			CFinder *f = ReadFinder(wpnt);
+			return new PositionInFrontOf(f, ReadValue(wpnt));}
+		case POSITION_FIRING_ATTACHMENT_POINT:
+			return new PositionFiringAttachmentPoint();
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

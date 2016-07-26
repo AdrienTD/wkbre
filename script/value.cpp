@@ -136,10 +136,10 @@ struct ValueValueTagInterpretation : public CValue
 	}
 };
 
-struct ValueObjectID : public CValue
+struct ValueObjectID_WKB : public CValue
 {
 	CFinder *f;
-	ValueObjectID(CFinder *a) : f(a) {}
+	ValueObjectID_WKB(CFinder *a) : f(a) {}
 	valuetype get(SequenceEnv *env)
 	{
 		GameObject *o = f->getfirst(env);	// Only first object.
@@ -147,6 +147,18 @@ struct ValueObjectID : public CValue
 			return o->id;
 		else
 			return 0;
+	}
+};
+
+struct ValueObjectID_WKO : public CValue
+{
+	CFinder *f; CFinder *g;
+	ValueObjectID_WKO(CFinder *a, CFinder *b) : f(a), g(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env); if(!o) return 0;
+		GameObject *p = g->getfirst(env); if(!p) return 0;
+		return o == p;
 	}
 };
 
@@ -530,6 +542,94 @@ struct ValueNumAssociators : public CValue
 	}
 };
 
+struct ValueIndexedItemValue : public CValue
+{
+	int x; CValue *y; CFinder *f;
+	ValueIndexedItemValue(int a, CValue *b, CFinder *c) : x(a), y(b), f(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o = f->getfirst(env);
+		if(!o) return 0;
+		return o->getIndexedItem(x, y->get(env));
+	}
+};
+
+struct ValueAngleBetween : public CValue
+{
+	int mode; CFinder *x, *y;
+	ValueAngleBetween(int a, CFinder *b, CFinder *c) : mode(a), x(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// NOTE: doesn't seem to work, it always returns 0
+		return 0;
+		/*PosOri a, b;
+		int n = FinderToPosOri(&a, x, env) && FinderToPosOri(&b, y, env);
+		if(!n) return 0;
+		...*/
+	}
+};
+
+struct ValueCurrentlyDoingTask : public CValue
+{
+	int cat; CFinder *f;
+	ValueCurrentlyDoingTask(int a, CFinder *b) : cat(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		f->begin(env);
+		GameObject *o = f->getnext();
+		if(!o) return 0;
+		do {
+			if(!o->ordercfg.order.len) return 0;
+			SOrder *s = &o->ordercfg.order.first->value;
+			if(s->processState >= 4) return 0;
+			STask *t = &s->task.getEntry(s->currentTask)->value;
+			if(t->processState >= 4) return 0;
+			if(t->type->cat != cat) return 0;
+		} while(o = f->getnext());
+		return 1;
+	}
+};
+
+struct ValueIsVisible : public CValue
+{
+	CFinder *f, *g;
+	ValueIsVisible(CFinder *a, CFinder *b) : f(a), g(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
+struct ValueIsDiscovered : public CValue
+{
+	CFinder *f, *g;
+	ValueIsDiscovered(CFinder *a, CFinder *b) : f(a), g(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
+struct ValueWithinForwardArc : public CValue
+{
+	CFinder *f, *g; CValue *v, *w;
+	ValueWithinForwardArc(CFinder *a, CFinder *b, CValue *c, CValue *d) : f(a), g(b), v(c), w(d) {}
+	valuetype get(SequenceEnv *env)
+	{
+		PosOri o, p; FinderToPosOri(&o, f, env); FinderToPosOri(&p, g, env);
+		valuetype md = w->get(env);
+		Vector3 dt = p.pos - o.pos;
+		if(dt.len2xz() > md) return 0;
+
+		valuetype ag = ((v->get(env) / 2) * M_PI) / 180;
+		Vector3 fr = Vector3(sin(o.ori.y), 0, -cos(o.ori.y));
+		if(acos(fr.dot2xz(dt.normal2xz())) > ag) return 0;
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -564,7 +664,10 @@ CValue *ReadValue(char ***wpnt)
 			return new ValueObjectType(&objdef[d], ReadFinder(wpnt));}
 		case VALUE_OBJECT_ID:
 			{*wpnt += 1;
-			return new ValueObjectID(ReadFinder(wpnt));}
+			if(1) return new ValueObjectID_WKB(ReadFinder(wpnt));
+			// else
+			CFinder *f = ReadFinder(wpnt);
+			return new ValueObjectID_WKO(f, ReadFinder(wpnt));}
 		case VALUE_IS_SUBSET_OF:
 			{*wpnt += 1;
 			CFinder *f = ReadFinder(wpnt);
@@ -651,6 +754,31 @@ CValue *ReadValue(char ***wpnt)
 		case VALUE_FINDER_RESULTS_COUNT:
 			{int x = strFinderDef.find(word[1]); mustbefound(x);
 			*wpnt += 2; return new ValueFinderResultsCount(x, ReadFinder(wpnt));}
+		case VALUE_INDEXED_ITEM_VALUE:
+			{int x = strItems.find(word[1]);
+			*wpnt += 2; CValue *y = ReadValue(wpnt);
+			return new ValueIndexedItemValue(x, y, ReadFinder(wpnt));}
+		case VALUE_ANGLE_BETWEEN:
+			{int m = stfind_cs(DISTCALCMODE_str, DISTCALCMODE_NUM, word[1]);
+			mustbefound(m);
+			*wpnt += 2;
+			CFinder *a = ReadFinder(wpnt);
+			return new ValueAngleBetween(m, a, ReadFinder(wpnt));}
+		case VALUE_CURRENTLY_DOING_TASK:
+			{int c = strTaskCat.find(word[1]);
+			*wpnt += 2;
+			return new ValueCurrentlyDoingTask(c, ReadFinder(wpnt));}
+		case VALUE_IS_VISIBLE:
+			{*wpnt += 1; CFinder *f = ReadFinder(wpnt);
+			return new ValueIsVisible(f, ReadFinder(wpnt));}
+		case VALUE_IS_DISCOVERED:
+			{*wpnt += 1; CFinder *f = ReadFinder(wpnt);
+			return new ValueIsDiscovered(f, ReadFinder(wpnt));}
+		case VALUE_WITHIN_FORWARD_ARC:
+			{*wpnt += 1; CFinder *a = ReadFinder(wpnt);
+			CFinder *b = ReadFinder(wpnt);
+			CValue *c = ReadValue(wpnt);
+			return new ValueWithinForwardArc(a, b, c, ReadValue(wpnt));}
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?
@@ -687,6 +815,12 @@ struct Enode3V : public CValue
 {
 	CValue *x, *y, *z;
 	Enode3V(CValue *a, CValue *b, CValue *c) {x = a; y = b; z = c;}
+};
+
+struct Enode4V : public CValue
+{
+	CValue *x, *y, *z, *w;
+	Enode4V(CValue *a, CValue *b, CValue *c, CValue *d) : x(a), y(b), z(c), w(d) {}
 };
 
 struct EnodeAbsoluteValue : public Enode1V
@@ -861,10 +995,38 @@ struct EnodeIsBetween : public Enode3V
 	}
 };
 
+struct EnodeFrontBackLeftRight : public Enode4V
+{
+	CFinder *f, *g;
+	EnodeFrontBackLeftRight(CFinder *a0, CFinder *a1, CValue *a, CValue *b,
+		CValue *c, CValue *d) : f(a0), g(a1), Enode4V(a, b, c, d) {}
+	valuetype get(SequenceEnv *env)
+	{
+		PosOri o, p; FinderToPosOri(&o, f, env); FinderToPosOri(&p, g, env);
+		Vector3 d = o.pos - p.pos;
+		d /= d.len2xz();
+		float a = acos(d.x);
+		if(d.z > 0) a = (2*M_PI) - a;
+		/****/ a = -a; /****/
+		a = a - p.ori.y - (M_PI/4);
+		while(a >= (2*M_PI)) a -= 2*M_PI;
+		while(a < 0) a += 2*M_PI;
+		//printf("FBLR: %f\n", a);
+		switch((int)( (a / (M_PI/2.0f) )))
+		{
+			case 0: return y->get(env);
+			case 1: return w->get(env);
+			case 2: return x->get(env);
+			case 3: return z->get(env);
+		}
+		ferr("FBLR bug"); return 0;
+	}
+};
+
 CValue *ReadEqLine(char **pntfp)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
-	CValue *cv, *u, *v, *w;
+	CValue *cv, *u, *v, *w, *x;
 	while(**pntfp)
 	{
 		*pntfp = GetLine(*pntfp, wwl);
@@ -939,6 +1101,11 @@ CValue *ReadEqLine(char **pntfp)
 			case ENODE_IS_BETWEEN:
 				u = ReadEqLine(pntfp); v = ReadEqLine(pntfp); w = ReadEqLine(pntfp);
 				return new EnodeIsBetween(u, v, w);
+			case ENODE_FRONT_BACK_LEFT_RIGHT:
+				{char **t = word + 2;
+				CFinder *a = ReadFinder(&t); CFinder *b = ReadFinder(&t);
+				u = ReadEqLine(pntfp); v = ReadEqLine(pntfp); w = ReadEqLine(pntfp); x = ReadEqLine(pntfp);
+				return new EnodeFrontBackLeftRight(a, b, u, v, w, x);}
 		}
 		char **pw = &word[1];
 		return ReadValue(&pw);

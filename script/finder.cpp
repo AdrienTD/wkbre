@@ -198,6 +198,12 @@ struct FinderTarget : public CFinder
 			f = 0;
 			if(env->target.valid())
 				return env->target.get();
+			else if(env->self.valid())
+				if(env->self->ordercfg.order.len)
+				{
+					SOrder *s = &env->self->ordercfg.order.first->value;
+					return s->task.getEntry(s->currentTask)->value.target.get();
+				}
 		}
 		return 0;
 	}
@@ -400,14 +406,19 @@ struct FinderSubordinates : public CFinder
 	FinderSubordinates(int a, CObjectDefinition *b, int c, int d, CFinder *e) : eq(a), bl(b), cl(c), il(d), fd(e) {}
 	CFinder *clone() {return new FinderSubordinates(eq, bl, cl, il, fd->clone());}
 
-	DynListEntry<GameObject> *w; GameObject *p; int nomore; SequenceEnv *ctx;
+	DynListEntry<GameObject> *w; GameObject *p; int nomore, retparent; SequenceEnv *ctx;
 	void NextParent()
 	{
 		while(1)
 		{	p = fd->getnext();
 			if(!p) {nomore = 1; return;}
+			w = p->children.first;
+			if((p->objdef->type == CLASS_BUILDING) || (p->objdef->type == CLASS_CHARACTER) ||
+			   (p->objdef->type == CLASS_CONTAINER) || (p->objdef->type == CLASS_MARKER) ||
+			   (p->objdef->type == CLASS_PROP))
+				{retparent = 1; return;}
 			if(!p->children.len) continue;
-			w = p->children.first; break;
+			break;
 		}
 	}
 
@@ -434,7 +445,7 @@ struct FinderSubordinates : public CFinder
 	void begin(SequenceEnv *env)
 	{
 		//printf("----- FINDER_SUBORDINATES BEGIN -----\n");
-		nomore = 0;
+		nomore = retparent = 0;
 		fd->begin(ctx = env);
 		NextParent();
 	}
@@ -442,10 +453,15 @@ struct FinderSubordinates : public CFinder
 	{
 		//printf("FinderSubordinates::getnext\n");
 
-		//if(nomore) return 0;
-
 		while(!nomore)
 		{
+			if(retparent)
+			{
+				retparent = 0;
+				GameObject *r = p;
+				if(!p->children.len) NextParent();
+				return r;
+			}
 			GameObject *o = &(w->value);
 			if(IsFSOResult(ctx, o, eq, bl, cl))
 				{NextCandidate(); /*printf("Return %i\n", o->id);*/ return o;}
@@ -514,32 +530,23 @@ struct FinderAssociators : public CFinder
 struct FinderPlayers : public CFinder
 {
 	int eq;
-	DynListEntry<GameObject> *f; int nomore;
+	DynListEntry<GameObject> *n; SequenceEnv c;
 	FinderPlayers(int a) : eq(a) {}
 	CFinder *clone() {return new FinderPlayers(eq);}
-	void NextCandidate()
-	{
-	fpnc:	if(f->value.objdef->type == CLASS_PLAYER)
-		{
-			SequenceEnv c;
-			c.self = c.candidate = &(f->value);
-			if(stpo(equation[eq]->get(&c)))
-				return;
-		}
-		f = f->next;
-		if(!f) {nomore = 1; return;}
-		goto fpnc;
-		
-	}
-	void begin(SequenceEnv *env) {f = levelobj->children.first; nomore = 0; NextCandidate();}
+	void begin(SequenceEnv *env) {env->copyAll(&c); n = levelobj->children.first;}
 	GameObject *getnext()
 	{
-		if(nomore) return 0;
-		GameObject *o = &(f->value);
-		f = f->next;
-		if(f)	NextCandidate();
-		else	nomore = 1;
-		return o;
+		while(n)
+		{
+			GameObject *o = &n->value; n = n->next;
+			if(o->objdef->type == CLASS_PLAYER)
+			{
+				c.candidate = o;
+				if(stpo(equation[eq]->get(&c)))
+					return o;
+			}
+		}
+		return 0;
 	}
 };
 

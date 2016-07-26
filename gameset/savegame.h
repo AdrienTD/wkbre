@@ -44,6 +44,11 @@ struct GOItem
 	int num;
 	valuetype value;
 };
+struct GOIndexedItem
+{
+	int num; int index;
+	valuetype value;
+};
 
 struct GOParamBlock
 {
@@ -64,6 +69,7 @@ struct GameObject
 	Vector3 position, orientation, scale;
 	int subtype, appearance;
 	DynList<GOItem> item; 			// individual items
+	DynList<GOIndexedItem> indexeditem;
 	int color, renderable;
 	int flags; GrowList<int> *rects;
 	DynList<GOAssociation> association;	// one GOAssociation for one ass. category.
@@ -81,6 +87,8 @@ struct GameObject
 
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);
+	valuetype getIndexedItem(int x, int y);
+	void setIndexedItem(int x, int y, valuetype v);
 };
 
 struct DelayedSequenceEntry

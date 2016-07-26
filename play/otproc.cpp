@@ -47,7 +47,7 @@ void StartCurrentTaskTriggers(GameObject *o)
 		t->trigger.last->value.id = i;
 		if(c->type == TASKTRIGGER_TIMER)
 		{
-			SequenceEnv env; env.self = o; env.target = t->target;
+			SequenceEnv env; env.self = o; //env.target = t->target;
 			t->trigger.last->value.period = c->period->get(&env);
 		}
 		t->trigger.last->value.referenceTime = current_time;
@@ -88,7 +88,7 @@ void CheckCurrentTaskTriggers(GameObject *o)
 			case TASKTRIGGER_TIMER:
 				if((g->referenceTime + g->period) > current_time)
 					break;
-				env.self = o; env.target = t->target;
+				env.self = o; //env.target = t->target;
 				g->referenceTime += g->period;
 				g->period = c->period->get(&env);
 				c->seq->run(&env);
@@ -96,10 +96,18 @@ void CheckCurrentTaskTriggers(GameObject *o)
 			case TASKTRIGGER_ANIMATION_LOOP:
 			case TASKTRIGGER_UNINTERRUPTIBLE_ANIMATION_LOOP:
 			case TASKTRIGGER_ATTACHMENT_POINT:
-				if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
-					break;
-				env.self = o; env.target = t->target;
-				g->referenceTime += ANIMATION_LOOP_TRIGGER_SPEED;
+				env.self = o; //env.target = t->target;
+				if(t->type->satf)
+				{
+					if(t->type->satf->get(&env) < 1.0f)
+						break;
+				}
+				else
+				{
+					if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
+						break;
+					g->referenceTime += ANIMATION_LOOP_TRIGGER_SPEED;
+				}
 				c->seq->run(&env);
 				return;
 		}
@@ -120,8 +128,12 @@ void ProcessCurrentTask(GameObject *o)
 		switch(c->type)
 		{
 			case ORDTSKTYPE_OBJECT_REFERENCE:
+			case ORDTSKTYPE_BUILD:
+			case ORDTSKTYPE_REPAIR:
+			case ORDTSKTYPE_ATTACK:
 				{if(!t->target.valid()) {TerminateTask(o, 0); break;}
 				//if((o == t->target.get()) || (t->proximity < 0.0f)) break;
+				if(c->rejectTargetIfItIsTerminated) if(t->target->flags & FGO_TERMINATED) {TerminateTask(o, 0); break;}
 				Vector3 v = t->target->position - o->position;
 				float d = v.len2xz();
 			  	if((d < t->proximity) || (t->proximity <= -1))
@@ -133,14 +145,18 @@ void ProcessCurrentTask(GameObject *o)
 						{
 							SequenceEnv env;
 							env.self = o;
-							env.target = t->target;
+							//env.target = t->target;
 							c->proxSatisfiedSeq->run(&env);
 							if(!g.valid()) return;
 						}
 					}
-					StartCurrentTaskTriggers(o);
-					CheckCurrentTaskTriggers(o);
+					if(t->processState == 1)
+					{
+						StartCurrentTaskTriggers(o);
+						CheckCurrentTaskTriggers(o);
+					}
 				} else {
+					if(t->proximity < 1) t->proximity = 1;
 					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
 					StopCurrentTaskTriggers(o);
 					if(o != t->target.get())
@@ -264,14 +280,19 @@ void InitTask(GameObject *o, int x)
 	// the initialisation sequence.
 	if(t->processState < 4)
 	{
-		if(!t->target.valid()) if(t->type->target)
+		if(!t->target.valid() || t->type->identifyTargetEachCycle) if(t->type->target)
 		{
 			SequenceEnv env; env.self = o;
 			t->target = t->type->target->getfirst(&env);
 		}
-		if(t->target.valid()) SetObjReference(o, t->target.get());
-		env.target = t->target;
+		if(!t->target.valid() || t->type->identifyTargetEachCycle) if(t->type->usePreviousTaskTarget)
+			if(s->currentTask > 0)
+				t->target = s->task.getEntry(s->currentTask-1)->value.target;
+		if(!t->target.valid()) if(t->type->terminateEntireOrderIfNoTarget)
+			{TerminateOrder(o, x); return;}
 
+		if(t->target.valid()) SetObjReference(o, t->target.get());
+		//env.target = t->target;
 		t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
 		if(t->type->startSeq)
 			t->type->startSeq->run(&env);
@@ -288,7 +309,7 @@ void SuspendTask(GameObject *o, int x)
 	t->processState = 2;
 	if(t->type->suspendSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = t->target;
+		SequenceEnv env; env.self = o; //env.target = t->target;
 		t->type->suspendSeq->run(&env);
 	}
 
@@ -305,7 +326,7 @@ void ResumeTask(GameObject *o, int x)
 	t->processState = 1;
 	if(t->type->resumeSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = t->target;
+		SequenceEnv env; env.self = o; //env.target = t->target;
 		t->type->resumeSeq->run(&env);
 	}
 
@@ -322,7 +343,7 @@ void TerminateTask(GameObject *o, int x)
 	t->processState = 5;
 	if(t->type->terminateSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = t->target;
+		SequenceEnv env; env.self = o; //env.target = t->target;
 		t->type->terminateSeq->run(&env);
 	}
 
@@ -349,12 +370,13 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 		st->flags = FSTASK_FIRST_EXECUTION;
 		st->processState = 0;
 		st->taskID = i;
-		SequenceEnv env; env.self = go; env.target = tg;
+		SequenceEnv env; env.self = go; //env.target = tg;
 		if(ct->proxRequirement)
 			st->proximity = ct->proxRequirement->get(&env);
 		else
 			st->proximity = -1;
 		st->spawnBlueprint = 0;
+		st->faceTowards.x = -1;
 	}
 
 	so->task.first->value.target = tg;
@@ -373,7 +395,7 @@ void InitOrder(GameObject *o, int x)
 	if(s->processState < 4)
 	{
 		InitTask(o, x);
-		env.target = s->task.first->value.target;
+		//env.target = s->task.first->value.target;
 		if(s->type->startSeq)
 			s->type->startSeq->run(&env);
 	}
@@ -427,7 +449,7 @@ void SuspendOrder(GameObject *o, int x)
 	SuspendTask(o, x);
 	if(s->type->suspendSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		SequenceEnv env; env.self = o; //env.target = s->task.first->value.target;
 		s->type->suspendSeq->run(&env);
 	}
 }
@@ -442,7 +464,7 @@ void ResumeOrder(GameObject *o, int x)
 	ResumeTask(o, x);
 	if(s->type->resumeSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		SequenceEnv env; env.self = o; //env.target = s->task.first->value.target;
 		s->type->resumeSeq->run(&env);
 	}
 }
@@ -457,7 +479,7 @@ void CancelOrder(GameObject *o, int x)
 	TerminateTask(o, x);
 	if(s->type->cancelSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		SequenceEnv env; env.self = o; //env.target = s->task.first->value.target;
 		s->type->cancelSeq->run(&env);
 	}
 }
@@ -478,7 +500,7 @@ void TerminateOrder(GameObject *o, int x)
 	TerminateTask(o, x);
 	if(s->type->terminateSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = s->task.first->value.target;
+		SequenceEnv env; env.self = o; //env.target = s->task.first->value.target;
 		s->type->terminateSeq->run(&env);
 	}
 }

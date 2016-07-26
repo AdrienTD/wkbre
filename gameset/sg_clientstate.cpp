@@ -24,6 +24,7 @@ char *ReadClientState(char *fp, char **fstline)
 	c->obj = FindObjID(atoi(fstline[1]));
 	if(c->obj.valid()) c->obj->client = c;
 	c->winDiplomacy = c->winReport = c->winTributes = 0;
+	c->storedpos.x = -1;
 
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
 	while(*fp)
@@ -47,6 +48,14 @@ char *ReadClientState(char *fp, char **fstline)
 			c->winReport = 1;
 		else if(!stricmp(word[0], "TRIBUTES_WINDOW_ENABLED"))
 			c->winTributes = 1;
+		else if(!stricmp(word[0], "STORED_CAMERA_POSITION"))
+		{
+			c->storedpos.x = atof(word[1]);
+			c->storedpos.y = atof(word[2]);
+			c->storedpos.z = atof(word[3]);
+			c->storedori.x = atof(word[4]);
+			c->storedori.y = atof(word[5]);
+		}
 		else if(!stricmp(word[0], "END_CLIENT_STATE"))
 			return fp;
 	}
@@ -64,6 +73,10 @@ void WriteClientStates(FILE *f)
 		fprintf(f, "CAMERA_POSITION %f %f %f %f %f\n", c->camerapos.x,
 			c->camerapos.y, c->camerapos.z, c->cameraori.x,
 			c->cameraori.y);
+		if(c->storedpos.x >= 0)
+			fprintf(f, "STORED_CAMERA_POSITION %f %f %f %f %f\n", c->storedpos.x,
+				c->storedpos.y, c->storedpos.z, c->storedori.x,
+				c->storedori.y);
 		if(c->winDiplomacy) fprintf(f, "DIPLOMACY_WINDOW_ENABLED\n");
 		if(c->winReport) fprintf(f, "DIPLOMATIC_REPORT_WINDOW_ENABLED\n");
 		if(c->winTributes) fprintf(f, "TRIBUTES_WINDOW_ENABLED\n");

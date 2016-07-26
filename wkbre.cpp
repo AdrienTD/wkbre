@@ -26,6 +26,7 @@ char *farg = 0;
 char secret[] = {0xec,0xc9,0xdf,0xc4,0xc8,0xc3,0x8d,0xea,0xc8,0xc8,0xd9,0xde};
 int bo = 0;
 int playMode = 0, enableObjTooltips = 0;
+ClientState *curclient = 0;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -56,6 +57,7 @@ GUIElement *movingguielement = 0; int movge_rx, movge_ry;
 char *menubarstr[] = {"File", "Object", "View", "Help"};
 MenuEntry menucmds[] = {
 {"Save as...", CMD_SAVE},
+{"Change WK version", CMD_CHANGE_SG_WKVER},
 {"Quit", CMD_QUIT},
 {0,0},
 {"Delete type...", CMD_DELETEOBJTYPE},
@@ -265,6 +267,22 @@ void Test6()
 }
 
 #endif
+
+void DisplaceCurCamera(Vector3 r)
+{
+	if(curclient)
+		curclient->camerapos += r;
+	else
+		camerapos += r;
+}
+
+void RotateCurCamera(float x, float y)
+{
+	if(curclient)
+		curclient->cameraori += Vector3(x, y, 0);
+	else
+		{campitch += x; camyaw += y;}
+}
 
 void PresentObject(int igo)
 {
@@ -524,6 +542,23 @@ void CancelAllObjsOrders(GameObject *o)
 		CancelAllObjsOrders(&e->value);
 }
 
+void AddClientsToGSL(GrowStringList *sl)
+{
+	for(uint i = 0; i < clistates.len; i++)
+	{
+		ClientState *c = clistates.getpnt(i);
+		if(!c->obj.valid())
+			sl->add("<PLAYER object removed>");
+		else {
+			char nm[256]; char *so = nm;
+			wchar_t *si = c->obj->name;
+			while(*si) *(so++) = *(si++);
+			*so = 0;
+			sl->add(nm);
+		}
+	}
+}
+
 void CallCommand(int cmd)
 {
 	switch(cmd)
@@ -721,19 +756,7 @@ void CallCommand(int cmd)
 		case CMD_CAMCLISTATE:
 		{
 			GrowStringList sl;
-			for(uint i = 0; i < clistates.len; i++)
-			{
-				ClientState *c = clistates.getpnt(i);
-				if(!c->obj.valid())
-					sl.add("<PLAYER object removed>");
-				else {
-					char nm[256]; char *so = nm;
-					wchar_t *si = c->obj->name;
-					while(*si) *(so++) = *(si++);
-					*so = 0;
-					sl.add(nm);
-				}
-			}
+			AddClientsToGSL(&sl);
 			int r = ListDlgBox(&sl, "Copy camera position from whose client?", 0);
 			if(r != -1)
 			{
@@ -765,6 +788,20 @@ void CallCommand(int cmd)
 				else {DeselectAll(); SelectObject(o);}
 			}
 		} break;
+		case CMD_CHANGE_SG_WKVER:
+			wkver = (wkver==WKVER_ORIGINAL) ? WKVER_BATTLES : WKVER_ORIGINAL;
+			break;
+		case CMD_CONTROL_CLIENT:
+		{
+			GrowStringList sl;
+			sl.add("<No client>");
+			AddClientsToGSL(&sl);
+			int r = ListDlgBox(&sl, "Which client to you want to take control?", 1);
+			if(!r)
+				curclient = 0;
+			else if(r != -1)
+				curclient = clistates.getpnt(r-1);
+		}
 	}
 }
 
@@ -827,6 +864,14 @@ void Test7()
 			CheckBattlesDelayedSequences();
 		}
 //#endif
+		// Copy controlled client's camera to drawing/scene camera.
+		if(curclient)
+		{
+			camerapos = curclient->camerapos;
+			campitch = curclient->cameraori.x;
+			camyaw = curclient->cameraori.y;
+		}
+
 		if(!winMinimized)
 		{
 			objsdrawn = 0;
@@ -885,7 +930,7 @@ void Test7()
 			Vector3 m = Vector3(vLAD.x, 0, vLAD.z), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
-				camerapos += n * walkstep;
+				DisplaceCurCamera(n * walkstep);
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position += n * walkstep;
@@ -897,7 +942,7 @@ void Test7()
 			Vector3 m = Vector3(vLAD.x, 0, vLAD.z), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
-				camerapos -= n * walkstep;
+				DisplaceCurCamera(n * (-walkstep));
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position -= n * walkstep;
@@ -909,7 +954,7 @@ void Test7()
 			Vector3 m = Vector3(-vLAD.z, 0, vLAD.x), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
-				camerapos += n * walkstep;
+				DisplaceCurCamera(n * walkstep);
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position += n * walkstep;
@@ -921,19 +966,19 @@ void Test7()
 			Vector3 m = Vector3(vLAD.z, 0, -vLAD.x), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
-				camerapos += n * walkstep;
+				DisplaceCurCamera(n * walkstep);
 			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 				if(e->value.valid())
 					{e->value->position += n * walkstep;
 					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
 					GOPosChanged(e->value.get());}
 		}
-		if(keypressed['E']) camerapos += Vector3(0.0f, walkstep, 0.0f);
-		if(keypressed['D']) camerapos -= Vector3(0.0f, walkstep, 0.0f);
-		if(keypressed['T']) campitch -= 0.01f;
-		if(keypressed['G']) campitch += 0.01f;
-		if(keypressed['U']) camyaw -= 0.01f;
-		if(keypressed['I']) camyaw += 0.01f;
+		if(keypressed['E']) DisplaceCurCamera(Vector3(0.0f,  walkstep, 0.0f));
+		if(keypressed['D']) DisplaceCurCamera(Vector3(0.0f, -walkstep, 0.0f));
+		if(keypressed['T']) RotateCurCamera( 0.01f, 0);
+		if(keypressed['G']) RotateCurCamera(-0.01f, 0);
+		if(keypressed['U']) RotateCurCamera(0,  0.01f);
+		if(keypressed['I']) RotateCurCamera(0, -0.01f);
 
 		if(keypressed['1'])
 			{keypressed['1'] = 0; CallCommand(CMD_CAMDOWNLEFT);}
@@ -1034,10 +1079,17 @@ void Test7()
 		{
 			keypressed['Y'] = 0;
 			if(selobjects.len >= 2)
+			 if(selobjects.last->value.valid())
 			{
 				DynList<goref> dl; dl.add(); dl.first->value = selobjects.first->value;
-				CCommand *c = AskCommand("Which command do you want to execute on the first selected object with the second selected object as the target?", &dl);
-				ExecuteCommand(selobjects.first->value.get(), c, selobjects.first->next->value.get(), ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+				CCommand *c = AskCommand("Which command do you want to execute on the first selected objects with the last selected object as the target?", &dl);
+				DynListEntry<goref> *e = selobjects.first;
+				for(int i = 0; i < selobjects.len-1; i++)
+				{
+					if(e->value.valid())
+						ExecuteCommand(e->value.get(), c, selobjects.last->value.get(), ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+					e = e->next;
+				}
 			}
 		}
 
@@ -1149,6 +1201,18 @@ void Test7()
 			int x = ListDlgBox(&strGameTextWindow, "Display this game text window:");
 			if(x != -1)
 				EnableGTW(&(gsgametextwin[x]));
+		}
+
+		if(keypressed['F']) {keypressed['F'] = 0; CallCommand(CMD_CONTROL_CLIENT);}
+
+		if(keypressed['J'])
+		{
+			keypressed['J'] = 0;
+			int x = ListDlgBox(&strGameEvent, "Which event do you want to send to the selected objects?");
+			if(x != -1)
+				for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+					if(e->value.valid())
+						SendGameEvent(0, e->value.get(), x);
 		}
 	}
 	}

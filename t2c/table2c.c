@@ -20,9 +20,9 @@
 #include <stdlib.h>
 
 #define isdelimiter(a) (_isspace((a))||((a)==0)||((a)==255))
-#define MAX_WORD_SIZE 80
+#define MAX_WORD_SIZE 256
 #define MAX_DEFS 1024
-#define MAX_TABS 15
+#define MAX_TABS 64
 
 #ifndef _MSC_VER
 #define strcat_s(a, b, c) strcat(a, c)

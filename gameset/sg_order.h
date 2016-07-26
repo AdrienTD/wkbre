@@ -32,7 +32,9 @@ struct STrigger
 struct STask
 {
 	CTask *type; goref target; int flags, processState, taskID; float proximity;
-	CObjectDefinition *spawnBlueprint; DynList<couple<float> > destinations;
+	CObjectDefinition *spawnBlueprint;
+	DynList<couple<float> > destinations; couple<float> faceTowards;
+	float startTime; Vector3 initialPosition, initialVelocity; // for missile
 	DynList<STrigger> trigger;
 };
 

@@ -143,7 +143,9 @@ struct Vector3
 	valuetype len3() {return sqrt(x*x + y*y + z*z);}
 	valuetype sqlen3() {return x*x + y*y + z*z;}
 	Vector3 normal() {valuetype l = len3(); return Vector3(x/l, y/l, z/l);}
+	Vector3 normal2xz() {valuetype l = len2xz(); return Vector3(x/l, 0, z/l);}
 	valuetype dot(Vector3 a) {return a.x * x + a.y * y + a.z * z;}
+	valuetype dot2xz(Vector3 a) {return a.x * x + a.z * z;}
 };
 
 #endif

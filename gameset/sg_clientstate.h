@@ -20,6 +20,7 @@ struct ClientState
 	int updateid;
 	Vector3 camerapos, cameraori;
 	boolean winDiplomacy, winReport, winTributes;
+	Vector3 storedpos, storedori;
 };
 
 extern GrowList<ClientState> clistates;

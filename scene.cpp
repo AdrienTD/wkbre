@@ -39,8 +39,8 @@ void SetConstantMatrices()
 
 	//Matrix mCamRot; D3DXMatrixRotationYawPitchRoll(&mCamRot, camyaw, campitch, 0.0f);
 	Matrix mCamRot, roty, rotx;
-	CreateRotationYMatrix(&roty, camyaw);
-	CreateRotationXMatrix(&rotx, campitch);
+	CreateRotationYMatrix(&roty, -camyaw);
+	CreateRotationXMatrix(&rotx, -campitch);
 	MultiplyMatrices(&mCamRot, &rotx, &roty);
 
 	TransformNormal3(&vLAD, &vCamDir, &mCamRot);

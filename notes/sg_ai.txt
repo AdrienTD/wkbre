@@ -1,0 +1,78 @@
+* = optional
+
+COMMISSION "CommissionName" <objid>
+*	COMPLETE
+*	FORCE_BALANCE
+
+	REQUIREMENT BUILDING_REQUIREMENT "BuildingObjDef"
+		STATE ...
+		REQUIRED_COUNT %i
+		EXISTING_COUNT %i
+		DETAILED_STATE ...
+		FOUNDATION <objid> (if STATE == ACTIVE)
+		FOUNDATION ...
+	END_REQUIREMENT
+
+	REQUIREMENT CHARACTER_REQUIREMENT "CharacterLadderName"
+		STATE COMPLETE/STALLED/BLOCKED
+		REQUIRED_COUNT %i
+		EXISTING_COUNT %i
+		CHARACTER_RUNG "CharacterObjDef"
+		*	BLOCKED (if IMPOSSIBLE_CONDITION_FAILED/NO_SPAWN_LOCATION_FOUND)
+			DETAILED_STATE OK/WAIT_CONDITION_FAILED/RESOURCE_REQUIRED_RESERVED
+		END_CHARACTER_RUNG
+		CHARACTER_RUNG ...
+		ORDER_ASSIGNED <objid:spawn_building> 0
+		ORDER_ASSIGNED ...
+	END_REQUIREMENT
+
+	REQUIREMENT UPDATE_REQUIREMENT "UpgradeName (order or command?)"
+		STATE ...
+		DETAILED_STATE .../NO_UPGRADE_LOCATIONS_IDLE
+	END_REQUIREMENT
+
+DETAILED_STATE {
+OK
+WAIT_CONDITION_FAILED
+RESOURCE_REQUIRED_RESERVED
+IMPOSSIBLE_CONDITION_FAILED
+NO_SPAWN_LOCATION_FOUND
+NO_UPGRADE_LOCATION_FOUND
+NO_UPGRADE_LOCATIONS_IDLE
+CANT_AFFORD
+UNPROCESSED
+}
+
+struct SCharacterRung
+{
+	int type;
+	boolean blocked;
+	int detailedState;
+};
+
+struct SRequirement
+{
+	int cl, type, state, detailedState, requiredCount, existingCount;
+	union {DynList<goref> foundations, ordersAssigned;}
+	DynList<SCharacterRung> charrungs;
+};
+
+struct SCommission
+{
+	int type;
+	boolean complete, forceBalance;
+	DynList<SRequirement> reqs;
+};
+
+struct SWorkOrder
+{
+	goref obj;
+	int ofind, type;
+}
+
+struct AIController
+{
+	SPlan *masterPlan;
+	DynList<SCommission> commissions;
+	DynList<SWorkOrder> workOrders;
+};

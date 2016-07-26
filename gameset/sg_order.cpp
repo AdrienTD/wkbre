@@ -48,6 +48,7 @@ char *ReadSGTask(char *fp, char *name, STask *t)
 	t->type = &gstask[y];
 	t->flags = 0;
 	t->spawnBlueprint = 0;
+	t->faceTowards.x = -1;
 	while(*fp)
 	{
 		fp = GetLine(fp, wwl);
@@ -107,6 +108,15 @@ char *ReadSGTask(char *fp, char *name, STask *t)
 				t->destinations.last->value.x = atof(word[1]);
 				t->destinations.last->value.y = atof(word[2]);
 				break;}
+			case STASK_START_TIME:
+				t->startTime = atof(word[1]); break;
+			case STASK_INITIAL_POSITION:
+				t->initialPosition = Vector3(atof(word[1]), atof(word[2]), atof(word[3])); break;
+			case STASK_INITIAL_VELOCITY:
+				t->initialVelocity = Vector3(atof(word[1]), atof(word[2]), atof(word[3])); break;
+			case STASK_FACE_TOWARDS:
+				{t->faceTowards.x = atof(word[1]);
+				t->faceTowards.y = atof(word[2]); break;}
 		}
 	}
 	ferr("UEOF"); return fp;
@@ -212,12 +222,24 @@ void WriteOrderConfiguration(FILE *f, GameObject *o, char *strtab)
 			{
 				for(DynListEntry<couple<float> > *e = a->value.destinations.first; e; e = e->next)
 					fprintf(f, "%s\t\t\t\tDESTINATION %f %f\n", strtab, e->value.x, e->value.y);
+				if(a->value.faceTowards.x > -1)
+					fprintf(f, "%s\t\t\t\tFACE_TOWARDS %f %f\n", strtab, a->value.faceTowards.x, a->value.faceTowards.y);
 				fprintf(f, "%s\t\t\t\tFIRST_EXECUTION %u\n", strtab, (a->value.flags & FSTASK_FIRST_EXECUTION)?1:0);
 				fprintf(f, "%s\t\t\t\tLAST_DESTINATION_VALID %u\n", strtab, (a->value.flags & FSTASK_LAST_DESTINATION_VALID)?1:0);
 			}
 			else if(ct->type == ORDTSKTYPE_FACE_TOWARDS)
-				// TODO: FACE_TOWARDS %f %f
+			{
+				if(a->value.faceTowards.x > -1)
+					fprintf(f, "%s\t\t\t\tFACE_TOWARDS %f %f\n", strtab, a->value.faceTowards.x, a->value.faceTowards.y);
 				fprintf(f, "%s\t\t\t\tTARGET %u\n", strtab, a->value.target.valid() ? a->value.target.getID() : (-1));
+			}
+			else if(ct->type == ORDTSKTYPE_MISSILE)
+			{
+				fprintf(f, "%s\t\t\t\tTARGET %u\n", strtab, a->value.target.valid() ? a->value.target.getID() : (-1));
+				fprintf(f, "%s\t\t\t\tSTART_TIME %f\n", strtab, a->value.startTime);
+				fprintf(f, "%s\t\t\t\tINITIAL_POSITION %f %f %f\n", strtab, a->value.initialPosition.x, a->value.initialPosition.y, a->value.initialPosition.z);
+				fprintf(f, "%s\t\t\t\tINITIAL_VELOCITY %f %f %f\n", strtab, a->value.initialVelocity.x, a->value.initialVelocity.y, a->value.initialVelocity.z);
+			}
 			else
 			{
 				fprintf(f, "%s\t\t\t\tTARGET %u\n", strtab, a->value.target.valid() ? a->value.target.getID() : (-1));

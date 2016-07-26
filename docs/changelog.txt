@@ -3,13 +3,21 @@ wkbre changelog:
 [0.0.4/?] ??/??/2016
 - Now open source!!
 - TERRAIN_ZONE object class supported.
-- Incomplete implementation of task/order processing
+- Implementation of task/order processing
 - Lots of actions/finders/position/value det. and other game set features are
-  now supported
+  now supported, including game text windows, indexed items, ...
 - New experimental features
+- The game cursor is now used. Use HARDWARE_CURSOR to change the way of how the
+  cursor is drawn.
 - RENDERABLE/TARGETABLE/SELECTABLE are now read and saved.
 - You can select an object by typing its ID ('O' key).
 - Using a FOV of 52.5° instead of 45° to match the one from the original engine.
+- You can change the savegame WK version (from WKO to WKB and vice versa)
+  before saving (in File menu).
+- You can change the initial size of the window in settings.txt (SCREEN_SIZE w h).
+- MISSILE tasks keep their properties when saved.
+- FACE_TOWARDS x y in tasks are kept when saved.
+- SERVER_NAME loaded and saved
 - ...
 
 [0.0.3/27] 21/05/2016

@@ -96,14 +96,21 @@ void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 	if(ie) ie->copyAll(&ctx);
 	ctx.self = o;
 	if(ie) ctx.pkgsender = ie->self;
-
 	goref gr = o;
+
 	for(uint i = 0; i < o->objdef->ireact.len; i++)
 		if(CanBeTriggeredBy(&ctx, o->objdef->ireact[i], ev))
 			{o->objdef->ireact[i]->seq.run(&ctx);
 			if(!gr.valid()) return;}
-	for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
+
+	// NOTE: It is still possible that the next element is removed in the
+	//       reaction sequence!
+	DynListEntry<uint> *n;
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = n)
+	{
+		n = e->next;
 		if(CanBeTriggeredBy(&ctx, &(reaction[e->value]), ev))
 			{reaction[e->value].seq.run(&ctx);
 			if(!gr.valid()) return;}
+	}
 }

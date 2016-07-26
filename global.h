@@ -94,6 +94,8 @@ enum AppCommand
 	CMD_GAME_SPEED_SLOWER,
 	CMD_CANCEL_ALL_OBJS_ORDERS,
 	CMD_SELECT_OBJECT_ID,
+	CMD_CHANGE_SG_WKVER,
+	CMD_CONTROL_CLIENT,
 };
 
 extern "C" {
@@ -134,3 +136,5 @@ extern HINSTANCE hInstance;
 extern DynList<goref> selobjects;
 extern char *statustext;
 extern char statustextbuf[1024];
+
+extern ClientState *curclient;
