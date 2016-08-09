@@ -196,7 +196,7 @@ struct FinderTarget : public CFinder
 		if(f)
 		{
 			f = 0;
-			if(env->target.valid())
+			if(findertargetcommand)
 				return env->target.get();
 			else if(env->self.valid())
 				if(env->self->ordercfg.order.len)
@@ -1002,6 +1002,16 @@ struct FinderBeingTransferredToMe : public CFinder
 	GameObject *getnext() {return 0;}
 };
 
+struct FinderDiscoveredUnits : public CFinder
+{
+	CObjFindCond *oc;
+	FinderDiscoveredUnits(CObjFindCond *a) : oc(a) {}
+	CFinder *clone() {return new FinderDiscoveredUnits(oc);}
+	// TO IMPLEMENT
+	void begin(SequenceEnv *env) {}
+	GameObject *getnext() {return 0;}
+};
+
 //////////////////////////////////////////////////////////////////////////
 
 int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
@@ -1132,6 +1142,8 @@ CFinder *ReadFinder(char ***wpnt)
 			*wpnt += 1; return new FinderPackageRelatedParty();
 		case FINDER_BEING_TRANSFERRED_TO_ME:
 			*wpnt += 1; return new FinderBeingTransferredToMe(ReadFinder(wpnt));
+		case FINDER_DISCOVERED_UNITS:
+			*wpnt += 1; return new FinderDiscoveredUnits(ReadCObjFindCond(wpnt));
 	}
 	//ferr("Unknown finder."); return 0;
 rfunk:	int x = strUnknownFinder.find(word[0]);

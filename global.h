@@ -30,7 +30,7 @@
 //#include <d3dx9.h>
 
 #ifdef WKBRE_RELEASE
-#define WKBRE_VERSION "0.0.0.0"
+#define WKBRE_VERSION "0.0.4.0"
 #else
 #define WKBRE_VERSION "DEV"
 #endif
@@ -96,6 +96,9 @@ enum AppCommand
 	CMD_SELECT_OBJECT_ID,
 	CMD_CHANGE_SG_WKVER,
 	CMD_CONTROL_CLIENT,
+	CMD_CHANGE_OBJMOVALIGN,
+	CMD_CHANGE_PLAYER_NAME,
+	CMD_CHANGE_PLAYER_COLOR,
 };
 
 extern "C" {
@@ -111,6 +114,7 @@ extern "C" {
 #include "bitmap.h"
 #include "texture.h"
 #include "drawing.h"
+#include "cursor.h"
 #include "font.h"
 #include "gui.h"
 #include "file.h"
@@ -127,14 +131,16 @@ extern "C" {
 //#include "script/script.h"
 #include "play/play.h"
 #include "play/otproc.h"
-#include "cursor.h"
 
 extern GEContainer *actualpage;
 extern int appexit;
 extern HINSTANCE hInstance;
+extern int experimentalKeys;
 
 extern DynList<goref> selobjects;
 extern char *statustext;
 extern char statustextbuf[1024];
 
 extern ClientState *curclient;
+
+extern int findertargetcommand;

@@ -20,9 +20,11 @@ struct SDiplomaticStatus
 	uint status;
 };
 
-extern DynList<SDiplomaticStatus> diplostats;
+extern DynList<SDiplomaticStatus> diplostats, diplooffers;
 extern uint defaultDiploStat;
 
 void SetDiplomaticStatus(GameObject *a, GameObject *b, int s);
 int GetDiplomaticStatus(GameObject *a, GameObject *b);
+void MakeDiplomaticOffer(GameObject *x, GameObject *y, int s);
 void WriteDiplomaticStatuses(FILE *d);
+void WriteDiplomaticOffers(FILE *f);

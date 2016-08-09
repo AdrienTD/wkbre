@@ -16,7 +16,7 @@
 
 #include "..\global.h"
 
-DynList<SDiplomaticStatus> diplostats;
+DynList<SDiplomaticStatus> diplostats, diplooffers;
 uint defaultDiploStat;
 
 void SetDiplomaticStatus(GameObject *x, GameObject *y, int s)
@@ -44,6 +44,14 @@ int GetDiplomaticStatus(GameObject *x, GameObject *y)
 	return defaultDiploStat;
 }
 
+void MakeDiplomaticOffer(GameObject *x, GameObject *y, int s)
+{
+	diplooffers.add();
+	diplooffers.last->value.a = x;
+	diplooffers.last->value.b = y;
+	diplooffers.last->value.status = s;
+}
+
 void WriteDiplomaticStatuses(FILE *d)
 {
 	for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
@@ -51,4 +59,10 @@ void WriteDiplomaticStatuses(FILE *d)
 		for(DynListEntry<GameObject> *f = e->next; f; f = f->next)
 		if(f->value.objdef->type == CLASS_PLAYER)
 			fprintf(d, "\tDIPLOMATIC_STATUS_BETWEEN %u %u \"%s\"\n", e->value.id, f->value.id, strDiplomaticStatus.getdp(GetDiplomaticStatus(&e->value, &f->value)));
+}
+
+void WriteDiplomaticOffers(FILE *f)
+{
+	for(DynListEntry<SDiplomaticStatus> *e = diplooffers.first; e; e = e->next)
+		fprintf(f, "\tDIPLOMATIC_OFFER %u %u \"%s\"\n", e->value.a->id, e->value.b->id, strDiplomaticStatus.getdp(e->value.status));
 }

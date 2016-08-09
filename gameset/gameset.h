@@ -41,6 +41,7 @@ public:
 #include "savegame.h"
 #include "sg_diplostat.h"
 #include "../script/script.h"
+#include "dyntext.h"
 #include "gs_order.h"
 #include "sg_clientstate.h"
 #include "gs_command.h"
@@ -48,6 +49,7 @@ public:
 #include "gs_gametextwindow.h"
 #include "gs_3dclip.h"
 #include "gs_campath.h"
+#include "sg_ai.h"
 
 // From loadgameset.cpp
 
@@ -76,6 +78,11 @@ extern GrowStringList strPackage; extern CPackage *gspackage;
 extern GrowStringList strGameTextWindow; extern CGameTextWindow *gsgametextwin;
 extern GrowStringList str3DClip; extern C3DClip *gs3dclip;
 extern GrowStringList strCameraPath; extern CCameraPath *gscamerapath;
+extern GrowStringList strCharacterLadder;
+extern GrowStringList strWorkOrder;
+extern GrowStringList strCommission;
+extern GrowStringList strPlan;
+extern GrowStringList strCondition; extern CCondition *gscondition;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

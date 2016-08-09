@@ -399,6 +399,12 @@ char *LoadGameObjectP1(char *fp, char **fline, int fwords, GameObject *parent)
 				else
 					go->flags &= ~FGO_RENDERABLE;
 				break;
+			case GAMEOBJ_AI_CONTROLLER:
+				fp = ReadAIController(fp, go); break;
+			case GAMEOBJ_DIPLOMATIC_OFFER:
+				{int s; mustbefound(s = strDiplomaticStatus.find(word[3]));
+				MakeDiplomaticOffer(FindObjID(atoi(word[1])), FindObjID(atoi(word[2])), s);
+				break;}
 		}
 	}
 	ferr("UEOF"); return fp;
@@ -721,6 +727,7 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	if(o->objdef->type == CLASS_LEVEL)
 	{
 		WriteDiplomaticStatuses(f);
+		WriteDiplomaticOffers(f);
 
 		for(int c = 0; c < strAlias.len; c++)
 		{
@@ -735,6 +742,10 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 			}
 		}
 	}
+
+	if(o->objdef->type == CLASS_PLAYER)
+		if(o->aicontroller)
+			WriteAIController(f, o);
 
 	fprintf(f, "%sEND_%s\n", strtab, CLASS_str[o->objdef->type]);
 }
@@ -845,6 +856,8 @@ void RemoveObject(GameObject *o)
 	if(o->param) delete o->param;
 	if(o->tiles) delete o->tiles;
 	if(o->rects) delete o->rects;
+	if(o->aicontroller) delete o->aicontroller;
+	o->ordercfg.order.clear();
 
 	RemoveObjReference(o);
 	DynListEntry<GameObject*> *n;
@@ -864,10 +877,10 @@ void RemoveObject(GameObject *o)
 void UpdateParentDependantValues(GameObject *o)
 {
 	if(o->parent)
+	if(o->objdef->type != CLASS_PLAYER)
 	{
 		o->color = o->parent->color;
-		if(o->objdef->type != CLASS_PLAYER)
-			o->player = o->parent->player;
+		o->player = o->parent->player;
 	}
 	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
 		UpdateParentDependantValues(&e->value);
@@ -1053,6 +1066,7 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	go->curtarget = 0; go->ctgdle = norefobjs.last;
 
 	go->client = 0;
+	go->aicontroller = 0;
 
 	return go;
 }

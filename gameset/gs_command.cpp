@@ -31,6 +31,21 @@ void ReadCCommand(char **pntfp, char **fstline)
 		if(!strcmp(word[0], "BUTTON_ENABLED"))
 			c->buttonEnabled = GetTexture(word[1], 0);
 		// ...
+		else if(!strcmp(word[0], "CURSOR"))
+		{
+			if(FileExists(word[1]))
+				c->cursor = LoadCursor(word[1]);
+		}
+		else if(!strcmp(word[0], "CURSOR_CONDITION"))
+			c->cursorConditions.add(strEquation.find(word[1]));
+		else if(!strcmp(word[0], "CURSOR_AVAILABLE"))
+		{
+			c->cursorAvailableConds.add(&gscondition[strCondition.find(word[1])]);
+			if(FileExists(word[2]))
+				c->cursorAvailableCurs.add(LoadCursor(word[2]));
+			else
+				c->cursorAvailableCurs.add(0);
+		}
 		else if(!strcmp(word[0], "USE_ORDER"))
 			c->order = &(gsorder[strOrder.find(word[1])]);
 		else if(!strcmp(word[0], "START_SEQUENCE"))
@@ -52,14 +67,14 @@ void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg, int assignmode)
 	if(!CanExecuteCommand(o->objdef, c)) return;
 	if(c->startSeq)
 	{
-		SequenceEnv env; env.self = o; env.target = tg;
+		SequenceEnv env; env.self = o; env.target = tg; findertargetcommand = 1;
 		c->startSeq->run(&env);
+		findertargetcommand = 0;
 	}
 	if(c->order)
 		AssignOrder(o, c->order, assignmode, tg);
 }
 
-/*
 void ReadCCondition(char **pntfp, char **fstline)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
@@ -71,19 +86,11 @@ void ReadCCondition(char **pntfp, char **fstline)
 		if(!nwords) continue;
 		if( *((uint*)(word[0])) == '_DNE' )
 			return;
-		char **w = word;
+		char **w = word + 1;
 		if(!strcmp(word[0], "TEST"))
-		{
-			w++;
 			c->test = ReadValue(&w);
-		}
 		else if(!strcmp(word[0], "HINT"))
-		{
-			w += 2;
-			c->hintstr = GetLocText(word[1]);
-			while((w - word) < nwords)
-				c->hintvalues.add(ReadValue(&w));
-		}
+			ReadDynText(&c->hint, w);
 	}
 	ferr("UEOF");
-}*/
+}

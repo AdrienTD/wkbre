@@ -1,84 +1,4 @@
-* = optional
-
-COMMISSION "CommissionName" <objid>
-*	COMPLETE
-*	FORCE_BALANCE
-
-	REQUIREMENT BUILDING_REQUIREMENT "BuildingObjDef"
-		STATE ...
-		REQUIRED_COUNT %i
-		EXISTING_COUNT %i
-		DETAILED_STATE ...
-		FOUNDATION <objid> (if STATE == ACTIVE)
-		FOUNDATION ...
-	END_REQUIREMENT
-
-	REQUIREMENT CHARACTER_REQUIREMENT "CharacterLadderName"
-		STATE COMPLETE/STALLED/BLOCKED
-		REQUIRED_COUNT %i
-		EXISTING_COUNT %i
-		CHARACTER_RUNG "CharacterObjDef"
-		*	BLOCKED (if IMPOSSIBLE_CONDITION_FAILED/NO_SPAWN_LOCATION_FOUND)
-			DETAILED_STATE OK/WAIT_CONDITION_FAILED/RESOURCE_REQUIRED_RESERVED
-		END_CHARACTER_RUNG
-		CHARACTER_RUNG ...
-		ORDER_ASSIGNED <objid:spawn_building> 0
-		ORDER_ASSIGNED ...
-	END_REQUIREMENT
-
-	REQUIREMENT UPDATE_REQUIREMENT "UpgradeName (order or command?)"
-		STATE ...
-		DETAILED_STATE .../NO_UPGRADE_LOCATIONS_IDLE
-	END_REQUIREMENT
-
-DETAILED_STATE {
-OK
-WAIT_CONDITION_FAILED
-RESOURCE_REQUIRED_RESERVED
-IMPOSSIBLE_CONDITION_FAILED
-NO_SPAWN_LOCATION_FOUND
-NO_UPGRADE_LOCATION_FOUND
-NO_UPGRADE_LOCATIONS_IDLE
-CANT_AFFORD
-UNPROCESSED
-}
-
-struct SCharacterRung
-{
-	int type;
-	boolean blocked;
-	int detailedState;
-	SCharacterRung : blocked(0) {}
-};
-
-struct SRequirement
-{
-	int cl, type, state, detailedState, requiredCount, existingCount;
-	union {DynList<goref> foundations, ordersAssigned;}
-	DynList<SCharacterRung> charrungs;
-};
-
-struct SCommission
-{
-	int type; goref obj;
-	boolean complete, forceBalance;
-	DynList<SRequirement> reqs;
-	SCommission : complete(0), forceBalance(0) {}
-};
-
-struct SWorkOrder
-{
-	goref obj;
-	int ofind, type;
-}
-
-struct SAIController
-{
-	int masterPlan; //SPlan *masterPlan;
-	DynList<SCommission> commissions;
-	DynList<SWorkOrder> workOrders;
-	SAIController() : masterPlan(-1) {}
-};
+#include "../global.h"
 
 char *ReadSCharacterRung(char *fp, char **fstline, SRequirement *r)
 {
@@ -91,7 +11,9 @@ char *ReadSCharacterRung(char *fp, char **fstline, SRequirement *r)
 		fp = GetLine(fp, wwl);
 		nwords = GetWords(wwl, word);
 		if(!nwords) continue;
-		if(!stricmp(word[0], "BLOCKED"))
+		if(!stricmp(word[0], "END_CHARACTER_RUNG"))
+			return fp;
+		else if(!stricmp(word[0], "BLOCKED"))
 			cr->blocked = 1;
 		else if(!stricmp(word[0], "DETAILED_STATE"))
 			cr->detailedState = stfind_cs(SREQDETAILEDSTATE_str, SREQDETAILEDSTATE_NUM, word[1]);
@@ -120,7 +42,9 @@ char *ReadSRequirement(char *fp, char **fstline, SCommission *c)
 		fp = GetLine(fp, wwl);
 		nwords = GetWords(wwl, word);
 		if(!nwords) continue;
-		if(!stricmp(word[0], "STATE"))
+		if(!stricmp(word[0], "END_REQUIREMENT"))
+			return fp;
+		else if(!stricmp(word[0], "STATE"))
 			r->state = stfind_cs(SREQSTATE_str, SREQSTATE_NUM, word[1]);
 		else if(!stricmp(word[0], "DETAILED_STATE"))
 			r->detailedState = stfind_cs(SREQDETAILEDSTATE_str, SREQDETAILEDSTATE_NUM, word[1]);
@@ -152,7 +76,9 @@ char *ReadSCommission(char *fp, char **fstline, GameObject *o)
 		fp = GetLine(fp, wwl);
 		nwords = GetWords(wwl, word);
 		if(!nwords) continue;
-		if(!stricmp(word[0], "COMPLETE"))
+		if(!stricmp(word[0], "END_COMMISSION"))
+			return fp;
+		else if(!stricmp(word[0], "COMPLETE"))
 			c->complete = 1;
 		else if(!stricmp(word[0], "FORCE_BALANCE"))
 			c->forceBalance = 1;
@@ -171,14 +97,16 @@ char *ReadAIController(char *fp, GameObject *o)
 		fp = GetLine(fp, wwl);
 		nwords = GetWords(wwl, word);
 		if(!nwords) continue;
-		if(!stricmp(word[0], "MASTER_PLAN"))
+		if(!stricmp(word[0], "END_AI_CONTROLLER"))
+			return fp;
+		else if(!stricmp(word[0], "MASTER_PLAN"))
 			o->aicontroller->masterPlan = strPlan.find(word[1]);
 		else if(!stricmp(word[0], "WORK_ORDER"))
 		{
 			o->aicontroller->workOrders.add();
 			SWorkOrder *w = &o->aicontroller->workOrders.last->value;
 			w->obj = FindObjID(atoi(word[1]));
-			w->ofind = strFinder.find(word[2]);
+			w->ofind = strFinderDef.find(word[2]);
 			w->type = strWorkOrder.find(word[3]);
 		}
 		else if(!stricmp(word[0], "COMMISSION"))
@@ -191,55 +119,56 @@ void WriteAIController(FILE *f, GameObject *o)
 {
 	fprintf(f, "\t\tAI_CONTROLLER\n");
 	if(o->aicontroller->masterPlan != -1)
-		fprintf(f, "\t\tMASTER_PLAN \"%s\"\n\t\tEND_MASTER_PLAN\n", strPlan.getdp(o->aicontroller->masterPlan));
+		fprintf(f, "\t\t\tMASTER_PLAN \"%s\"\n\t\t\tEND_MASTER_PLAN\n", strPlan.getdp(o->aicontroller->masterPlan));
 	for(DynListEntry<SCommission> *e = o->aicontroller->commissions.first; e; e = e->next)
 	if(e->value.obj.valid())
 	{
-		fprintf(f, "\t\tCOMMISSION \"%s\" %i\n", strCommission.getdp(e->value.type), e->value.obj.getID());
-		if(e->value.complete) fprintf(f, "\t\t\tCOMPLETE\n");
-		if(e->value.forceBalance) fprintf(f, "\t\t\tFORCE_BALANCE\n");
+		fprintf(f, "\t\t\tCOMMISSION \"%s\" %i\n", strCommission.getdp(e->value.type), e->value.obj.getID());
+		if(e->value.complete) fprintf(f, "\t\t\t\tCOMPLETE\n");
+		if(e->value.forceBalance) fprintf(f, "\t\t\t\tFORCE_BALANCE\n");
 		for(DynListEntry<SRequirement> *r = e->value.reqs.first; r; r = r->next)
 		{
-			fprintf("\t\t\tREQUIREMENT %s ", SREQUIREMENTCLASS_str[r->value.cl]);
+			fprintf(f, "\t\t\t\tREQUIREMENT %s ", SREQUIREMENTCLASS_str[r->value.cl]);
 			switch(r->value.cl)
 			{
 				case SREQUIREMENTCLASS_BUILDING_REQUIREMENT:
-					fprintf(f, "\"%s\"\n", strObjDef.getdp(r->value.type); break;
+					fprintf(f, "\"%s\"\n", strObjDef.getdp(r->value.type)); break;
 				case SREQUIREMENTCLASS_CHARACTER_REQUIREMENT:
-					fprintf(f, "\"%s\"\n", strCharacterLadder.getdp(r->value.type); break;
+					fprintf(f, "\"%s\"\n", strCharacterLadder.getdp(r->value.type)); break;
 				case SREQUIREMENTCLASS_UPGRADE_REQUIREMENT:
-					fprintf(f, "\"%s\"\n", strOrder.getdp(r->value.type); break;
+					fprintf(f, "\"%s\"\n", strOrder.getdp(r->value.type)); break;
 			}
-			fprintf(f, "\t\t\t\tSTATE %s\n", SREQSTATE_str[r->value.state]);
+			fprintf(f, "\t\t\t\t\tSTATE %s\n", SREQSTATE_str[r->value.state]);
 			if(r->value.cl != SREQUIREMENTCLASS_UPGRADE_REQUIREMENT)
 			{
-				fprintf(f, "\t\t\t\tREQUIRED_COUNT %i\n", r->value.requiredCount);
-				fprintf(f, "\t\t\t\tEXISTING_COUNT %i\n", r->value.existingCount);
+				fprintf(f, "\t\t\t\t\tREQUIRED_COUNT %i\n", r->value.requiredCount);
+				fprintf(f, "\t\t\t\t\tEXISTING_COUNT %i\n", r->value.existingCount);
 			}
 			if(r->value.cl != SREQUIREMENTCLASS_CHARACTER_REQUIREMENT)
-				fprintf(f, "\t\t\t\tDETAILED_STATE %s\n", SREQDETAILEDSTATE_str[r->value.detailedState]);
+				fprintf(f, "\t\t\t\t\tDETAILED_STATE %s\n", SREQDETAILEDSTATE_str[r->value.detailedState]);
 			if(r->value.cl == SREQUIREMENTCLASS_BUILDING_REQUIREMENT)
 				for(DynListEntry<goref> *g = r->value.foundations.first; g; g = g->next)
 					if(g->value.valid())
-						fprintf(f, "\t\t\t\tFOUNDATION %i\n", g->value.getID());
+						fprintf(f, "\t\t\t\t\tFOUNDATION %i\n", g->value.getID());
 			if(r->value.cl == SREQUIREMENTCLASS_CHARACTER_REQUIREMENT)
 			{
 				for(DynListEntry<SCharacterRung> *g = r->value.charrungs.first; g; g = g->next)
 				{
-					fprintf(f, "\t\t\t\tCHARACTER_RUNG \"%s\", strObjDef.getdp(g->value.type));
-					if(g->value.blocked) fprintf(f, "\t\t\t\t\tBLOCKED\n");
-					fprintf(f, "\t\t\t\t\tDETAILED_STATE %s\n", SREQDETAILEDSTATE_str[g->value.detailedState]);
-					fprintf(f, "\t\t\t\tEND_CHARACTER_RUNG\n");
+					fprintf(f, "\t\t\t\t\tCHARACTER_RUNG \"%s\"\n", strObjDef.getdp(g->value.type));
+					if(g->value.blocked) fprintf(f, "\t\t\t\t\t\tBLOCKED\n");
+					fprintf(f, "\t\t\t\t\t\tDETAILED_STATE %s\n", SREQDETAILEDSTATE_str[g->value.detailedState]);
+					fprintf(f, "\t\t\t\t\tEND_CHARACTER_RUNG\n");
 				}
 				for(DynListEntry<goref> *g = r->value.ordersAssigned.first; g; g = g->next)
 					if(g->value.valid())
-						fprintf(f, "\t\t\t\tORDER_ASSIGNED %i 0\n", g->value.getID());
+						fprintf(f, "\t\t\t\t\tORDER_ASSIGNED %i 0\n", g->value.getID());
 			}
-			fprintf(f, "\t\t\tEND_REQUIREMENT\n");
+			fprintf(f, "\t\t\t\tEND_REQUIREMENT\n");
 		}
-		fprintf(f, "\t\tEND_COMMISSION\n");
+		fprintf(f, "\t\t\tEND_COMMISSION\n");
 	}
 	for(DynListEntry<SWorkOrder> *e = o->aicontroller->workOrders.first; e; e = e->next)
 		if(e->value.obj.valid())
-			fprintf(f, "\t\tWORK_ORDER %i \"%s\" \"%s\"\n\t\tEND_WORK_ORDER\n", e->value.obj.getID(), strFinderDef.getdp(e->value.ofind), strWorkOrder.getdp(e->value.type));
+			fprintf(f, "\t\t\tWORK_ORDER %i \"%s\" \"%s\"\n\t\t\tEND_WORK_ORDER\n", e->value.obj.getID(), strFinderDef.getdp(e->value.ofind), strWorkOrder.getdp(e->value.type));
+	fprintf(f, "\t\tEND_AI_CONTROLLER\n");
 }

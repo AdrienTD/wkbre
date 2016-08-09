@@ -84,6 +84,7 @@ struct PositionOutAtAngle : public CPosition
 	PositionOutAtAngle(CFinder *a, CValue *b, CValue *c) : f(a), u(b), v(c) {}
 	void get(SequenceEnv *env, PosOri *po)
 	{
+/*
 		// depends on finder result's orientation?
 		GameObject *o;
 		f->begin(env);
@@ -94,6 +95,12 @@ struct PositionOutAtAngle : public CPosition
 		po->pos.z = o->position.z + (z * b);
 		po->pos.y = GetHeight(po->pos.x, po->pos.z);
 		po->ori = nullVec3;
+*/
+		FinderToPosOri(po, f, env);
+		po->ori.y += u->get(env) * M_PI / 180;
+		float l = v->get(env);
+		po->pos.x += l * sin(M_PI + po->ori.y);
+		po->pos.z -= l * cos(M_PI + po->ori.y);
 	}
 };
 
@@ -265,7 +272,7 @@ CPosition *ReadCPosition(char ***wpnt)
 			CFinder *f = ReadFinder(wpnt);
 			return new PositionInFrontOf(f, ReadValue(wpnt));}
 		case POSITION_FIRING_ATTACHMENT_POINT:
-			return new PositionFiringAttachmentPoint();
+			*wpnt += 1; return new PositionFiringAttachmentPoint();
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

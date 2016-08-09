@@ -228,12 +228,13 @@ void DrawScene()
 		//printf("New selection: %i\n", newSelection);
 	}
 
-#ifndef WKBRE_RELEASE
+if(experimentalKeys) {
 	// Stampdown
+	CalcStampdownPos();
+/*
 	int od;
 	if((od = FindObjDef(CLASS_CHARACTER, "Archer")) != -1)
 	{
-		CalcStampdownPos();
 		if(stdownvalid)
 		{
 			SetMatrices(onevector, nullvector, stdownpos);
@@ -247,7 +248,8 @@ void DrawScene()
 		//else	strcpy(statustextbuf, "Invalid stampdown position.");
 		//statustext = statustextbuf;
 	}
-#endif
+*/
+}
 
 	if(enableMap)
 	{

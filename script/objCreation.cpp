@@ -79,6 +79,7 @@ void CObjectCreation::run(SequenceEnv *env, CFinder *findcreator)
 			PosOri po;
 			createAt->get(&ne, &po);
 			o->position = po.pos; o->orientation = po.ori;
+			o->position.y = GetHeight(o->position.x, o->position.z);
 		}else{
 			o->position = creator->position;
 			o->orientation = creator->orientation;

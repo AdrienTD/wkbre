@@ -27,6 +27,8 @@ char secret[] = {0xec,0xc9,0xdf,0xc4,0xc8,0xc3,0x8d,0xea,0xc8,0xc8,0xd9,0xde};
 int bo = 0;
 int playMode = 0, enableObjTooltips = 0;
 ClientState *curclient = 0;
+boolean objmovalign = 0;
+Cursor *defcursor;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -34,11 +36,15 @@ int experimentalKeys = 0;
 int experimentalKeys = 1;
 #endif
 
+char *playercolorname[8] = {"Brown", "Blue", "Yellow", "Red", "Green", "Pink", "Orange", "Aqua"};
+
 char *tooltip_str = "Hello!\nMy name is Mr. Tooltip!\nBye!"; int tooltip_x = 20, tooltip_y = 20;
 void DrawTooltip()
 {
 	if(!tooltip_str) return;
-	int x = tooltip_x+24, y = tooltip_y+24, w, h;
+	int x = tooltip_x, y = tooltip_y, w, h;
+	if(currentCursor)
+		{x += currentCursor->w; y += currentCursor->h;}
 	GetTextSize(tooltip_str, &w, &h);
 	if((x + w) > scrw) x = scrw-w;
 	if((y + h) > scrh) y = scrh-h;
@@ -75,6 +81,9 @@ MenuEntry menucmds[] = {
 {"Scale selected objects by 1/1.5", CMD_SELOBJSCALESMALLER},
 {"Rotate selected objects by 90°", CMD_ROTATEOBJQP},
 {"Select object by ID...", CMD_SELECT_OBJECT_ID},
+{"Enable/disable aligned movement", CMD_CHANGE_OBJMOVALIGN},
+{"Rename player object...", CMD_CHANGE_PLAYER_NAME},
+{"Change player color...", CMD_CHANGE_PLAYER_COLOR},
 {0,0},
 {"Move to...", CMD_CAMPOS},
 {"Move to down-left corner", CMD_CAMDOWNLEFT},
@@ -360,10 +369,11 @@ CObjectDefinition *AskObjDef(char *head = 0)
 
 GameObject *AskPlayer(char *head = 0)
 {
-	GrowStringList l; char ts[256]; int x = 0;
+	GrowStringList l; char ts[512]; int x = 0;
 	for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
 	{
 		if(e->value.objdef->type != CLASS_PLAYER) break; // TODO: Something better.
+/*
 		strcpy(ts, "?: ");
 		//strcat(ts, (&e->value)->objdef->name);
 		if(e->value.name)
@@ -377,6 +387,8 @@ GameObject *AskPlayer(char *head = 0)
 			delete [] w;
 		}
 		ts[0] = '0' + (x++);
+*/
+		sprintf(ts, "%u: %S (obj. id %u)", x++, e->value.name ? e->value.name : L"(null)", e->value.id);
 		l.add(ts);
 	}
 	int r = ListDlgBox(&l, head?head:"Select a player.", (l.len >= 2) ? 1 : 0);
@@ -615,14 +627,25 @@ void CallCommand(int cmd)
 		{
 			CObjectDefinition *d; GameObject *p; float px, pz;
 			if(d = AskObjDef("What sort of object do you want to create?"))
-			if(p = AskPlayer("Who do you want to give the created object to?"))
-			if(PositionDlgBox(&px, &pz, "Where do you want to put the created object?"))
 			{
-				GameObject *o = CreateObject(d, p);
-				o->position = Vector3(px, GetHeight(px, pz), pz);
-				GOPosChanged(o);
-				createdObjects.add();
-				createdObjects.last->value = o;
+				if(d->type == CLASS_PLAYER)
+				{
+					GameObject *o = CreateObject(d, levelobj);
+					createdObjects.add();
+					createdObjects.last->value = o;
+				}
+				else
+				{
+					if(p = AskPlayer("Who do you want to give the created object to?"))
+					if(PositionDlgBox(&px, &pz, "Where do you want to put the created object?"))
+					{
+						GameObject *o = CreateObject(d, p);
+						o->position = Vector3(px, GetHeight(px, pz), pz);
+						GOPosChanged(o);
+						createdObjects.add();
+						createdObjects.last->value = o;
+					}
+				}
 			}
 		} break;
 		case CMD_DELETELASTCREATEDOBJ:
@@ -801,8 +824,91 @@ void CallCommand(int cmd)
 				curclient = 0;
 			else if(r != -1)
 				curclient = clistates.getpnt(r-1);
-		}
+		} break;
+		case CMD_CHANGE_OBJMOVALIGN:
+			objmovalign = !objmovalign; break;
+		case CMD_CHANGE_PLAYER_NAME:
+			{GameObject *o = AskPlayer("Choose the player you would like to rename.");
+			if(!o) break;
+			char s[384];
+			if(!StrDlgBox(s, "Enter the new name:")) break;
+			int l = strlen(s);
+			if(o->name) delete [] o->name;
+			o->name = new wchar_t[l+1];
+			for(int i = 0; i < l; i++)
+				o->name[i] = s[i];
+			o->name[l] = 0;
+			break;}
+		case CMD_CHANGE_PLAYER_COLOR:
+			{GameObject *o = AskPlayer("Change color of player:");
+			if(!o) break;
+			GrowStringList sl;
+			for(int i = 0; i < 8; i++)
+				sl.add(playercolorname[i]);
+			int x = ListDlgBox(&sl, "Change to this color:");
+			if(x == -1) break;
+			o->color = x;
+			UpdateParentDependantValues(o);
+			break;}
 	}
+}
+
+CCommand *targetcmd = 0; int findertargetcommand = 0;
+
+void SetTargetCursor()
+{
+	targetcmd = 0;
+	if(!experimentalKeys) {ChangeCursor(defcursor); return;}
+	//if(!currentSelection.valid()) {ChangeCursor(defcursor); return;}
+	GameObject *p = currentSelection.get();
+
+	GrowList<CCommand*> l;
+	for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+		if(e->value.valid())
+			for(int i = 0; i < e->value->objdef->offeredCmds.len; i++)
+				if(!l.has(e->value->objdef->offeredCmds[i]))
+					l.add(e->value->objdef->offeredCmds[i]);
+
+	// Tell FINDER_TARGET to return the command target.
+	findertargetcommand = 1;
+
+	for(int i = 0; i < l.len; i++)
+	{
+		CCommand *c = l[i];
+		for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+			if(e->value.valid())
+				if(CanExecuteCommand(e->value->objdef, c))
+				{
+					SequenceEnv env;
+					env.self = e->value.get();
+					env.target = p;
+					boolean x = 1;
+					for(int j = 0; j < c->cursorAvailableConds.len; j++)
+						if(stpo(c->cursorAvailableConds[j]->test->get(&env)))
+						{
+							// FOUND!
+							if(c->cursorAvailableCurs[j])
+								ChangeCursor(c->cursorAvailableCurs[j]);
+							//statustext = c->name;
+							targetcmd = c;
+							findertargetcommand = 0; return;
+						}
+					if(!c->cursor) continue;
+					for(int j = 0; j < c->cursorConditions.len; j++)
+						x = x && stpo(equation[c->cursorConditions[j]]->get(&env));
+					if(x)
+					{
+						// FOUND!
+						ChangeCursor(c->cursor);
+						//statustext = c->name;
+						targetcmd = c;
+						findertargetcommand = 0; return;
+					}
+				}
+	}
+
+	ChangeCursor(defcursor);
+	findertargetcommand = 0;
 }
 
 void T7ClickWindow(void *param)
@@ -817,10 +923,43 @@ void T7ClickWindow(void *param)
 		SelectObject(cs);
 }
 
+void T7RightClick(void *param)
+{
+	if(!experimentalKeys) return;
+	//if(!currentSelection.valid()) return;
+	if(!targetcmd) return;
+
+	int m = ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE;
+	if(keypressed[VK_SHIFT]) m = ORDERASSIGNMODE_DO_LAST;
+	if(keypressed[VK_CONTROL]) m = ORDERASSIGNMODE_DO_FIRST;
+
+	GameObject *cs = currentSelection.get();
+	for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+		if(e->value.valid())
+		{
+			GameObject *o = e->value.get();
+			ExecuteCommand(o, targetcmd, cs, m);
+
+			// Set move command position.
+			if(stdownvalid)
+			if(o->ordercfg.order.len)
+			{
+				SOrder *s = (m==ORDERASSIGNMODE_DO_FIRST) ? &o->ordercfg.order.first->value : &o->ordercfg.order.last->value;
+				if(s->task.first->value.type->type == ORDTSKTYPE_MOVE)
+				{
+					s->task.first->value.destinations.add();
+					s->task.first->value.destinations.last->value.x = stdownpos.x;
+					s->task.first->value.destinations.last->value.y = stdownpos.z;
+				}
+			}
+		}
+}
+
 void Test7()
 {
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
 	memset(gameobj, 0, MAX_GAMEOBJECTS * sizeof(GameObject*));
+	//ddev->SetDialogBoxMode(TRUE);
 
 	InitGfxConsole();
 	WriteGfxConsole("wkbre Version " WKBRE_VERSION); // " IN DEVELOPMENT"
@@ -845,6 +984,7 @@ void Test7()
 	//InitMenuBar();
 	actualpage = new GEContainer;
 	actualpage->buttonClick = T7ClickWindow;
+	actualpage->buttonRightClick = T7RightClick;
 	GEMenuBar *menubar = new GEMenuBar(menubarstr, menucmds, 4, actualpage);
 	actualpage->add(menubar);
 	menubar->setRect(0, 0, 32767, 20);
@@ -852,7 +992,7 @@ void Test7()
 	//onClickWindow = T7ClickWindow;
 	InitGTWs();
 
-	ChangeCursor(LoadCursor("Interface\\C_DEFAULT.TGA"));
+	ChangeCursor(defcursor = LoadCursor("Interface\\C_DEFAULT.TGA"));
 
 	while(!appexit)
 	{
@@ -912,6 +1052,7 @@ void Test7()
 			}
 //#endif
 		}
+			SetTargetCursor();
 			DrawCursor();
 			EndDrawing();
 		}
@@ -924,9 +1065,11 @@ void Test7()
 		}
 		else	tooltip_str = 0;
 
-		if(keypressed[VK_SHIFT]) walkstep = 4.0f; else walkstep = 1.0f;
+		if(keypressed[VK_SHIFT]) walkstep = objmovalign ? 5.0f : 4.0f;
+		else walkstep = objmovalign ? 2.5f : 1.0f;
 		if(keypressed[VK_UP])
 		{
+			if(objmovalign) keypressed[VK_UP] = 0;
 			Vector3 m = Vector3(vLAD.x, 0, vLAD.z), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
@@ -939,6 +1082,7 @@ void Test7()
 		}
 		if(keypressed[VK_DOWN])
 		{
+			if(objmovalign) keypressed[VK_DOWN] = 0;
 			Vector3 m = Vector3(vLAD.x, 0, vLAD.z), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
@@ -951,6 +1095,7 @@ void Test7()
 		}
 		if(keypressed[VK_LEFT])
 		{
+			if(objmovalign) keypressed[VK_LEFT] = 0;
 			Vector3 m = Vector3(-vLAD.z, 0, vLAD.x), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
@@ -963,6 +1108,7 @@ void Test7()
 		}
 		if(keypressed[VK_RIGHT])
 		{
+			if(objmovalign) keypressed[VK_RIGHT] = 0;
 			Vector3 m = Vector3(vLAD.z, 0, -vLAD.x), n;
 			NormalizeVector3(&n, &m);
 			if(!keypressed[VK_CONTROL])
@@ -1029,8 +1175,8 @@ void Test7()
 		if(keypressed[VK_INSERT])
 			{keypressed[VK_INSERT] = 0; CallCommand(CMD_DUPLICATESELOBJECT);}
 
-		if(keypressed[VK_TAB])
-			{keypressed[VK_TAB] = 0; menuVisible = !menuVisible;
+		if(keypressed[VK_BACK])
+			{keypressed[VK_BACK] = 0; menuVisible = !menuVisible;
 			menubar->enabled = menuVisible;}
 
 		if(keypressed['7']) {keypressed['7'] = 0; CallCommand(CMD_CAMRESETORI);}
@@ -1046,6 +1192,7 @@ void Test7()
 		if(keypressed['8']) {keypressed['8'] = 0; CallCommand(CMD_CAMCLISTATE);}
 
 		if(keypressed['O']) {keypressed['O'] = 0; CallCommand(CMD_SELECT_OBJECT_ID);}
+		if(keypressed[VK_TAB]) {keypressed[VK_TAB] = 0; CallCommand(CMD_CHANGE_OBJMOVALIGN);}
 
 	if(experimentalKeys)
 	{

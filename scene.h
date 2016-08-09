@@ -25,6 +25,8 @@ extern int drawdebug;
 extern int fogenabled;
 extern int showrepresentations;
 
+extern Vector3 stdownpos; extern int stdownvalid;
+
 void MakeVisObjList();
 void InitScene();
 void DrawScene();

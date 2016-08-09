@@ -41,6 +41,11 @@ GrowStringList strPackage; CPackage *gspackage;
 GrowStringList strGameTextWindow; CGameTextWindow *gsgametextwin;
 GrowStringList str3DClip; C3DClip *gs3dclip;
 GrowStringList strCameraPath; CCameraPath *gscamerapath;
+GrowStringList strCharacterLadder;
+GrowStringList strWorkOrder;
+GrowStringList strCommission;
+GrowStringList strPlan;
+GrowStringList strCondition; CCondition *gscondition;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -230,6 +235,7 @@ switch(ipass)
 			case CLASS_TERRAIN_ZONE:
 				fp = LookObjDefP0(fp, word, z); break;
 			case CLASS_CHARACTER_LADDER:
+				strCharacterLadder.add(word[1]);
 				fp = SkipClass(fp, "END_CHARACTER_LADDER"); break;
 			case CLASS_DECLARE_ALIAS:
 				strAlias.add(word[1]); break;
@@ -293,6 +299,18 @@ switch(ipass)
 			case CLASS_CAMERA_PATH:
 				strCameraPath.add(word[1]);
 				fp = SkipClass(fp, "END_CAMERA_PATH"); break;
+			case CLASS_WORK_ORDER:
+				strWorkOrder.add(word[1]);
+				fp = SkipClass(fp, "END_WORK_ORDER"); break;
+			case CLASS_COMMISSION:
+				strCommission.add(word[1]);
+				fp = SkipClass(fp, "END_COMMISSION"); break;
+			case CLASS_PLAN:
+				strPlan.add(word[1]);
+				fp = SkipClass(fp, "END_PLAN"); break;
+			case CLASS_CONDITION:
+				strCondition.add(word[1]);
+				fp = SkipClass(fp, "END_CONDITION"); break;
 		} break;
 
 /*******************************************************************/
@@ -383,6 +401,8 @@ switch(ipass)
 				ReadC3DClip(&fp, word); break;
 			case CLASS_CAMERA_PATH:
 				ReadCCameraPath(&fp, word); break;
+			case CLASS_CONDITION:
+				ReadCCondition(&fp, word); break;
 		} break;
 
 /*******************************************************************/
@@ -459,6 +479,7 @@ void LoadGameSet(char *filename)
 	gsgametextwin = new CGameTextWindow[strGameTextWindow.len];
 	gs3dclip = new C3DClip[str3DClip.len];
 	gscamerapath = new CCameraPath[strCameraPath.len];
+	gscondition = new CCondition[strCondition.len];
 
 	BeginLooking();
 	loadinginfo("Gameset pass 1\n"); LookAtFile(filename, 1);

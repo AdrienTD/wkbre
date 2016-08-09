@@ -14,26 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+struct CCondition;
+
 struct CCommand
 {
 	char *name;
 	texture buttonEnabled, buttonWait, buttonImpossible, buttonDepressed, buttonHighlighted;
-	texture cursor;
+	Cursor *cursor; GrowList<int> cursorConditions;
+	GrowList<CCondition*> cursorAvailableConds; GrowList<Cursor*> cursorAvailableCurs;
 	COrder *order;
 	ActionSeq *startSeq;
-	CCommand() : name(0), order(0), startSeq(0) {}
+	CCommand() : name(0), cursor(0), order(0), startSeq(0) {}
 };
 
-/*
 struct CCondition
 {
 	CValue *test;
-	char *hintstr;
-	GrowList<CValue*> hintvalues;
+	DynText hint;
 };
-*/
 
 void ReadCCommand(char **pntfp, char **fstline);
 int CanExecuteCommand(CObjectDefinition *od, CCommand *cc);
 void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg, int assignmode);
-//void ReadCCondition(char **pntfp, char **fstline);
+void ReadCCondition(char **pntfp, char **fstline);

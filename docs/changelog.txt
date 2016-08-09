@@ -6,7 +6,8 @@ wkbre changelog:
 - Implementation of task/order processing
 - Lots of actions/finders/position/value det. and other game set features are
   now supported, including game text windows, indexed items, ...
-- New experimental features
+- New experimental features. You can even issue orders by right-clicking the
+  target!
 - The game cursor is now used. Use HARDWARE_CURSOR to change the way of how the
   cursor is drawn.
 - RENDERABLE/TARGETABLE/SELECTABLE are now read and saved.
@@ -15,9 +16,16 @@ wkbre changelog:
 - You can change the savegame WK version (from WKO to WKB and vice versa)
   before saving (in File menu).
 - You can change the initial size of the window in settings.txt (SCREEN_SIZE w h).
+- You can put the program in full screen, however this is buggy at the moment.
 - MISSILE tasks keep their properties when saved.
 - FACE_TOWARDS x y in tasks are kept when saved.
 - SERVER_NAME loaded and saved
+- AI_CONTROLLER loaded and saved
+- You can rename player names (Object menu).
+- Diplomatic offers loaded and saved.
+- Object ID of a player also displayed in the player list dialog box.
+- You can change the color of any player(Object menu).
+- Bug fixes...
 - ...
 
 [0.0.3/27] 21/05/2016

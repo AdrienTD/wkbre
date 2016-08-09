@@ -89,8 +89,12 @@ void BeginDrawing()
 void EndDrawing()
 {
 	ddev->EndScene();
-	ddev->Present(NULL, NULL, NULL, NULL);
 	drawframes++;
+	HRESULT r = ddev->Present(NULL, NULL, NULL, NULL);
+	if(r == D3DERR_DEVICELOST)
+		{lostdev = 1; Sleep(1000/60);}
+	if(r == D3DERR_DEVICENOTRESET)
+		{printf("Device not reset.\n"); ResetDevice();}
 }
 
 void DoDrawing()

@@ -1,16 +1,24 @@
 <html>
-<head><title>wkbre Help file</title></head>
+<head><title>wkbre v0.0.4.0 Help file</title></head>
 <body>
 <style>
 table, th, td {
   border: 1px solid black;
   border-collapse: collapse;
 }
+tr.subhead {
+  background-color: #dddddd;
+  text-align: center;
+}
+th {
+  background-color: #80a0ff;
+}
 </style>
-<h1>wkbre Help file</h1>
+<h1>wkbre v0.0.4.0 Help file</h1>
 <h2>Introduction</h2>
 <p>wkbre is a program in which you can load, edit and save saved games of Warrior Kings (Battles). Additionally, it loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
 <p>But wkbre is currently incomplete. There may be some bugs in it. It may not load and save games properly, it cannot edit everything and the landscape has only a green texture.</p>
+<p>The source code is available here: <a href="https://github.com/AdrienTD/wkbre">https://github.com/AdrienTD/wkbre</a></p>
 <h2>Start</h2>
 <p>If wkbre doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
 <p>First you need to configure the "settings.txt" file. Ensure that the GAME_DIR value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
@@ -24,7 +32,7 @@ table, th, td {
 <table>
 <thead><tr><th>Key</th><th>Function</th></tr></thead>
 <tbody>
-<tr><td colspan="2"><b>Camera</b></td></tr>
+<tr class="subhead"><td colspan="2"><b>Camera</b></td></tr>
 <tr><td>Arrow key</td><td>Move camera</td></tr>
 <tr><td>Shift</td><td>Accelerates the movement if held down.</td></tr>
 <tr><td>E</td><td>Move up</td></tr>
@@ -41,7 +49,7 @@ table, th, td {
 <tr><td>6</td><td>Move to a position specified on the minimap.</td></tr>
 <tr><td>7</td><td>Reset orientation</td></tr>
 <tr><td>8</td><td>Move to client’s position</td></tr>
-<tr><td colspan="2"><b>Level editing</b></td></tr>
+<tr class="subhead"><td colspan="2"><b>Level editing</b></td></tr>
 <tr><td>Left mouse button</td><td>Select the object pointed by the mouse cursor (if the object is red).<br>(Hold Shift for multiple selection.)</td></tr>
 <tr><td>Insert</td><td>Duplicate selected object.</td></tr>
 <tr><td>Delete</td><td>Delete selected object.</td></tr>
@@ -58,17 +66,34 @@ table, th, td {
 <tr><td>F8</td><td>Create a new object</td></tr>
 <tr><td>F9</td><td>Delete last object created with F8</td></tr>
 <tr><td>F11</td><td>Randomize subtype of all objects</td></tr>
-<tr><td colspan="2"><b>Misc.</b></td></tr>
+<tr><td>Tab</td><td>Enable/disable aligned movement.</td></tr>
+<tr><td>O</td><td>Select object per ID.</td></tr>
+<tr class="subhead"><td colspan="2"><b>Misc.</b></td></tr>
 <tr><td>F1</td><td>Display information about the program</td></tr>
 <tr><td>Escape</td><td>Exit</td></tr>
 <tr><td>M</td><td>Display/hide landscape</td></tr>
 <tr><td>9</td><td>Move the heightmap’s bit position in the BCM to the right.</td></tr>
 <tr><td>0</td><td>Move the heightmap’s bit position in the BCM to the left.</td></tr>
-<tr><td>Tab</td><td>Display/hide menu bar.</td></tr>
-<tr><td colspan="2"><b>Experimental keys (enabled via menu bar > Help > Enable/disable experimental keys)</b></td></tr>
+<tr><td>Backspace</td><td>Display/hide menu bar.</td></tr>
+<tr class="subhead"><td colspan="2"><b>Experimental keys (enabled via menu bar > Help > Enable/disable experimental features)</b></td></tr>
+<tr><td>P</td><td>Pause/unpause game.</td></tr>
+<tr><td>+</td><td>Accelerate game speed.</td></tr>
+<tr><td>-</td><td>Decelerate game speed.</td></tr>
 <tr><td>X</td><td>Execute action sequence</td></tr>
 <tr><td>C</td><td>Create a mapped type object via the selected object</td></tr>
 <tr><td>V</td><td>Create object, put it in the same position of the selected object and send the "On Stampdown" event to it.</td></tr>
+<tr><td>A</td><td>Execute command on selected objects (without target)</td></tr>
+<tr><td>Y</td><td>Execute command on first selected objects targetting last selected object.</td></tr>
+<tr><td>Q</td><td>Cancel all orders of all objects.</td></tr>
+<tr><td>S</td><td>Send "On Level Start" event to all objects.</td></tr>
+<tr><td>Z</td><td>Remove all delayed and periodic action sequence executions.</td></tr>
+<tr><td>H</td><td>Display a game text window.</td></tr>
+<tr><td>F</td><td>Control a client (including its camera).</td></tr>
+<tr><td>J</td><td>Send an event to the selected objects.</td></tr>
+<tr><td>Right-click</td><td>Execute cursor command on the selected objects (target is object under the mouse cursor.)
+   <br>With <b>Shift</b>: Do order last.
+   <br>With <b>Control</b>: Do order first (current order will be suspended).
+   <br>With nothing: Cancel all orders in stack then do the order.</td></tr>
 </tbody>
 </table>
 <p>There also more commands which can only be accessed from the menu bar.</p>
@@ -86,6 +111,9 @@ table, th, td {
 <tr><td>VSYNC</td><td>1 = vertical synchronization enabled, 2 = high resolution VSYNC enabled, 0 = disabled</td></tr>
 <tr><td>FOG</td><td>1 = fog enabled, 0 = fog disabled</td></tr>
 <tr><td>FONT</td><td>Path to a .font file used to draw text (Don’t forget the quotation marks!)</td></tr>
+<tr><td>HARDWARE_CURSOR</td><td>1 = Use the system cursor, 0 = Draw cursor in game screen buffer</td></tr>
+<tr><td>SCREEN_SIZE</td><td>Initial size of the game screen/window size. Requires two numbers for width and height in pixels.</td></tr>
+<tr><td>FULLSCREEN</td><td>0 = windowed, 1 = fullscreen (<b><u>NOTE:</u></b> Fullscreen mode buggy at the moment.)</td></tr>
 </tbody>
 </table>
 <h2>Known issues</h2>
@@ -107,6 +135,17 @@ table, th, td {
 <li><b>I don’t find my savegame in WKB.</b>
 <br>Look at every tab (skirmish, campaign, multiplayer).</li>
 </ul>
+<h2>Playing games in wkbre</h2>
+<p>If you click <b><u>Help > Enable experimental features</u></b>, you can enable new features that were not initially available as they are buggy, complex and you can easily make mistakes by pressing an incorrect keyboard button.</p>
+<p>The notable experimental feature is the game playing. This is done by interpreting the game set script which can be found in the game data (data.bcp). When you press 'P', the game will be unpaused. You can see your units moving, peasants doing their work, etc...</p>
+<p>When you have selected an unit you can also give it an order by right-clicking a target. Press 'A' to execute button commands.</p>
+<p>Please note that savegames with AI players might not work because some game set script features related to AI are not supported yet.</p>
+<p>If you have opened a lvl file, you can press 'S' to start the level (for example in a tutorial this will show the first message).</p>
+<p>See the Keys section of this document for list of available experimental features.</p>
+<p>Also please keep in mind that playing games in wkbre is "experimental", this means the feature is not finished and may contain bugs. wkbre cannot interpret the whole game script at the moment. It is possible to get errors like "Action ... is unknown." which means a certain action or other feature of the game script language has not been implemented yet.</p>
+<h2>Contact</h2>
+<p>If you have a questions, you have found a bug or simply have a suggestion, please contact me:</p>
+<p>Email: <a href="mailto:agpetit69@gmail.com">agpetit69@gmail.com</a></p>
+<p>Or visit the <a href="http://steamcommunity.com/groups/WARKC">Warrior Kings Community on Steam</a>.</p>
 <p>Enjoy! :) </p>
-<p>
 </body></html>

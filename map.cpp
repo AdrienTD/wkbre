@@ -325,6 +325,8 @@ void DrawMap()
 float GetHeight(float ipx, float ipy)
 {
 	float x = mapedge + ipx / 5.0f, y = mapheight - (mapedge + ipy / 5.0f);
+	if(x < 0) x = 0; if(x >= mapwidth) x = mapwidth - 0.001f;
+	if(y < 0) y = 0; if(y >= mapheight) y = mapheight - 0.001f;
 	float h1 = himap[(int)y*(mapwidth+1)+(int)x], h2 = himap[(int)y*(mapwidth+1)+(int)x+1];
 	float h3 = himap[((int)y+1)*(mapwidth+1)+(int)x], h4 = himap[((int)y+1)*(mapwidth+1)+(int)x+1];
 	int rx = x; int ry = y;

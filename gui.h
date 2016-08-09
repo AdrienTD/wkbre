@@ -20,9 +20,10 @@ public:
 	int bgColor; boolean alignment, enabled;
 	GEContainer *parent;
 
-	boolean mouseClick;
+	boolean mouseClick, mouseRightClick;
 	virtual void onMouseClick(int mx, int my) {}
 	virtual void onMouseRelease(int mx, int my) {}
+	virtual void onMouseRightClick(int mx, int my) {}
 	virtual void onResize() {}
 
 	virtual void draw(int dx, int dy)
@@ -38,7 +39,7 @@ public:
 	void remove();
 
 	GUIElement() : caption(0), bgColor(0), alignment(0),
-		mouseClick(0), enabled(1) {}
+		mouseClick(0), mouseRightClick(0), enabled(1) {}
 };
 
 struct GEStaticText : public GUIElement
@@ -94,9 +95,9 @@ struct GEPicButton : public GEButton
 struct GEContainer : public GUIElement
 {
 	DynList<GUIElement*> sos;
-	vpcbf buttonClick; void *cbparam;
+	vpcbf buttonClick, buttonRightClick; void *cbparam;
 
-	GEContainer() : buttonClick(0) {}
+	GEContainer() : buttonClick(0), buttonRightClick(0) {}
 	void add(GUIElement *e) {sos.add(e); e->parent = this;}
 	void DrawSOS(int dx, int dy)
 	{
@@ -125,6 +126,15 @@ struct GEContainer : public GUIElement
 			if(IsPointInRect(e->value->posx, e->value->posy, e->value->width, e->value->height, mx, my))
 				{e->value->mouseClick = 0;
 				e->value->onMouseRelease(mx - e->value->posx, my - e->value->posy); break;}
+	}
+	void onMouseRightClick(int mx, int my)
+	{
+		for(DynListEntry<GUIElement*> *e = sos.last; e; e = e->previous)
+			if(e->value->enabled)
+			if(IsPointInRect(e->value->posx, e->value->posy, e->value->width, e->value->height, mx, my))
+				{e->value->mouseRightClick = 1;
+				e->value->onMouseRightClick(mx - e->value->posx, my - e->value->posy); return;}
+		if(buttonRightClick) buttonRightClick(cbparam);
 	}
 };
 

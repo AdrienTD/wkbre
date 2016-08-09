@@ -630,6 +630,22 @@ struct ValueWithinForwardArc : public CValue
 	}
 };
 
+struct ValueBuildingType : public CValue
+{
+	int t; CFinder *f;
+	ValueBuildingType(int a, CFinder *b) : t(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o; f->begin(env);
+		o = f->getnext(); if(!o) return 0;
+		do {
+			if(o->objdef->buildingType != t)
+				return 0;
+		} while(o = f->getnext());
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -679,6 +695,7 @@ CValue *ReadValue(char ***wpnt)
 			{int i = strItems.find(word[1]); mustbefound(i);
 			int d = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, word[2]), word[3]);
 			mustbefound(d);
+			*wpnt += 4;
 			return new ValueBlueprintItemValue(i, &objdef[d]);}
 		case VALUE_DISTANCE_BETWEEN:
 			{int m = stfind_cs(DISTCALCMODE_str, DISTCALCMODE_NUM, word[1]);
@@ -779,6 +796,10 @@ CValue *ReadValue(char ***wpnt)
 			CFinder *b = ReadFinder(wpnt);
 			CValue *c = ReadValue(wpnt);
 			return new ValueWithinForwardArc(a, b, c, ReadValue(wpnt));}
+		case VALUE_BUILDING_TYPE:
+			{int t = stfind_cs(BUILDINGTYPE_str, BUILDINGTYPE_NUM, word[1]);
+			*wpnt += 2;
+			return new ValueBuildingType(t, ReadFinder(wpnt));}
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?
@@ -790,6 +811,14 @@ CValue *ReadValue(char ***wpnt)
 			{*wpnt += 2;
 			int x = strAssociateCat.find(word[1]); mustbefound(x);
 			return new ValueNumAssociators(x, ReadFinder(wpnt));}
+		case VALUE_BUILDING_TYPE_OPERAND:
+			{char b[128];
+			strcpy(b, word[1]);
+			char *p = strrchr(b, '_');
+			if(p) *p = 0;
+			int t = stfind_cs(BUILDINGTYPE_str, BUILDINGTYPE_NUM, b);
+			*wpnt += 2;
+			return new ValueBuildingType(t, ReadFinder(wpnt));}
 	}
 	//ferr("Unknown value type."); return 0;
 	int x = strUnknownValue.find(word[0]);

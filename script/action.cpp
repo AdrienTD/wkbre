@@ -16,7 +16,11 @@
 
 #include "../global.h"
 
+#ifdef WKBRE_RELEASE
+int scriptTraceOn = 0;
+#else
 int scriptTraceOn = 1;
+#endif
 
 GrowStringList strUnknownAction;
 struct ActionUnknown : public CAction
@@ -64,7 +68,9 @@ struct ActionCreateObject : public CAction
 		o = CreateObject(def, o->player);
 		PosOri po;
 		pos->get(c, &po);
-		o->position = po.pos; GOPosChanged(o);
+		o->position = po.pos;
+		o->position.y = GetHeight(o->position.x, o->position.z);
+		GOPosChanged(o);
 		o->orientation = po.ori;
 	}
 };
@@ -417,7 +423,10 @@ struct ActionTransferControl : public CAction
 		GameObject *o, *p = b->getfirst(env);
 		a->begin(env);
 		while(o = a->getnext())
+		{
 			SetObjectParent(o, p);
+			SendGameEvent(env, o, PDEVENT_ON_CONTROL_TRANSFERRED);
+		}
 	}
 };
 
@@ -1006,6 +1015,25 @@ struct ActionCopyFacingOf : public CAction
 	}
 };
 
+struct ActionTeleport : public CAction
+{
+	CFinder *f; CPosition *x;
+	ActionTeleport(CFinder *a, CPosition *b) : f(a), x(b) {}
+	void run(SequenceEnv *env)
+	{
+		PosOri p; x->get(env, &p);
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			o->position = p.pos;
+			o->position.y = GetHeight(o->position.x, o->position.z);
+			o->orientation = p.ori;
+			GOPosChanged(o);
+			CancelAllOrders(o);
+		}
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp);
 
@@ -1246,6 +1274,9 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_COPY_FACING_OF:
 			{w += 2; CFinder *f = ReadFinder(&w);
 			return new ActionCopyFacingOf(f, ReadFinder(&w));}
+		case ACTION_TELEPORT:
+			{w += 2; CFinder *f = ReadFinder(&w);
+			return new ActionTeleport(f, ReadCPosition(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).

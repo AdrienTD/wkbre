@@ -28,6 +28,8 @@ extern int mouseX, mouseY;
 extern voidfunc onClickWindow;
 extern int winMinimized;
 extern int fullscreen;
+extern boolean lostdev;
 
+void ResetDevice();
 void HandleWindow();
 void InitWindow();

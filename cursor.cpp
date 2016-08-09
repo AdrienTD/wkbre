@@ -52,11 +52,12 @@ Cursor *LoadCursor(char *str)
 
 void ChangeCursor(Cursor *c)
 {
+	if(currentCursor == c) return;
 	currentCursor = c;
 	if(hardwareCursor)
 	{
 		SetClassLongPtr(hWindow, GCLP_HCURSOR, (LONG_PTR)currentCursor->hc);
-		//SetCursor(c->hc);
+		SetCursor(currentCursor->hc);
 	}
 }
 

@@ -162,6 +162,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		objdef[x].valueTagInterpret = new CValue*[strValueTag.len];
 		memset(objdef[x].valueTagInterpret, 0, strValueTag.len * sizeof(CValue*));
 		objdef[x].representation = 0;
+		objdef[x].buildingType = -1;
 	}
 
 	while(*fp)
@@ -248,6 +249,9 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				if(i != -1)
 					objdef[x].offeredCmds.add(&(gscommand[i]));
 				break;}
+			case CBLUEPRINT_BUILDING_TYPE:
+				objdef[x].buildingType = stfind_cs(BUILDINGTYPE_str, BUILDINGTYPE_NUM, word[1]);
+				break;
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

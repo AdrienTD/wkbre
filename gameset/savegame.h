@@ -58,6 +58,7 @@ struct GOParamBlock
 struct COrder;
 struct ITile;
 struct ClientState;
+struct SAIController;
 
 struct GameObject
 {
@@ -84,6 +85,7 @@ struct GameObject
 	DynList<GameObject*> referencers;
 	GameObject *curtarget; DynListEntry<GameObject*> *ctgdle;
 	ClientState *client;
+	SAIController *aicontroller;
 
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);
@@ -161,3 +163,4 @@ GameObject *DuplicateObject(GameObject *a);
 void ConvertObject(GameObject *o, CObjectDefinition *d);
 void AddReaction(GameObject *o, int r);
 void RemoveReaction(GameObject *o, int r);
+void UpdateParentDependantValues(GameObject *o);

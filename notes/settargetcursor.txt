@@ -1,0 +1,35 @@
+Cursor *defcursor;
+
+void SetTargetCursor()
+{
+	SetCursor(defcursor);
+	if(!currentSelection.valid()) return;
+	GameObject *p = currentSelection.get();
+
+	GrowList<CCommand*> l;
+	for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+		if(e->value.valid())
+			for(int i = 0; i < e->value->objdef->offeredCmds.len; i++)
+				if(!l.has(e->value->objdef->offeredCmds[i]))
+					l.add(e->value->objdef->offeredCmds[i]);
+
+	for(int i = 0; i < l.len; i++)
+	{
+		CCommand *c = l[i];
+		for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+			if(e->value.valid())
+				if(CanExecuteCommand(e->value->objdef, c))
+				{
+					SequenceEnv env;
+					env.self = e->value.get();
+					env.target = p;
+					for(int j = 0; j < c->cursorConditions.len; j++)
+						if(stpo(equation[c->cursorConditions[j]]->get(&env)))
+						{
+							// FOUND!
+							SetCursor(c->cursor);
+							return;
+						}
+				}
+	}
+}

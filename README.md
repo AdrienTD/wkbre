@@ -4,7 +4,9 @@
 
 __wkbre__ is an engine reimplementation of __Warrior Kings (Battles)__ (a 3D RTS game by Black Cactus released in 2002-2003), now released under the __GPL3__ license. It can open the game data files, load the levels and render the game world.
 
-While currently it is impossible to play games in it, wkbre can still be used as a level editor. You can open savegames in it, make some changes like creating, moving or deleting characters, buildings, ..., then save the changes and load the new savegame in the original game engine.
+[Download binaries](releases)
+
+While the ability to play games in the engine is currently in development, wkbre can still be used as a level editor. You can open savegames in it, make some changes like creating, moving or deleting characters, buildings, ..., then save the changes and load the new savegame in the original game engine.
 
 You need a copy of the game if you want to execute wkbre. The game is still available on Steam ([WK](http://store.steampowered.com/app/297570) / [WKB](http://store.steampowered.com/app/299070)) and GOG ([WK](https://www.gog.com/game/warrior_kings) / [WKB](https://www.gog.com/game/warrior_kings_battles)).
 
@@ -29,7 +31,9 @@ To run wkbre, you must first open settings.txt and change the GAME_DIR value to 
 
 When you start wkbre, you might be asked to enter a test number. Simply press ENTER to run the default main code.
 
+For more information see [docs/help.htm](docs/help.htm).
+
 ## Conclusion
 I hope you find wkbre and its source code interesting and useful. Comments/suggestions/bug reports are really appreciated.
 
-I also made a __"WK Modding kit"__ with some programs for viewing ~~and editing~~ game files. You can download it [here](https://drive.google.com/open?id=0B-xteMV6gdTeWG9rSHNmS19XQWs).
+I also made a __"WK Modding kit"__ with some programs for viewing and editing game files. You can download it [here](http://warriorkingsevents.jimdo.com/tools/).

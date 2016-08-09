@@ -25,7 +25,7 @@ float GetElapsedTime()
 	//if(c < sysabstime) printf("Teleported to the past?\n");
 	float r = (c - sysabstime) / 1000.0f;
 	sysabstime = c;
-	return r;
+	return (r >= 1) ? 0.1 : r;
 }
 
 void InitTime()

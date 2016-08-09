@@ -31,12 +31,20 @@ int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 3;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
 int fullscreen = 0;
+boolean lostdev = 0;
+
+void ReleaseDevice()
+{
+	if(ddev) ddev->Release();
+}
 
 void ResetDevice()
 {
 	//if(dxfont) DeinitFont();
-	ddev->Reset(&dpp);
+	HRESULT r = ddev->Reset(&dpp);
+	//if(FAILED(r)) ferr("D3D9 device reset failed.");
 	//if(dxfont) InitFont();
+	lostdev = 0;
 }
 
 void CALLBACK OnSecond(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
@@ -66,6 +74,15 @@ void GUIMouseClick()
 		actualpage->onMouseClick(mouseX, mouseY);
 }
 
+void GUIMouseRightClick()
+{
+	if(actsubmenu)
+		if(!IsPointInRect(actsubmenu->posx, actsubmenu->posy, actsubmenu->width, actsubmenu->height, mouseX, mouseY))
+			actsubmenu->enabled = 0;
+	if(actualpage)
+		actualpage->onMouseRightClick(mouseX, mouseY);
+}
+
 void GUIMouseRelease()
 {
 	if(actualpage)
@@ -87,6 +104,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_LBUTTONUP:
 			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
 			GUIMouseRelease();
+			break;
+		case WM_RBUTTONDOWN:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseRightClick();
 			break;
 		case WM_KEYDOWN:
 			if(wParam & 0xFFFFFF00) break;
@@ -129,9 +150,9 @@ void HandleWindow()
 
 void InitWindow()
 {
-	fullscreen = 0; // Buggy atm.
+	//fullscreen = 0; // Buggy atm.
 
-	WNDCLASS wndclass = {0, WndProc, 0, 0, hInstance,
+	WNDCLASS wndclass = {CS_OWNDC, WndProc, 0, 0, hInstance,
 			LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), LoadCursor(NULL, IDC_ARROW), (HBRUSH)(COLOR_WINDOW+1), NULL, className};
 	RECT rect = {0, 0, scrw, scrh};
 	wndclass.hInstance = hInstance;
@@ -161,6 +182,7 @@ void InitWindow()
 
 	d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
 	if(!d3d9) ferr("Direct3D 9 init failed.");
+	atexit(ReleaseDevice);
 
 	if(HWVPenabled)
 	{

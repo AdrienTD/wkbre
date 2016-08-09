@@ -79,8 +79,8 @@ IDI_APPICON        ICON           ".\\icon.ico"
 // Version Information resources
 //
 1 VERSIONINFO
-    FILEVERSION     0,0,3,0
-    PRODUCTVERSION  0,0,3,0
+    FILEVERSION     0,0,4,0
+    PRODUCTVERSION  0,0,4,0
     FILEOS          VOS_UNKNOWN
     FILETYPE        VFT_UNKNOWN
     FILESUBTYPE     VFT2_UNKNOWN
@@ -94,14 +94,14 @@ IDI_APPICON        ICON           ".\\icon.ico"
             VALUE "Comments", ""
             VALUE "CompanyName", "AdrienTD"
             VALUE "FileDescription", "WK Recreated Engine"
-            VALUE "FileVersion", "0.0.3.0"
+            VALUE "FileVersion", "0.0.4.0"
             VALUE "InternalName", "wkbre"
             VALUE "LegalCopyright", ""
             VALUE "LegalTrademarks", ""
             VALUE "OriginalFilename", "wkbre.exe"
             VALUE "PrivateBuild", ""
             VALUE "ProductName", "wkbre"
-            VALUE "ProductVersion", "0.0.3.0"
+            VALUE "ProductVersion", "0.0.4.0"
             VALUE "SpecialBuild", ""
         }
     }
