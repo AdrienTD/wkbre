@@ -4,7 +4,7 @@
 
 __wkbre__ is an engine reimplementation of __Warrior Kings (Battles)__ (a 3D RTS game by Black Cactus released in 2002-2003), now released under the __GPL3__ license. It can open the game data files, load the levels and render the game world.
 
-[Download binaries](releases)
+[Download binaries](https://github.com/AdrienTD/wkbre/releases)
 
 While the ability to play games in the engine is currently in development, wkbre can still be used as a level editor. You can open savegames in it, make some changes like creating, moving or deleting characters, buildings, ..., then save the changes and load the new savegame in the original game engine.
 
