@@ -21,3 +21,4 @@ float GetElapsedTime();
 void InitTime();
 void AdvanceTime();
 void CheckBattlesDelayedSequences();
+void UpdateContainerPos(GameObject *o);

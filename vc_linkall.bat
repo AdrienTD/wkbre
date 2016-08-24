@@ -1,1 +1,1 @@
-@link %1 %2 %3 %4 %5 %6 %7 %8 %9 /out:wkbre_vc.exe out\*.obj user32.lib d3d9.lib winmm.lib wkbre.res gdi32.lib
+@link %* /out:wkbre_vc.exe out\*.obj user32.lib d3d9.lib winmm.lib wkbre.res gdi32.lib bzip2\libbz2.lib

@@ -564,6 +564,7 @@ void LoadSaveGame(char *fn)
 
 	InitITiles();
 	ResetITiles();
+	if(lock_count > 0) lock_count--;
 }
 
 //**********************/
@@ -780,7 +781,7 @@ void SaveSaveGame(char *fn)
 	for(int i = 0; i < num_human_players; i++) fprintf(f, " %u", humanplayers[i]);
 	fprintf(f, "\nUPDATE_ID %u\nNEXT_UPDATE_TIME_STAMP %f\n", update_id, next_update_time_stamp);
 	fprintf(f, "TIME_MANAGER_STATE\n\tCURRENT_TIME %f\n\tPREVIOUS_TIME %f\n\tELAPSED_TIME %f\n\tPAUSED %i\n\tLOCK_COUNT %i\nEND_TIME_MANAGER_STATE\n",
-		current_time, previous_time, elapsed_time, paused, lock_count);
+		current_time, previous_time, elapsed_time, paused, lock_count + 1);
 
 	WriteGameObject(levelobj, f, 0);
 

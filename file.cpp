@@ -17,11 +17,15 @@
 #include "global.h"
 extern "C" {
 #include "lzrw_headers.h"
+#include "bzip2/bzlib.h"
 }
+
+#define MEM_REQ ( 4096*sizeof(char*) + 16 )
 
 typedef struct
 {
-	uint id; //, unk1, unk2;
+	uint id;
+	u64 time;
 	char *name;
 } BCPFile;
 
@@ -38,17 +42,33 @@ typedef struct
 	uint offset, endos, size, unk, form;
 } fileentry;
 
+struct BCPack
+{
+	FILE *bcpfile;
+	uint fentof;
+	uint nfiles, ftsize;
+	fileentry *fent;
+	int bcpver;
+	BCPDirectory bcproot;
+	GrowStringList bcpstring;
+
+	char *BCPReadString();
+	void RelocateStrings(BCPDirectory *bd);
+	void LookAtDir(BCPDirectory *bd, int isroot, BCPDirectory *prev);
+	BCPack(char *fn);
+	void ExtractFile(int id, char **out, int *outsize, int extraBytes);
+	BCPFile *getFile(char *fn);
+	BCPDirectory *getDirectory(char *dn);
+	boolean loadFile(char *fn, char **out, int *outsize, int extraBytes);
+	boolean fileExists(char *fn);
+	void listFileNames(char *dn, GrowStringList *gsl);
+};
+
 char gamedir[384] = ".";
-FILE *bcpfile;
-uint fentof;
-uint nfiles = 0, ftsize;
-fileentry *fent;
-int bcpver;
+boolean allowBCPPatches = 1;
+GrowList<BCPack*> bcpacks;
 
-BCPDirectory bcproot;
-GrowStringList bcpstring;
-
-char *BCPReadString()
+char *BCPack::BCPReadString()
 {
 	int cs = fgetc(bcpfile);
 	char *r = (char*)malloc(cs+1); if(!r) ferr("BCPReadString malloc failed.");
@@ -67,7 +87,7 @@ char *BCPReadString()
 	return x;
 }
 
-void RelocateStrings(BCPDirectory *bd)
+void BCPack::RelocateStrings(BCPDirectory *bd)
 {
 	for(int i = 0; i < bd->nfiles; i++)
 		bd->files[i].name += (ucpuint)bcpstring.gbData.memory;
@@ -78,7 +98,7 @@ void RelocateStrings(BCPDirectory *bd)
 	}
 }
 
-void LookAtDir(BCPDirectory *bd, int isroot, BCPDirectory *prev)
+void BCPack::LookAtDir(BCPDirectory *bd, int isroot, BCPDirectory *prev)
 {
 	if(!isroot) bd->name = BCPReadString();
 	bd->parent = prev;
@@ -89,7 +109,7 @@ void LookAtDir(BCPDirectory *bd, int isroot, BCPDirectory *prev)
 		for(int i = 0; i < bd->nfiles; i++)
 		{
 			bd->files[i].id = readInt(bcpfile);
-			fseek(bcpfile, 8, SEEK_CUR);
+			fread(&bd->files[i].time, 8, 1, bcpfile);
 			bd->files[i].name = BCPReadString();
 		}
 	}
@@ -102,8 +122,10 @@ void LookAtDir(BCPDirectory *bd, int isroot, BCPDirectory *prev)
 	}
 }
 
-void LoadBCP(char *fn)
+BCPack::BCPack(char *fn)
 {
+	nfiles = 0;
+
 	char abuf[384]; uchar c;
 	strcpy(abuf, gamedir);
 	strcat(abuf, "\\");
@@ -129,9 +151,7 @@ void LoadBCP(char *fn)
 	RelocateStrings(&bcproot);
 }
 
-#define MEM_REQ ( 4096*sizeof(char*) + 16 )
-
-void ExtractFile(int id, char **out, int *outsize, int extraBytes)
+void BCPack::ExtractFile(int id, char **out, int *outsize, int extraBytes)
 {
 	uint i, s;
 	char *min, *mout, *ws; uint os, sws;
@@ -139,26 +159,34 @@ void ExtractFile(int id, char **out, int *outsize, int extraBytes)
 	fseek(bcpfile, fent[id].offset, SEEK_SET);
 	s = fent[id].endos - fent[id].offset;
 	mout = (char*)malloc(fent[id].size+extraBytes); if(!mout) ferr("Cannot alloc mem for loading a file.");
+	*out = mout;
 
 	switch(fent[id].form)
 	{
-		case 3: // Patch file (?)
 		case 1: // Uncompressed
 			fread(mout, s, 1, bcpfile);
-			*out = mout; *outsize = s;
+			*outsize = s;
 			break;
 		case 2: // Zero-sized file
-			*out = 0; *outsize = 0;
+			*outsize = 0;
 			break;
+		case 3: // bzip2-compressed file
+			{int be;
+			BZFILE *bz = BZ2_bzReadOpen(&be, bcpfile, 0, 0, NULL, 0);
+			if(be != BZ_OK) ferr("Failed to initialize bzip2 decompression.");
+			int l = BZ2_bzRead(&be, bz, mout, fent[id].size);
+			if((be != BZ_OK) && (be != BZ_STREAM_END)) ferr("Failed to decompress bzip2 file.");
+			BZ2_bzReadClose(&be, bz);
+			*outsize = l;
+			break;}
 		case 4: // LZRW3-compressed file
 			{ws = (char*)malloc(MEM_REQ);
 			min = (char*)malloc(s);
 			fread(min, s, 1, bcpfile);
-			*outsize = fent[id].size;
-			ULONG us;
+			//*outsize = fent[id].size;
+			ULONG us = fent[id].size;
 			compress(COMPRESS_ACTION_DECOMPRESS, (uchar*)ws, (uchar*)min, s, (uchar*)mout, &us);
 			*outsize = (int)us;
-			*out = mout;
 			free(ws); free(min);
 			break;}
 		default:
@@ -166,7 +194,7 @@ void ExtractFile(int id, char **out, int *outsize, int extraBytes)
 	}
 }
 
-void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
+BCPFile *BCPack::getFile(char *fn)
 {
 	char *p, *c; BCPDirectory *ad = &bcproot;
 	char *ftb;
@@ -187,8 +215,7 @@ lflp:		c = strchr(p, '\\');
 			if(!_stricmp(p, ad->files[i].name))
 			{
 				// File found!
-				ExtractFile(ad->files[i].id, out, outsize, extraBytes);
-				free(ftb); return;
+				free(ftb); return &ad->files[i];
 			}
 			break; // File not found.
 
@@ -215,108 +242,11 @@ lflp:		c = strchr(p, '\\');
 			break; // Dir not found.
 		}
 	}
-	// File not found in the BCP. Find it in the "saved" folder.
-	free(ftb);
-	char sn[384];
-	strcpy(sn, gamedir);
-	strcat(sn, "\\saved\\");
-	strcat(sn, fn);
-	FILE *sf = fopen(sn, "rb");
-	if(!sf)
-	{
-		strcpy(sn, "redata\\");
-		strcat(sn, fn);
-		sf = fopen(sn, "rb");
-		if(!sf)
-			ferr("File cannot be found in data.bcp, in the \"saved\" folder and the \"redata\" directory.");
-	}
-	fseek(sf, 0, SEEK_END);
-	int ss = ftell(sf);
-	fseek(sf, 0, SEEK_SET);
-	char *mout = (char*)malloc(ss+extraBytes);
-	if(!mout) ferr("No mem. left for reading a file from saved dir.");
-	fread(mout, ss, 1, sf);
-	fclose(sf);
-	*out = mout; *outsize = ss;
-	return;
+	free(ftb); return 0;
 }
 
-void TestBCP()
+BCPDirectory *BCPack::getDirectory(char *dn)
 {
-	printf("sizeof(BCPFile) = %i\nsizeof(BCPDirectory) = %i\n", sizeof(BCPFile), sizeof(BCPDirectory));
-	printf("--- Root ---\n%i files\n", bcproot.nfiles);
-	for(int i = 0; i < bcproot.nfiles; i++)
-		printf(" - %i\n", bcproot.files[i].id);
-	printf("%i directories\n", bcproot.ndirs);
-	for(int i = 0; i < bcproot.ndirs; i++)
-		printf(" - %s\n", bcproot.dirs[i].name);
-}
-
-int FileExists(char *fn)
-{
-	char *p, *c; BCPDirectory *ad = &bcproot;
-	char *ftb;
-	int s = strlen(fn);
-	ftb = (char*)malloc(s+1);
-	strcpy(ftb, fn);
-	p = ftb;
-	for(int i = 0; i < s; i++)
-		if(p[i] == '/')
-			p[i] = '\\';
-	while(1)
-	{
-lflp:		c = strchr(p, '\\');
-		if(!c)
-		{
-			// A file!
-			for(int i = 0; i < ad->nfiles; i++)
-			if(!_stricmp(p, ad->files[i].name))
-			{
-				// File found!
-				free(ftb); return 1;
-			}
-			break; // File not found.
-		} else {
-			// A directory!
-			*c = 0;
-			if(!strcmp(p, "."))
-				{p = c+1; goto lflp;}
-			if(!strcmp(p, ".."))
-			{
-				// Go one directory backwards
-				p = c+1;
-				ad = ad->parent;
-				goto lflp;
-			}
-			for(int i = 0; i < ad->ndirs; i++)
-			if(!_stricmp(p, ad->dirs[i].name))
-			{
-				// Dir found!
-				p = c+1;
-				ad = &ad->dirs[i];
-				goto lflp;
-			}
-			break; // Dir not found.
-		}
-	}
-	// File not found in the BCP. Find it in the "saved" folder.
-	free(ftb);
-	char sn[384];
-	strcpy(sn, gamedir);
-	strcat(sn, "\\saved\\");
-	strcat(sn, fn);
-	if(_access(sn, 0) == -1)
-	{
-		strcpy(sn, "redata\\");
-		strcat(sn, fn);
-		return _access(sn, 0) != -1;
-	}
-	return 1;
-}
-
-GrowStringList *ListFiles(char *dn)
-{
-	GrowStringList *gsl = new GrowStringList;
 	char *p, *c; BCPDirectory *ad = &bcproot;
 	char *ftb;
 	int s = strlen(dn);
@@ -355,7 +285,7 @@ lflp:		c = strchr(p, '\\');
 			// A directory!
 			if(!*p) goto lend;
 			if(!strcmp(p, "."))
-				{p = c+1; goto lflp;}
+				goto lend;
 			if(!strcmp(p, ".."))
 			{
 				// Go one directory backwards
@@ -372,10 +302,127 @@ lflp:		c = strchr(p, '\\');
 			goto savdir; // Dir not found.
 		}
 	}
-lend:	for(int i = 0; i < ad->nfiles; i++)
-		gsl->add(ad->files[i].name);
+lend:	free(ftb); return ad;
+savdir:	free(ftb); return 0;
+}
 
-savdir:	free(ftb);
+boolean BCPack::loadFile(char *fn, char **out, int *outsize, int extraBytes)
+{
+	BCPFile *bf = getFile(fn);
+	if(!bf) return 0;
+	ExtractFile(bf->id, out, outsize, extraBytes);
+	return 1;
+}
+
+boolean BCPack::fileExists(char *fn)
+{
+	BCPFile *bf = getFile(fn);
+	return bf ? 1 : 0;
+}
+
+void BCPack::listFileNames(char *dn, GrowStringList *gsl)
+{
+	BCPDirectory *ad = getDirectory(dn);
+	if(!ad) return;
+	for(int i = 0; i < ad->nfiles; i++)
+		if(!gsl->has(ad->files[i].name))
+			gsl->add(ad->files[i].name);
+}
+
+BCPack *mainbcp;
+
+void LoadBCP(char *fn)
+{
+	//mainbcp = new BCPack(fn);
+
+	if(!allowBCPPatches)
+		{bcpacks.add(new BCPack(fn)); return;}
+	char sn[384]; HANDLE hf; WIN32_FIND_DATA fnd;
+	strcpy(sn, gamedir);
+	strcat(sn, "\\*.bcp");
+	hf = FindFirstFile(sn, &fnd);
+	if(hf == INVALID_HANDLE_VALUE) return;
+	do {
+		bcpacks.add(new BCPack(fnd.cFileName));
+	} while(FindNextFile(hf, &fnd));
+}
+
+BCPack *GetBCPWithMostRecentFile(char *fn)
+{
+	BCPack *bestpack = 0; u64 besttime = 0;
+	for(int i = 0; i < bcpacks.len; i++)
+	{
+		BCPack *t = bcpacks[i];
+		BCPFile *f = t->getFile(fn);
+		if(!f) continue;
+		if(f->time >= besttime)
+		{
+			bestpack = t;
+			besttime = f->time;
+		}
+	}
+	return bestpack;
+}
+
+void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
+{
+	BCPack *bp = GetBCPWithMostRecentFile(fn);
+	if(bp) if(bp->loadFile(fn, out, outsize, extraBytes)) return;
+
+	// File not found in the BCPs. Find it in the "saved" and "redata" folder.
+	char sn[384];
+	strcpy(sn, gamedir);
+	strcat(sn, "\\saved\\");
+	strcat(sn, fn);
+	FILE *sf = fopen(sn, "rb");
+	if(!sf)
+	{
+		strcpy(sn, "redata\\");
+		strcat(sn, fn);
+		sf = fopen(sn, "rb");
+		if(!sf)
+			ferr("File cannot be found in data.bcp, in the \"saved\" folder and the \"redata\" directory.");
+	}
+	fseek(sf, 0, SEEK_END);
+	int ss = ftell(sf);
+	fseek(sf, 0, SEEK_SET);
+	char *mout = (char*)malloc(ss+extraBytes);
+	if(!mout) ferr("No mem. left for reading a file from saved dir.");
+	fread(mout, ss, 1, sf);
+	fclose(sf);
+	*out = mout; *outsize = ss;
+	return;
+}
+
+int FileExists(char *fn)
+{
+	//if(mainbcp->fileExists(fn)) return 1;
+	for(int i = 0; i < bcpacks.len; i++)
+		if(bcpacks[i]->fileExists(fn))
+			return 1;
+
+	// File not found in the BCPs. Find it in the "saved" and "redata" folder.
+	char sn[384];
+	strcpy(sn, gamedir);
+	strcat(sn, "\\saved\\");
+	strcat(sn, fn);
+	if(_access(sn, 0) == -1)
+	{
+		strcpy(sn, "redata\\");
+		strcat(sn, fn);
+		return _access(sn, 0) != -1;
+	}
+	return 1;
+}
+
+GrowStringList *ListFiles(char *dn)
+{
+	GrowStringList *gsl = new GrowStringList;
+
+	//mainbcp->listFileNames(dn, gsl);
+	for(int i = 0; i < bcpacks.len; i++)
+		bcpacks[i]->listFileNames(dn, gsl);
+
 	char sn[384]; HANDLE hf; WIN32_FIND_DATA fnd;
 	strcpy(sn, gamedir);
 	strcat(sn, "\\saved\\");
@@ -385,16 +432,8 @@ savdir:	free(ftb);
 	if(hf == INVALID_HANDLE_VALUE) return gsl;
 	do {
 		if(!(fnd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-			gsl->add(fnd.cFileName);
+			if(!gsl->has(fnd.cFileName))
+				gsl->add(fnd.cFileName);
 	} while(FindNextFile(hf, &fnd));
 	return gsl;
-}
-
-void SetGameDir()
-{
-	FILE *f = fopen("gamedir.txt", "r"); if(!f) return;
-	fgets(gamedir, 383, f);
-	fclose(f);
-	char *n = strrchr(gamedir, '\n');
-	if(n) *n = 0;
 }

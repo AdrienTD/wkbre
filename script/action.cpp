@@ -453,7 +453,8 @@ struct ActionConvertTo : public CAction
 		GameObject *o;
 		f->begin(env);
 		while(o = f->getnext())
-			ConvertObject(o, d);
+			{ConvertObject(o, d);
+			SendGameEvent(env, o, PDEVENT_ON_CONVERSION_END);}
 	}
 };
 
@@ -467,7 +468,8 @@ struct ActionConvertAccordingToTag : public CAction
 		f->begin(env);
 		while(o = f->getnext())
 			if(o->objdef->mappedType[t])
-				ConvertObject(o, o->objdef->mappedType[t]);
+				{ConvertObject(o, o->objdef->mappedType[t]);
+				SendGameEvent(env, o, PDEVENT_ON_CONVERSION_END);}
 	}
 };
 
@@ -1034,6 +1036,22 @@ struct ActionTeleport : public CAction
 	}
 };
 
+struct ActionLockTime : public CAction
+{
+	void run(SequenceEnv *env)
+	{
+		lock_count++;
+	}
+};
+
+struct ActionUnlockTime : public CAction
+{
+	void run(SequenceEnv *env)
+	{
+		if(lock_count > 0) lock_count--;
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp);
 
@@ -1277,6 +1295,10 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_TELEPORT:
 			{w += 2; CFinder *f = ReadFinder(&w);
 			return new ActionTeleport(f, ReadCPosition(&w));}
+		case ACTION_LOCK_TIME:
+			return new ActionLockTime();
+		case ACTION_UNLOCK_TIME:
+			return new ActionUnlockTime();
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).

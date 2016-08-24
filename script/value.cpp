@@ -646,6 +646,25 @@ struct ValueBuildingType : public CValue
 	}
 };
 
+struct ValueAIControlled : public CValue
+{
+	CFinder *f;
+	ValueAIControlled(CFinder *a) : f(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		GameObject *o; f->begin(env);
+		o = f->getnext(); if(!o) return 0;
+		do {
+			if(!o->aicontroller) return 0;
+			if(o->aicontroller->masterPlan == -1)
+			  if(!o->aicontroller->workOrders.len)
+			    if(!o->aicontroller->commissions.len)
+			      return 0;
+		} while(o = f->getnext());
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -800,6 +819,8 @@ CValue *ReadValue(char ***wpnt)
 			{int t = stfind_cs(BUILDINGTYPE_str, BUILDINGTYPE_NUM, word[1]);
 			*wpnt += 2;
 			return new ValueBuildingType(t, ReadFinder(wpnt));}
+		case VALUE_AI_CONTROLLED:
+			*wpnt += 1; return new ValueAIControlled(ReadFinder(wpnt));
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?

@@ -18,6 +18,11 @@ There's a video of an old version of wkbre on [YouTube](https://www.youtube.com/
 __Note:__ It is recommended to build a 32-bit executable, otherwise if you make a 64-bit executable it might not find all your savegames (if the game is in the "Program Files" directory and you often run the game without administrator rights).
 * Open a Windows SDK/Visual Studio/MinGW-32 command prompt.
 * cd to wkbre's source code directory.
+* cd to bzip2
+* Type (before pressing ENTER)
+  * `build_vc_d` if you use Microsoft Visual C++ compiler
+  * `build_mg_d` if you use MinGW
+* cd ..
 * Type (before pressing ENTER)
   * `vc_compall` if you use Microsoft Visual C++ compiler
   * `mg_compall` if you use MinGW

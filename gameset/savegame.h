@@ -112,7 +112,7 @@ extern GameObject *gameobj[MAX_GAMEOBJECTS];
 extern GameObject *levelobj;
 extern uint wkver;
 
-extern float current_time, previous_time, elapsed_time;
+extern float current_time, previous_time, elapsed_time; extern uint lock_count;
 
 extern DynList<DelayedSequenceEntry> delayedSeq;
 extern DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;

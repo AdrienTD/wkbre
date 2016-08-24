@@ -85,7 +85,8 @@ void ReadCTask(char **pntfp, char **fstline)
 	ct->usePreviousTaskTarget = ct->rejectTargetIfItIsTerminated = 0;
 	ct->terminateEntireOrderIfNoTarget = ct->identifyTargetEachCycle = 0;
 	ct->satf = 0;
-	ct->initSeq = ct->startSeq = ct->suspendSeq = ct->resumeSeq = ct->cancelSeq = ct->terminateSeq = ct->proxSatisfiedSeq = 0;
+	ct->initSeq = ct->startSeq = ct->suspendSeq = ct->resumeSeq = ct->cancelSeq =
+		ct->terminateSeq = ct->proxSatisfiedSeq = ct->proxDissatisfiedSeq = 0;
 	while(**pntfp)
 	{
 		*pntfp = GetLine(*pntfp, wwl);
@@ -122,6 +123,8 @@ void ReadCTask(char **pntfp, char **fstline)
 				ct->terminateSeq = ReadActSeq(pntfp); break;
 			case CTASK_PROXIMITY_SATISFIED_SEQUENCE:
 				ct->proxSatisfiedSeq = ReadActSeq(pntfp); break;
+			case CTASK_PROXIMITY_DISSATISFIED_SEQUENCE:
+				ct->proxDissatisfiedSeq = ReadActSeq(pntfp); break;
 			case CTASK_TRIGGER:
 				ReadCTrigger(pntfp, word, ct); break;
 			case CTASK_USE_PREVIOUS_TASK_TARGET:

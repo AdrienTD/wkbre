@@ -15,10 +15,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern char gamedir[384];
+extern boolean allowBCPPatches;
 
 void LoadBCP(char *fn);
 void LoadFile(char *fn, char **out, int *outsize, int extraBytes = 0);
-void TestBCP();
+//void TestBCP();
 int FileExists(char *fn);
 GrowStringList *ListFiles(char *dn);
-void SetGameDir();
+//void SetGameDir();

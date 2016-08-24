@@ -165,8 +165,16 @@ void ProcessCurrentTask(GameObject *o)
 					}
 				} else {
 					if(t->proximity < 1) t->proximity = 1;
+					boolean pps = t->flags & FSTASK_PROXIMITY_SATISFIED;
 					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
 					StopCurrentTaskTriggers(o);
+					if(pps) if(c->proxDissatisfiedSeq)
+					{
+						SequenceEnv env; env.self = o;
+						c->proxDissatisfiedSeq->run(&env);
+						if(!g.valid()) return;
+						if(!IsCurOrderID(o, sid)) return;
+					}
 					if(o != t->target.get())
 						ObjStepMove(o, t->target->position);
 				}
@@ -185,6 +193,7 @@ void ProcessCurrentTask(GameObject *o)
 					ObjStepMove(o, h);
 				break;}
 			case ORDTSKTYPE_UPGRADE:
+			case ORDTSKTYPE_SPAWN:
 				StartCurrentTaskTriggers(o);
 				CheckCurrentTaskTriggers(o);
 				break;
@@ -357,6 +366,36 @@ void TerminateTask(GameObject *o)
 	RemoveObjReference(o);
 
 	t->processState = 5;
+
+	if(t->type->type == ORDTSKTYPE_SPAWN)
+	{
+		GameObject *n = CreateObject(t->spawnBlueprint, o->player);
+		n->position = o->position;
+		GOPosChanged(o);
+		if(o->param)
+		{
+			AssignOrder(n, o->param->order, ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE, o->param->obj.get());
+			if(n->ordercfg.order.len)
+			{
+				STask *m = &n->ordercfg.order.first->value.task.first->value;
+				if(m->type->type == ORDTSKTYPE_MOVE)
+				{
+					if(o->param->dest.x >= 0)
+					{
+						m->destinations.add();
+						m->destinations.last->value.x = o->param->dest.x;
+						m->destinations.last->value.y = o->param->dest.z;
+					}
+					if(o->param->face.x >= 0)
+					{
+						m->faceTowards.x = o->param->face.x;
+						m->faceTowards.y = o->param->face.z;
+					}
+				}
+			}
+		}
+	}
+
 	if(t->type->terminateSeq)
 	{
 		SequenceEnv env; env.self = o;
@@ -496,7 +535,7 @@ void CancelOrder(GameObject *o)
 	if(!o->ordercfg.order.len) return;
 	SOrder *s = &o->ordercfg.order.first->value;
 	int sid = s->orderID; goref gr = o;
-	if(s->processState >= 4) return;
+	if(s->processState >= 4) goto rmord; // note that if order is cancelled a second time in task term seq, order cancel seq might not be executed
 
 	s->processState = 4;
 	TerminateTask(o);
@@ -508,7 +547,7 @@ void CancelOrder(GameObject *o)
 	}
 
 	if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
-	o->ordercfg.order.remove(o->ordercfg.order.first);
+rmord:	o->ordercfg.order.remove(o->ordercfg.order.first);
 }
 
 void CancelAllOrders(GameObject *o)
@@ -522,7 +561,7 @@ void TerminateOrder(GameObject *o)
 	if(!o->ordercfg.order.len) return;
 	SOrder *s = &o->ordercfg.order.first->value;
 	int sid = s->orderID; goref gr = o;
-	if(s->processState >= 4) return;
+	if(s->processState >= 4) goto rmord;
 
 	s->processState = 5;
 	TerminateTask(o);
@@ -534,5 +573,5 @@ void TerminateOrder(GameObject *o)
 	}
 
 	if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
-	o->ordercfg.order.remove(o->ordercfg.order.first);
+rmord:	o->ordercfg.order.remove(o->ordercfg.order.first);
 }

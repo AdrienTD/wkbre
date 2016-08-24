@@ -147,7 +147,8 @@ void Test1()
 	//LoadFile("Animations_Are_Guaranteed_To_Merge.txt", &t, &s);
 	//LoadFile("Campaigns\\Kingmaker.cam", &t, &s);
 	//LoadFile("test\\abc.txt", &t, &s);
-	LoadFile("Languages\\..\\Animations_Are_Guaranteed_To_Merge.txt", &t, &s);
+	//LoadFile("Languages\\..\\Animations_Are_Guaranteed_To_Merge.txt", &t, &s);
+	LoadFile("Warrior Kings Game Set\\Mechanics\\Recon.cpp", &t, &s);
 	fwrite(t, s, 1, stdout);
 	free(t);
 }
@@ -1002,6 +1003,7 @@ void Test7()
 			AdvanceTime();
 			ProcessAllOrders();
 			CheckBattlesDelayedSequences();
+			UpdateContainerPos(levelobj);
 		}
 //#endif
 		// Copy controlled client's camera to drawing/scene camera.
@@ -1390,7 +1392,7 @@ void Test9()
 	//	printf("Color %i: %s\n", i, t.get(i));
 
 	LoadBCP("data.bcp");
-	GrowStringList *t = ListFiles(""); //"Interface\\Icons\\Special Icons\\");
+	GrowStringList *t = ListFiles("Warrior Kings Game Set\\Sounds\\narration"); //""); //"Interface\\Icons\\Special Icons\\");
 	for(int i = 0; i < t->len; i++)
 		printf("%04i: %s\n", i, t->getdp(i));
 

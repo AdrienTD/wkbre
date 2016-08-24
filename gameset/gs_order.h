@@ -32,7 +32,7 @@ struct CTask
 	GrowList<CTrigger> triggers;
 	CValue *satf;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
-		*terminateSeq, *proxSatisfiedSeq;
+		*terminateSeq, *proxSatisfiedSeq, *proxDissatisfiedSeq;
 };
 
 struct COrder

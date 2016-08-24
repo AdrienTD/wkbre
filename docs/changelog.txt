@@ -1,6 +1,18 @@
 wkbre changelog:
 
-[0.0.4/?] ??/??/2016
+[0.0.5] ??/??/2016
+- PROXIMITY_DISSATISFIED_SEQUENCE supported.
+- SPAWN tasks (in buildings) can now be processed.
+- Converting an object will send the "On Conversion End" event.
+- BCP Improvements:
+  - Ability to load multiple additional BCPs (for example patches, mods)
+    alongside data.bcp.
+  - bzip2 compressed files can now be decompressed.
+- The game time can now be locked.
+- ARMY objects always change their positions to the centre of its subordinates.
+- Bug fixes...
+
+[0.0.4] 09/08/2016
 - Now open source!!
 - TERRAIN_ZONE object class supported.
 - Implementation of task/order processing

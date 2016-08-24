@@ -30,7 +30,9 @@
 //#include <d3dx9.h>
 
 #ifdef WKBRE_RELEASE
-#define WKBRE_VERSION "0.0.4.0"
+#ifndef WKBRE_VERSION
+#define WKBRE_VERSION "0.0.0.0"
+#endif
 #else
 #define WKBRE_VERSION "DEV"
 #endif
@@ -42,6 +44,7 @@
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
+typedef unsigned __int64 u64;
 #ifdef _WIN64
 typedef unsigned __int64 ucpuint;
 typedef signed __int64 scpuint;

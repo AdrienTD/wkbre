@@ -18,6 +18,7 @@
 
 uint sysabstime = 0;
 float game_speed = 1.0f;
+float petnormal, petgame;
 
 float GetElapsedTime()
 {
@@ -35,9 +36,15 @@ void InitTime()
 
 void AdvanceTime()
 {
-	elapsed_time = GetElapsedTime() * game_speed;
+	petnormal = GetElapsedTime();
+	petgame = petnormal * game_speed;
 	previous_time = current_time;
-	current_time += elapsed_time;
+	if(lock_count)
+		elapsed_time = 0;
+	else {
+		elapsed_time = petgame;
+		current_time += elapsed_time;
+	}
 }
 
 ////////////////////////////////////////////////////////////
@@ -108,6 +115,25 @@ void CheckBattlesDelayedSequences()
 			e->value.loopsexec++;
 			if(e->value.loopsexec >= e->value.nloops)
 				{delete [] e->value.ola; repPeriodSeq.remove(e); break;}
+		}
+	}
+}
+
+// Some objects like armies need their positions to be changed regularly
+// to match the centre of its subordinates.
+void UpdateContainerPos(GameObject *o)
+{
+	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+		UpdateContainerPos(&e->value);
+	if(o->objdef->type == CLASS_ARMY)
+	{
+		Vector3 pos = Vector3(0,0,0), ori = Vector3(0,0,0); int n = 0;
+		for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+			{pos += e->value.position; ori += e->value.orientation; n++;}
+		if(n)
+		{
+			o->position = pos / n; o->orientation = ori / n;
+			GOPosChanged(o);
 		}
 	}
 }

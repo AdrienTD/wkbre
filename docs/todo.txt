@@ -50,3 +50,15 @@ Optimizations:
 - Put param* variables from GameObject to a ParamBlock structure
   and put a pointer to this structure in GameObject.
   If done we can save 32 bytes in GameObject (in 32 bits code).
+
+--- 0.0.5 ---
+
+Top priority:
+- Allow multiple BCPs, read bzip-compressed files (for 1.1 patch)
+- A subtype name should have the same index in all objdefs.
+- Spawning characters from buildings
+- Game interface
+
+Not necessary:
+- Multiple renderers (OpenGL, etc.)
+- Sound and music
