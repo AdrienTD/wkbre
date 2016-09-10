@@ -22,3 +22,4 @@ void InitTime();
 void AdvanceTime();
 void CheckBattlesDelayedSequences();
 void UpdateContainerPos(GameObject *o);
+void UpdateClientsCam();

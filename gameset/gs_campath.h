@@ -6,6 +6,7 @@ struct CamPathNode
 
 struct CCameraPath
 {
+	char *name;
 	boolean startAtCurCamPos, loopCamPath;
 	GrowList<CamPathNode> nodes;
 };

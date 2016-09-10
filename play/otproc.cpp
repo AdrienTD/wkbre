@@ -24,13 +24,15 @@ boolean IsCurOrderID(GameObject *o, int a)
 	return o->ordercfg.order.first->value.orderID == a;
 }
 
-void ObjStepMove(GameObject *o, Vector3 dest)
+void ObjStepMove(GameObject *o, Vector3 dest, float mindist)
 {
 	Vector3 v = dest - o->position;
 	float l = v.len2xz();
+	if(l < mindist) return;
 	v /= l; v.y = 0;
 
 	o->position += v * elapsed_time * 2;
+	//if((dest-o->position).sqlen2xz() > l*l) o->position = dest;
 	o->position.y = GetHeight(o->position.x, o->position.z);
 
 	o->orientation.x = o->orientation.z = 0;
@@ -176,7 +178,7 @@ void ProcessCurrentTask(GameObject *o)
 						if(!IsCurOrderID(o, sid)) return;
 					}
 					if(o != t->target.get())
-						ObjStepMove(o, t->target->position);
+						ObjStepMove(o, t->target->position, t->proximity);
 				}
 				break;}
 			case ORDTSKTYPE_MOVE:
@@ -190,7 +192,7 @@ void ProcessCurrentTask(GameObject *o)
 					if(!t->destinations.len) TerminateTask(o);
 				}
 				else
-					ObjStepMove(o, h);
+					ObjStepMove(o, h, 0.5f);
 				break;}
 			case ORDTSKTYPE_UPGRADE:
 			case ORDTSKTYPE_SPAWN:
@@ -394,6 +396,8 @@ void TerminateTask(GameObject *o)
 				}
 			}
 		}
+		SequenceEnv env; env.self = n;
+		SendGameEvent(&env, n, PDEVENT_ON_SPAWN);
 	}
 
 	if(t->type->terminateSeq)
@@ -428,8 +432,12 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 			st->proximity = ct->proxRequirement->get(&env);
 		else
 			st->proximity = -1;
-		st->spawnBlueprint = 0;
 		st->faceTowards.x = -1;
+		if((co->type == ORDTSKTYPE_SPAWN) && (ct->type == ORDTSKTYPE_SPAWN))
+			{st->spawnBlueprint = co->spawnBlueprint;
+			st->flags |= FSTASK_COST_DEDUCTED;}
+		else
+			st->spawnBlueprint = 0;
 	}
 
 	so->task.first->value.target = tg;

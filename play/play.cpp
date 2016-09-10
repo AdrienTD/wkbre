@@ -137,3 +137,34 @@ void UpdateContainerPos(GameObject *o)
 		}
 	}
 }
+
+// Update client's cameras pos/ori depending on the mode.
+void UpdateClientsCam()
+{
+	for(int i = 0; i < clistates.len; i++)
+	{
+		ClientState *c = clistates.getpnt(i);
+		switch(c->cammode)
+		{
+			case 1:
+				break;
+			case 2:
+				{if(c->camInterpolTime < 0) c->camInterpolTime = 0;
+				if(c->camInterpolTime >= c->camInterpolDur)
+				{
+					//c->camInterpolTime = c->camInterpolDur;
+					printf("Camera interpolation terminated.\n");
+					c->cammode = 0;
+					return;
+				}
+				Vector3 vp = c->camInterpolPos - c->camerapos;
+				Vector3 vo = c->camInterpolOri - c->cameraori;
+				float rt = c->camInterpolDur - c->camInterpolTime;
+				float pg = (petgame > rt) ? rt : petgame;
+				c->camerapos += vp * (pg / rt);
+				c->cameraori += vo * (pg / rt);
+				c->camInterpolTime += pg;
+				break;}
+		}
+	}
+}

@@ -245,13 +245,21 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 					objdef[x].representation = LoadAnim(mn);
 				break;}
 			case CBLUEPRINT_OFFERS_COMMAND:
-				{uint i = strCommand.find(word[1]);
+				{int i = strCommand.find(word[1]);
 				if(i != -1)
 					objdef[x].offeredCmds.add(&(gscommand[i]));
 				break;}
 			case CBLUEPRINT_BUILDING_TYPE:
 				objdef[x].buildingType = stfind_cs(BUILDINGTYPE_str, BUILDINGTYPE_NUM, word[1]);
 				break;
+			case CBLUEPRINT_CAN_SPAWN:
+				{char cs[512];
+				strcpy(cs, "Spawn ");
+				strcat(cs, word[1]);
+				int i = strCommand.find(cs);
+				if(i != -1)
+					objdef[x].offeredCmds.add(&(gscommand[i]));
+				break;}
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

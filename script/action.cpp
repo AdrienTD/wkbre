@@ -22,6 +22,16 @@ int scriptTraceOn = 0;
 int scriptTraceOn = 1;
 #endif
 
+void DestroyObject(GameObject *o, SequenceEnv *env)
+{
+	goref g; g = o;
+	SendGameEvent(env, o, PDEVENT_ON_TERMINATION);
+	if(!g.valid()) return;
+	SendGameEvent(env, o, PDEVENT_ON_DESTRUCTION);
+	if(g.valid())
+		RemoveObject(o);
+}
+
 GrowStringList strUnknownAction;
 struct ActionUnknown : public CAction
 {
@@ -52,7 +62,7 @@ struct ActionRemove : public CAction
 		f->begin(c);
 		GameObject *o;
 		while(o = f->getnext())
-			RemoveObject(o);
+			DestroyObject(o, c);
 	}
 };
 
@@ -567,11 +577,32 @@ struct ActionTerminate : public CAction
 	void run(SequenceEnv *c)
 	{
 		f->begin(c);
-		GameObject *o;
+		GameObject *o; goref g;
 		while(o = f->getnext())
 		{
+/*
+			g = o;
 			// TODO: send events like "On Termination" and/or "On Destruction"
-			RemoveObject(o);
+			SendGameEvent(c, o, PDEVENT_ON_TERMINATION);
+			if(!g.valid()) continue;
+			if(o->objdef->type == CLASS_BUILDING)
+			{
+				SendGameEvent(c, o, PDEVENT_ON_DESTRUCTION);
+				if(!g.valid()) continue;
+			}
+			if(o->objdef->type == CLASS_CHARACTER)
+				o->flags |= FGO_TERMINATED;
+			else
+				DestroyObject(o, c);
+*/
+
+			if(o->objdef->type == CLASS_CHARACTER)
+			{
+				o->flags |= FGO_TERMINATED;
+				SendGameEvent(c, o, PDEVENT_ON_TERMINATION);
+			}
+			else
+				DestroyObject(o, c);
 		}
 	}
 };
@@ -1052,6 +1083,41 @@ struct ActionUnlockTime : public CAction
 	}
 };
 
+struct ActionRemoveMultiplayerPlayer : public CAction
+{
+	CFinder *f;
+	ActionRemoveMultiplayerPlayer(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o;
+		f->begin(env);
+		while(o = f->getnext())
+			if(o->objdef->type == CLASS_PLAYER)
+				o->flags |= FGO_PLAYER_TERMINATED;
+	}
+};
+
+struct ActionInterpolateCameraToPosition : public CAction
+{
+	CPosition *p; CValue *v; CFinder *f;
+	ActionInterpolateCameraToPosition(CPosition *a, CValue *b, CFinder *c) : p(a), v(b), f(c) {}
+	void run(SequenceEnv *env)
+	{
+		PosOri a; p->get(env, &a);
+		float b = v->get(env);
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			if(!o->client) continue;
+			o->client->cammode = 2;
+			o->client->camInterpolPos = a.pos;
+			o->client->camInterpolOri = a.ori;
+			o->client->camInterpolDur = b;
+			o->client->camInterpolTime = 0;
+		}
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp);
 
@@ -1299,6 +1365,14 @@ CAction *ReadAction(char **pntfp, char **word)
 			return new ActionLockTime();
 		case ACTION_UNLOCK_TIME:
 			return new ActionUnlockTime();
+		case ACTION_REMOVE_MULTIPLAYER_PLAYER:
+			w += 2;
+			return new ActionRemoveMultiplayerPlayer(ReadFinder(&w));
+		case ACTION_INTERPOLATE_CAMERA_TO_POSITION:
+			{w += 2;
+			CPosition *a = ReadCPosition(&w);
+			CValue *b = ReadValue(&w);
+			return new ActionInterpolateCameraToPosition(a, b, ReadFinder(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -1318,10 +1392,11 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_DISABLE_GAME_INTERFACE:
 		case ACTION_PLAY_CAMERA_PATH:
 		case ACTION_STOP_CAMERA_PATH_PLAYBACK:
-		case ACTION_INTERPOLATE_CAMERA_TO_POSITION:
+		//case ACTION_INTERPOLATE_CAMERA_TO_POSITION:
 		case ACTION_SET_ACTIVE_MISSION_OBJECTIVES:
 		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY_INACTIVE:
+		case ACTION_HIDE_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_TRACK_OBJECT_POSITION_FROM_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_STOP_INDICATING_POSITION_OF_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_FORCE_PLAY_MUSIC:

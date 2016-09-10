@@ -24,6 +24,7 @@ void ReadCOrder(char **pntfp, char **fstline)
 	co->cat = -2;
 	co->cycle = 0;
 	co->initSeq = co->startSeq = co->suspendSeq = co->resumeSeq = co->cancelSeq = co->terminateSeq = 0;
+	co->spawnBlueprint = 0;
 	while(**pntfp)
 	{
 		*pntfp = GetLine(*pntfp, wwl);
@@ -31,7 +32,15 @@ void ReadCOrder(char **pntfp, char **fstline)
 		if(!nwords) continue;
 		//if( *((uint*)(word[0])) == '_DNE' )
 		if(!stricmp(word[0], "END_ORDER"))
+		{
+			if(co->type == ORDTSKTYPE_SPAWN)
+			{
+				int od = FindObjDef(CLASS_CHARACTER, co->name + 6);
+				if(od != -1)
+					co->spawnBlueprint = &objdef[od];
+			}
 			return;
+		}
 		switch(stfind_cs(CORDER_str, CORDER_NUM, word[0]))
 		{
 			case CORDER_CLASS_TYPE:

@@ -25,6 +25,7 @@ char *ReadClientState(char *fp, char **fstline)
 	if(c->obj.valid()) c->obj->client = c;
 	c->winDiplomacy = c->winReport = c->winTributes = 0;
 	c->storedpos.x = -1;
+	c->cammode = 0;
 
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
 	while(*fp)
@@ -56,6 +57,24 @@ char *ReadClientState(char *fp, char **fstline)
 			c->storedori.x = atof(word[4]);
 			c->storedori.y = atof(word[5]);
 		}
+		else if(!stricmp(word[0], "CAMERA_PATH_IN_PROGRESS"))
+		{
+			int s = strCameraPath.find(word[1]); mustbefound(s);
+			c->camPathInProgress = &gscamerapath[s];
+			c->camPathTime = atoi(word[2]);
+			c->cammode = 1;
+		}
+		else if(!stricmp(word[0], "CAMERA_INTERPOLATION_IN_PROGRESS"))
+		{
+			c->camInterpolPos.x = atof(word[1]);
+			c->camInterpolPos.y = atof(word[2]);
+			c->camInterpolPos.z = atof(word[3]);
+			c->camInterpolOri.x = atof(word[4]);
+			c->camInterpolOri.y = atof(word[5]);
+			c->camInterpolDur = atof(word[6]);
+			c->camInterpolTime = (float)atoi(word[7]) / 1000;
+			c->cammode = 2;
+		}
 		else if(!stricmp(word[0], "END_CLIENT_STATE"))
 			return fp;
 	}
@@ -77,6 +96,12 @@ void WriteClientStates(FILE *f)
 			fprintf(f, "STORED_CAMERA_POSITION %f %f %f %f %f\n", c->storedpos.x,
 				c->storedpos.y, c->storedpos.z, c->storedori.x,
 				c->storedori.y);
+		if(c->cammode == 1)
+			fprintf(f, "CAMERA_PATH_IN_PROGRESS \"%s\" %u GAME_TIME\n", c->camPathInProgress->name, c->camPathTime);
+		else if(c->cammode == 2)
+			fprintf(f, "CAMERA_INTERPOLATION_IN_PROGRESS %f %f %f %f %f %f %u GAME_TIME\n", 
+				c->camInterpolPos.x, c->camInterpolPos.y, c->camInterpolPos.z,
+				c->camInterpolOri.x, c->camInterpolOri.y, c->camInterpolDur, c->camInterpolTime*1000);
 		if(c->winDiplomacy) fprintf(f, "DIPLOMACY_WINDOW_ENABLED\n");
 		if(c->winReport) fprintf(f, "DIPLOMATIC_REPORT_WINDOW_ENABLED\n");
 		if(c->winTributes) fprintf(f, "TRIBUTES_WINDOW_ENABLED\n");

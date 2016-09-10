@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 struct CTrigger
 {
 	int type;
@@ -44,6 +45,7 @@ struct COrder
 	GrowList<CTask *> tasks;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq;
+	CObjectDefinition *spawnBlueprint;
 };
 
 struct COrderAssignment

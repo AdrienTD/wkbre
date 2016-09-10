@@ -1004,6 +1004,7 @@ void Test7()
 			ProcessAllOrders();
 			CheckBattlesDelayedSequences();
 			UpdateContainerPos(levelobj);
+			UpdateClientsCam();
 		}
 //#endif
 		// Copy controlled client's camera to drawing/scene camera.

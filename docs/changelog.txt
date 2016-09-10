@@ -10,6 +10,11 @@ wkbre changelog:
   - bzip2 compressed files can now be decompressed.
 - The game time can now be locked.
 - ARMY objects always change their positions to the centre of its subordinates.
+- When game events are sent, individual reactions are first run, then intrinsic
+  reactions.
+- TERMINATE action improved.
+- Added REMOVE_MULTIPLAYER_PLAYER action.
+- CAMERA_PATH_IN_PROGRESS and CAMERA_INTERPOLATION_IN_PROGRESS loaded and saved.
 - Bug fixes...
 
 [0.0.4] 09/08/2016

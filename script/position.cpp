@@ -214,6 +214,17 @@ struct PositionFiringAttachmentPoint : public CPosition
 	}
 };
 
+struct PositionNearestValidStampdownPos : public CPosition
+{
+	CObjectDefinition *od; CPosition *p;
+	PositionNearestValidStampdownPos(CObjectDefinition *a, CPosition *b) : od(a), p(b) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		// TO IMPLEMENT
+		p->get(env, po);
+	}
+};
+
 CPosition *ReadCPosition(char ***wpnt)
 {
 	char **word = *wpnt; CPosition *cv;
@@ -273,6 +284,13 @@ CPosition *ReadCPosition(char ***wpnt)
 			return new PositionInFrontOf(f, ReadValue(wpnt));}
 		case POSITION_FIRING_ATTACHMENT_POINT:
 			*wpnt += 1; return new PositionFiringAttachmentPoint();
+		case POSITION_NEAREST_VALID_STAMPDOWN_POS:
+			{*wpnt += 1;
+			// Oddity in Auto Farm Peasant workaround.
+			if(!strcmp(**wpnt, "BUILDING")) *wpnt += 1;
+			int od = FindObjDef(CLASS_BUILDING, **wpnt); mustbefound(od);
+			CObjectDefinition *a = &objdef[od];
+			*wpnt += 1; return new PositionNearestValidStampdownPos(a, ReadCPosition(wpnt));}
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

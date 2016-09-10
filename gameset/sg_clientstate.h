@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+struct CCameraPath;
+
 struct ClientState
 {
 	goref obj;
@@ -21,6 +23,10 @@ struct ClientState
 	Vector3 camerapos, cameraori;
 	boolean winDiplomacy, winReport, winTributes;
 	Vector3 storedpos, storedori;
+
+	int cammode; // 0=free, 1=camPath, 2=camInterpol
+	CCameraPath *camPathInProgress; uint camPathTime;
+	Vector3 camInterpolPos, camInterpolOri; float camInterpolDur, camInterpolTime;
 };
 
 extern GrowList<ClientState> clistates;

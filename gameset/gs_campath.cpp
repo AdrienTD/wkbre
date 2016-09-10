@@ -2,8 +2,9 @@
 
 void ReadCCameraPath(char **pntfp, char **fstline)
 {
-	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
-	CCameraPath *c = &(gscamerapath[strCameraPath.find(fstline[1])]);
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords, strdex;
+	CCameraPath *c = &(gscamerapath[strdex = strCameraPath.find(fstline[1])]);
+	c->name = strCameraPath.getdp(strdex);
 	c->startAtCurCamPos = c->loopCamPath = 0;
 	while(**pntfp)
 	{
