@@ -14,6 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+struct MapPart
+{
+	int x, y, w, h; float minhi, maxhi;
+
+	IDirect3DVertexBuffer9 *vbuf;
+	IDirect3DIndexBuffer9 *ibuf;
+
+	float *glverts;
+	GLushort *glindices;
+};
+
 extern int mapwidth, mapheight, mapedge, mapfogcolor; extern float maphiscale;
 
 extern char lastmap[256];

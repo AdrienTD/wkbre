@@ -21,30 +21,20 @@ HWND hWindow = 0;
 char fpstbuf[256];
 bool keypressed[256];
 
-IDirect3D9 *d3d9; IDirect3DDevice9 *ddev = 0;
-D3DPRESENT_PARAMETERS dpp = {0, 0, D3DFMT_UNKNOWN, 0, D3DMULTISAMPLE_NONE, 0,
-	D3DSWAPEFFECT_DISCARD, 0, TRUE, TRUE, D3DFMT_D24X8, D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL, 0, 0/*D3DPRESENT_INTERVAL_IMMEDIATE*/};
 int scrw = 640, scrh = 480;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
 int mouseX = 0, mouseY = 0;
-int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 3;
+int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 3, reqRender = 1;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
 int fullscreen = 0;
 boolean lostdev = 0;
 
-void ReleaseDevice()
-{
-	if(ddev) ddev->Release();
-}
+IRenderer *renderer;
 
 void ResetDevice()
 {
-	//if(dxfont) DeinitFont();
-	HRESULT r = ddev->Reset(&dpp);
-	//if(FAILED(r)) ferr("D3D9 device reset failed.");
-	//if(dxfont) InitFont();
-	lostdev = 0;
+	renderer->Reset();
 }
 
 void CALLBACK OnSecond(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
@@ -121,9 +111,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			if((scrw == LOWORD(lParam)) && (scrh == HIWORD(lParam))) break;
 			//MessageBeep(64);
-			scrw = dpp.BackBufferWidth = LOWORD(lParam);
-			scrh = dpp.BackBufferHeight = HIWORD(lParam);
-			if(ddev && (!winMinimized)) ResetDevice(); break;
+			scrw = LOWORD(lParam);
+			scrh = HIWORD(lParam);
+			if(/*ddev && */ (!winMinimized)) ResetDevice(); break;
 		case WM_DESTROY:
 			PostQuitMessage(0); break;
 		case WM_PAINT:
@@ -161,42 +151,15 @@ void InitWindow()
 	int wstyle = fullscreen ? (WS_POPUP | WS_SYSMENU | WS_MINIMIZEBOX) : WS_OVERLAPPEDWINDOW;
 	if(!RegisterClass(&wndclass)) ferr("Class registration failed.");
 	AdjustWindowRect(&rect, wstyle, FALSE);
-	hWindow = CreateWindow(className, appName, wstyle, CW_USEDEFAULT, CW_USEDEFAULT,
+	hWindow = CreateWindow(className, appName, WS_CLIPCHILDREN | WS_CLIPSIBLINGS | wstyle, CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right-rect.left, rect.bottom-rect.top, NULL, NULL, hInstance, NULL);
 	if(!hWindow) ferr("Window creation failed.");
 	ShowWindow(hWindow, SW_SHOWNORMAL);
 	SetTimer(0, 0, 1000, OnSecond);
 
-	// Initializing Direct3D 9
-	dpp.hDeviceWindow = hWindow;
-	dpp.PresentationInterval = VSYNCenabled ? ((VSYNCenabled==2)?D3DPRESENT_INTERVAL_ONE:D3DPRESENT_INTERVAL_DEFAULT) : D3DPRESENT_INTERVAL_IMMEDIATE;
-	dpp.BackBufferCount = numBackBuffers;
-	dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
-	if(fullscreen)
-	{
-		dpp.BackBufferWidth = scrw;
-		dpp.BackBufferHeight = scrh;
-		dpp.Windowed = 0;
-		//dpp.FullScreen_RefreshRateInHz = 60;
-	}
-
-	d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
-	if(!d3d9) ferr("Direct3D 9 init failed.");
-	atexit(ReleaseDevice);
-
-	if(HWVPenabled)
-	{
-		if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
-		   D3DCREATE_HARDWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
-			return;
-		if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
-		   D3DCREATE_HARDWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
-			return;
-	}
-	if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
-	   D3DCREATE_SOFTWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) == D3D_OK)
-		return;
-	if(d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWindow,
-	   D3DCREATE_SOFTWARE_VERTEXPROCESSING /*| D3DCREATE_PUREDEVICE*/, &dpp, &ddev) != D3D_OK)
-		ferr("Direct3D 9 Device creation failed.");
+	if(reqRender == 2)
+		renderer = CreateOGL1Renderer();
+	else
+		renderer = CreateD3D9Renderer();
+	renderer->Init();
 }

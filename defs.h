@@ -407,8 +407,9 @@ extern char *OBJTYPE_str[14];
 #define SETTING_FULLSCREEN 10
 #define SETTING_SCREEN_SIZE 11
 #define SETTING_MULTI_BCP 12
-#define SETTING_NUM 13
-extern char *SETTING_str[13];
+#define SETTING_RENDERER 13
+#define SETTING_NUM 14
+extern char *SETTING_str[14];
 #define STASK_TRIGGER 0
 #define STASK_TARGET 1
 #define STASK_PROXIMITY 2

@@ -39,7 +39,8 @@ void DrawGfxConsole()
 	if(!gfxconon) return;
 	BeginDrawing();
 	InitRectDrawing();
-	ddev->SetTexture(0, cbav ? conbgnd.dd : 0);
+	if(cbav) SetTexture(0, conbgnd);
+	else     NoTexture(0);
 	DrawRect(0, 0, scrw, scrh, 0xFF808080);
 	for(uint i = 0; i < 128; i++)
 		if(conbuf[i])

@@ -18,7 +18,7 @@ struct texture
 {
 	union {
 		IDirect3DTexture9 *dd;
-		int gl;
+		GLuint gl;
 	};
 	texture() : dd(0) {}
 	boolean valid() {return dd?1:0;}

@@ -29,23 +29,7 @@ void ResetTexList()
 
 texture CreateTexture(Bitmap *bm, int mipmaps)
 {
-	Bitmap *c = bm;
-	if(bm->form != BMFORMAT_B8G8R8A8)
-		c = ConvertBitmapToB8G8R8A8(bm);
-
-	// D3D9 specific
-	IDirect3DTexture9 *dt; D3DLOCKED_RECT lore;
-	if(FAILED(ddev->CreateTexture(c->w, c->h, mipmaps, (mipmaps!=1)?D3DUSAGE_AUTOGENMIPMAP:0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &dt, NULL)))
-		ferr("Failed to create a D3D9 texture.");
-	dt->LockRect(0, &lore, NULL, 0);
-	for(int y = 0; y < c->h; y++)
-		memcpy( ((char*)(lore.pBits)) + y * lore.Pitch, c->pix + y * c->w * 4, c->w * 4);
-	dt->UnlockRect(0);
-	texture t; t.dd = dt;
-
-	if(bm->form != BMFORMAT_B8G8R8A8)
-		FreeBitmap(c);
-	return t;
+	return renderer->CreateTexture(bm, mipmaps);
 }
 
 texture LoadTexture(char *fn)
@@ -74,5 +58,5 @@ texture GetTexture(char *fn, int tc)
 
 void FreeTexture(texture t)
 {
-	t.dd->Release();
+	renderer->FreeTexture(t);
 }

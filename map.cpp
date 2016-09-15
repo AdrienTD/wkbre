@@ -19,34 +19,14 @@
 
 #include "global.h"
 
-//#define mpgetint(p) *(((int*)(p))++)
-
-struct MapPart
-{
-	int x, y, w, h; float minhi, maxhi;
-	IDirect3DVertexBuffer9 *vbuf;
-	IDirect3DIndexBuffer9 *ibuf;
-};
-
-D3DVERTEXELEMENT9 mapvdecli[] = {
- {0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
- {0, 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
- D3DDECL_END()
-};
-
 int mapwidth, mapheight, mapedge, mapnverts, mapfogcolor; float maphiscale;
 float *himap = 0;
-IDirect3DVertexDeclaration9 *dvdmap; IDirect3DVertexShader9 *dvsmap;
-//IDirect3DVertexBuffer9 *dvbmap;
-//IDirect3DIndexBuffer9 *dibmap;
 texture grass;
 char lastmap[256];
 
 GrowList<MapPart> mparts;
 uint mappartw = 32, mapparth = 32;
 uint npartsw, npartsh;
-
-//Matrix idmx = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 
 ///// Bit Reading /////
 char *bytepos; unsigned int bitpos = 0;
@@ -71,8 +51,6 @@ int readbyte()
 
 void InitMap()
 {
-	ddev->CreateVertexDeclaration(mapvdecli, &dvdmap);
-	//dvsmap = LoadVertexShader("map.vsh");
 	grass = GetTexture("grass.tga");
 }
 
@@ -83,7 +61,7 @@ void CloseMap()
 	for(int i = 0; i < mparts.len; i++)
 	{
 		MapPart *p = mparts.getpnt(i);
-		p->vbuf->Release(); p->ibuf->Release();
+		renderer->FreeMapPart(p);
 	}
 	mparts.clear();
 }
@@ -109,12 +87,7 @@ void LoadMapBCM(char *filename, int bitoff)
 	//for(int i = 0; i < bitoff; i++) readbit();
 	bytepos = fp + (bitoff / 8); bitpos = bitoff & 7;
 	for(int i = 0; i < mapnverts; i++)
-	{
-		//himap[i] = (float)((uchar)(*(fp++))) * maphiscale; // / 16.0f;
-		////himap[i] = (float)(( (((uchar)*fp)>>bitoff) | (((uchar)(*(fp-1)))<<(8-bitoff)) )&255) * maphiscale;
-		////fp++;
 		himap[i] = (float)((uchar)readbyte()) * maphiscale;
-	}
 
 	free(fcnt);
 
@@ -179,56 +152,20 @@ pcxreadend:
 
 void CreateMapPart(int x, int y, int w, int h)
 {
-	MapPart p; float *fb; ushort *sb;
-	p.x = x; p.y = y; p.w = w; p.h = h;
-	p.minhi = 255*maphiscale; p.maxhi = 0;
+	MapPart *p = mparts.addp();
+	p->x = x; p->y = y; p->w = w; p->h = h;
+	p->minhi = 255*maphiscale; p->maxhi = 0;
 
-	ddev->CreateVertexBuffer((w+1)*(h+1)*5*4, 0, 0, D3DPOOL_MANAGED, &p.vbuf, NULL);
-	p.vbuf->Lock(0, 0, (void**)&fb, 0);
-	float *fp = fb, m;
+	// Determinate minimum and maximum height.
 	for(int b = 0; b < h+1; b++)
 	for(int a = 0; a < w+1; a++)
 	{
-		*(fp++) = a+x;
-		m = *(fp++) = himap[(b+y)*(mapwidth+1)+(a+x)];
-		if(m > p.maxhi) p.maxhi = m;
-		if(m < p.minhi) p.minhi = m;
-		*(fp++) = b+y;
-
-		*(fp++) = a+x; *(fp++) = b+y;
+		float m = himap[(b+y)*(mapwidth+1)+(a+x)];
+		if(m > p->maxhi) p->maxhi = m;
+		if(m < p->minhi) p->minhi = m;
 	}
-	p.vbuf->Unlock();
 
-	ddev->CreateIndexBuffer(( (2*(w+1)+1)*h ) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &p.ibuf, NULL);
-	p.ibuf->Lock(0, 0, (void**)&sb, 0);
-	ushort *os = sb;
-
-	for(int cy = 0; cy < h; cy++)
-	{
-		if(!(cy&1))
-		{
-			for(int cx = 0; cx < w+1; cx++)
-			{
-				*(os++) = cy*(w+1)+cx;
-				*(os++) = (cy+1)*(w+1)+cx;
-				if(cx == w) *(os++) = (cy+1)*(w+1)+cx;
-			}
-		} else {
-			for(int cx = w+1-1; cx >= 0; cx--)
-			{
-				*(os++) = cy*(w+1)+cx;
-				*(os++) = (cy+1)*(w+1)+cx;
-				if(cx == 0) *(os++) = (cy+1)*(w+1)+cx;
-			}
-		}
-	}
-	//if(h & 1)
-	//	*(os++) = h*(w+1)+w;
-	//else
-	//	*(os++) = h*(w+1);
-	p.ibuf->Unlock();
-
-	mparts.add(p);
+	renderer->CreateMapPart(p, x, y, w, h);
 }
 
 void LoadMap(char *filename, int bitoff)
@@ -260,14 +197,9 @@ void LoadMap(char *filename, int bitoff)
 	}
 }
 
-// Between wkbre13 and wkbre19 both included, there was some old out-commented
-// code for terrain drawing at this place. Removed in wkbre20.
-
 void DrawPart(MapPart *p)
 {
-	ddev->SetStreamSource(0, p->vbuf, 0, 20);
-	ddev->SetIndices(p->ibuf);
-	ddev->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, (p->w+1)*(p->h+1), 0, (2*(p->w+1)+1)*p->h-2); //p->w*p->h*2+3*p->h);
+	renderer->DrawPart(p);
 }
 
 void CheckAndDrawPart(int px, int py)
@@ -278,20 +210,7 @@ void CheckAndDrawPart(int px, int py)
 
 void DrawMap()
 {
-	ddev->SetRenderState(D3DRS_LIGHTING, FALSE);
-	ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW);
-	ddev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-	ddev->SetRenderState(D3DRS_ZENABLE, TRUE);
-	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	ddev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	ddev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-
-	ddev->SetVertexDeclaration(dvdmap);
-	//ddev->SetVertexShader(dvsmap);
-	//ddev->SetVertexShaderConstantF(0, (float*)&matrix, 4);
-	ddev->SetVertexShader(0);
-	SetTransformMatrix(&matrix);
-	ddev->SetPixelShader(0);
+	renderer->BeginMapDrawing();
 	SetTexture(0, grass);
 
 	int cx = (int)camerapos.x / 5 + mapedge, cy = mapheight-2*mapedge-((int)camerapos.z / 5) + mapedge;
@@ -300,27 +219,11 @@ void DrawMap()
 
 	int sw = (farzvalue / (mappartw*5)) + 1;
 	int sh = (farzvalue / (mapparth*5)) + 1;
-	//_snprintf(statustextbuf, 128, "sw = %i, sh = %i", sw, sh);
-	//statustext = statustextbuf;
 
 	for(int dy = -sh; dy <= sh; dy++)
 	for(int dx = -sw; dx <= sw; dx++)
 		CheckAndDrawPart(px + dx, py + dy);
 }
-
-//int IsInFirstTri(float x, floay y) // x, y between 0 and 1
-//{
-//	return (x < (1.0f-y));
-//}
-
-/*void GetHeight(float x, float y)
-{
-	float a, b, ao, c, d, co, m; int u, v;
-	u = x; v = y;
-	a = x - u; b = 1.0f - a;
-	c = y - v; d = 1.0f - c;
-	
-}*/
 
 float GetHeight(float ipx, float ipy)
 {

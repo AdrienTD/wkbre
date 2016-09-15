@@ -21,7 +21,7 @@ extern char appName[];
 extern HWND hWindow;
 extern bool keypressed[256];
 extern int drawframes, objsdrawn;
-extern int HWVPenabled, VSYNCenabled;
+extern int HWVPenabled, VSYNCenabled, numBackBuffers, reqRender;
 extern IDirect3DDevice9 *ddev;
 extern int scrw, scrh;
 extern int mouseX, mouseY;
@@ -29,6 +29,9 @@ extern voidfunc onClickWindow;
 extern int winMinimized;
 extern int fullscreen;
 extern boolean lostdev;
+
+struct IRenderer;
+extern IRenderer *renderer;
 
 void ResetDevice();
 void HandleWindow();

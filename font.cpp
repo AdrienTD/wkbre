@@ -174,7 +174,7 @@ void Font::Draw(int sx, int y, char *str, int c)
 		Glyph *g = FindGlyph((uchar)*p);
 		if(!g)
 			{p++; continue;}
-		ddev->SetTexture(0, settex[g->set].dd);
+		SetTexture(0, settex[g->set]);
 		DrawRect(x, y, g->w, h, c, (float)g->x / 256.0f, (float)g->y / 256.0f, (float)g->w / 256.0f, (float)h / 256.0f);
 		x += g->a;
 		p++;

@@ -79,7 +79,7 @@ IDirect3DVertexShader9 *meshvsh;
 
 void InitScene()
 {
-	InitMap(); InitMeshDrawing();
+	InitMap(); //InitMeshDrawing();
 	//meshvsh = LoadVertexShader("mesh.vsh");
 	CreateIdentityMatrix(&mIdentity);
 }
@@ -164,7 +164,7 @@ void DrawObj(GameObject *o)
 			objsdrawn++;
 			SetMatrices(o->scale, -o->orientation, o->position);
 
-			Vector3 sphPos = o->position; //float ls;
+			Vector3 sphPos = o->position;
 			sphPos.y += msh->sphere[1] * o->scale.y;
 			if((newSelZ == -1) || (pntz < newSelZ))
 			if(SphereIntersectsRay(&sphPos, msh->sphere[3]*o->scale.y/2.0f, &raystart, &raydir))
@@ -172,20 +172,17 @@ void DrawObj(GameObject *o)
 
 			if((o->flags & FGO_SELECTED) || (currentSelection == o))
 			{
-				ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-				ddev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_BLENDFACTOR);
-				ddev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				renderer->EnableColorBlend();
 				if((o->flags & FGO_SELECTED) && (currentSelection == o))
-					ddev->SetRenderState(D3DRS_BLENDFACTOR, 0xFFFF00FF);
+					renderer->SetBlendColor(0xFFFF00FF);
 				else
-					ddev->SetRenderState(D3DRS_BLENDFACTOR, (currentSelection==o)?0xFFFF0000:0xFF0000FF);
+					renderer->SetBlendColor((currentSelection==o)?0xFFFF0000:0xFF0000FF);
 			}
-			//ddev->SetVertexShaderConstantF(0, (float*)&matrix, 4);
 			SetTransformMatrix(&matrix);
 
 			msh->draw(o->color);
 			if((o->flags & FGO_SELECTED) || (currentSelection == o))
-				ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				renderer->DisableColorBlend();
 		}
 	}
 
@@ -195,31 +192,21 @@ void DrawObj(GameObject *o)
 
 void SetFog()
 {
-	float f;
-	ddev->SetRenderState(D3DRS_FOGENABLE, TRUE);
-	ddev->SetRenderState(D3DRS_FOGCOLOR, mapfogcolor);
-	ddev->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_LINEAR);
-	f = farzvalue/2 /*0.9999998f*/; ddev->SetRenderState(D3DRS_FOGSTART, *(int*)&f);
-	f = farzvalue-8 /*0.9999999f*/; ddev->SetRenderState(D3DRS_FOGEND, *(int*)&f);
+	renderer->SetFog();
 }
 
 void DisableFog()
 {
-	ddev->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	renderer->DisableFog();
 }
 
 void DrawScene()
 {
-	ddev->GetViewport(&dvport);
-	//sprintf(statustextbuf, "viewport %i %i %i %i %f %f", dvport.X, dvport.Y, dvport.Width, dvport.Height, dvport.MinZ, dvport.MaxZ);
-
 	BeginMeshDrawing();
 	if(fogenabled) SetFog();
-	//ddev->SetVertexShader(meshvsh);
 	SetConstantMatrices();
 
 	newSelection = -1; SetMatrices(onevector, nullvector, nullvector); CalcRay();
-	//SetMatrices(onevector, nullvector, nullvector);
 	newSelZ = -1;
 	DrawObj(levelobj);
 	if(currentSelection.get() != newSelection.get())
@@ -238,7 +225,6 @@ if(experimentalKeys) {
 		if(stdownvalid)
 		{
 			SetMatrices(onevector, nullvector, stdownpos);
-			//ddev->SetVertexShaderConstantF(0, (float*)&matrix, 4);
 			SetTransformMatrix(&matrix);
 			objdef[od].subtypes[0].appear[0]->draw(0);
 			//sprintf(statustextbuf, "stdownpos = (%f, %f, %f)", stdownpos.x, stdownpos.y, stdownpos.z);
@@ -254,6 +240,7 @@ if(experimentalKeys) {
 	if(enableMap)
 	{
 		SetMatrices(Vector3(5.0f, 1.0f, -5.0f), nullvector, Vector3(-mapedge*5,0,+mapheight*5-mapedge*5));
+		SetTransformMatrix(&matrix);
 		DrawMap();
 	}
 	drawdebug = 0;

@@ -66,6 +66,8 @@ void ReadSettingsFile()
 				scrw = atoi(word[1]); scrh = atoi(word[2]); break;
 			case SETTING_MULTI_BCP:
 				allowBCPPatches = atoi(word[1]); break;
+			case SETTING_RENDERER:
+				reqRender = atoi(word[1]); break;
 		}
 	}
 

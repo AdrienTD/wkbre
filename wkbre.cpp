@@ -125,18 +125,20 @@ void SetModelMatrices()
 	MultiplyMatrices(&matWorld, &rotMatrix, &transMatrix);
 	//MultiplyMatrices(&matWorld, &matWorld, &scaleMatrix);
 	matWorld *= scaleMatrix;
-	ddev->SetTransform(D3DTS_WORLD, (D3DMATRIX*)&matWorld);
+	Matrix finalmatrix = matWorld;
 
 	Vector3 vEyePt( 0.0f, 18.0f,-20.0f );
 	Vector3 vLookatPt( 0.0f, 0.0f, 0.0f );
 	Vector3 vUpVec( 0.0f, 1.0f, 0.0f );
 	Matrix matView;
 	CreateLookAtLHViewMatrix( &matView, &vEyePt, &vLookatPt, &vUpVec );
-	ddev->SetTransform( D3DTS_VIEW, (D3DMATRIX*)&matView );
+	finalmatrix *= matView;
 
 	Matrix matProj;
 	CreatePerspectiveMatrix( &matProj, M_PI / 4, 1.0f, 1.0f, 100.0f );
-	ddev->SetTransform( D3DTS_PROJECTION, (D3DMATRIX*)&matProj );
+	finalmatrix *= matProj;
+
+	SetTransformMatrix(&finalmatrix);
 }
 
 void Test1()
@@ -196,7 +198,7 @@ void Test4()
 	InitWindow();
 	Mesh tm("Warrior Kings Game Set\\Characters\\Abaddon\\ABADDON_MOVE.MESH3");
 	Mesh tn("Warrior Kings Game Set\\Characters\\Michael\\MICHAEL1.MESH3");
-	InitMeshDrawing();
+	//InitMeshDrawing();
 	while(!appexit)
 	{
 		BeginDrawing();
@@ -253,7 +255,7 @@ void Test5()
 
 	getch();
 
-	InitMeshDrawing();
+	//InitMeshDrawing();
 	int a = FindObjDef(CLASS_BUILDING, "Manor");
 	while(!appexit)
 	{
@@ -1623,10 +1625,22 @@ void Test20()
 	Test7();
 }
 
-#define NUMTESTS 20
+void Test21()
+{
+	InitWindow();
+	while(!appexit)
+	{
+		BeginDrawing();
+		EndDrawing();
+		HandleWindow();
+		Sleep(1000/30);
+	}
+}
+
+#define NUMTESTS 21
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20};
+ Test18, Test19, Test20, Test21};
 
 #endif
 

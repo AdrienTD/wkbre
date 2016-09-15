@@ -16,55 +16,19 @@
 
 #include "global.h"
 
-D3DVERTEXELEMENT9 meshddve[] = {
-{0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
-{1, 0, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
-D3DDECL_END()
-};
-IDirect3DVertexDeclaration9 *meshddvd;
-
 inline uchar readchar(FILE *file) {return fgetc(file);}
 inline ushort readshort(FILE *file) {ushort a; fread(&a, 2, 1, file); return a;}
 inline uint readint(FILE *file) {uint a; fread(&a, 4, 1, file); return a;}
 inline float readfloat(FILE *file) {float a; fread(&a, 4, 1, file); return a;}
 inline void ignorestr(FILE *file) {while(fgetc(file));}
 
-void InitMeshDrawing()
-{
-	ddev->CreateVertexDeclaration(meshddve, &meshddvd);
-}
-
 //#define dbg(x) printf("%i, fp = %u\n", x, fp-fcnt)
 #define dbg(x) 
 
 void BeginMeshDrawing()
 {
-	ddev->SetVertexDeclaration(meshddvd);
-	ddev->SetRenderState(D3DRS_LIGHTING, FALSE);
-	ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
-	ddev->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-	ddev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
-	ddev->SetRenderState(D3DRS_ALPHAREF, 240);
-	ddev->SetRenderState(D3DRS_ZENABLE, TRUE);
-	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	ddev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	ddev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	ddev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+	renderer->BeginMeshDrawing();
 }
-
-/*Mesh *LoadAnim(char *fn)
-{
-	char *fcnt; int fsize; char mf[512];
-
-	strcpy(mf, fn);
-	char *c = strrchr(mf, '\\');
-	*(c+1) = 0;
-
-	LoadFile(fn, &fcnt, &fsize);
-	strcat(mf, fcnt+8);
-	free(fcnt);
-	return new Mesh(mf);
-}*/
 
 Mesh *LoadAnim(char *fn)
 {
@@ -203,40 +167,13 @@ Mesh::Mesh(char *fn)
 
 	free(fcnt);
 
-	ddev->CreateVertexBuffer(mverts.len*4, 0, 0, D3DPOOL_MANAGED, &dvbverts, 0);
-	ddev->CreateIndexBuffer(mindices.len*2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &dixbuf, 0);
-
-	void *buf;
-	dvbverts->Lock(0, mverts.len*4, &buf, 0);
-	memcpy(buf, mverts.gb.memory, mverts.len * 4);
-	dvbverts->Unlock();
-	dixbuf->Lock(0, mindices.len*2, &buf, 0);
-	memcpy(buf, mindices.gb.memory, mindices.len*2);
-	dixbuf->Unlock();
-
-	for(int i = 0; i < muvlist.len; i++)
-	{
-		IDirect3DVertexBuffer9 *ul;
-		ddev->CreateVertexBuffer(muvlist[i]->len*4, 0, 0, D3DPOOL_MANAGED, &ul, 0);
-		ul->Lock(0, muvlist[i]->len*4, &buf, 0);
-		memcpy(buf, muvlist[i]->gb.memory, muvlist[i]->len*4);
-		ul->Unlock();
-		dvbtexc.add(ul);
-	}
+	renderer->CreateMesh(this);
 
 	free(lstverts); free(lstuvlist);
 }
 
 void Mesh::draw(int iwtcolor)
 {
-	if((uint)iwtcolor >= dvbtexc.len) iwtcolor = 0;
-	ddev->SetStreamSource(0, dvbverts, 0, 12);
-	ddev->SetStreamSource(1, dvbtexc[iwtcolor], 0, 8);
-	ddev->SetIndices(dixbuf);
-	for(int g = 0; g < ngrp; g++)
-	{
-		ddev->SetRenderState(D3DRS_ALPHATESTENABLE, lstmatflags[g]?TRUE:FALSE);
-		SetTexture(0, lstmattex[g]);
-		ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, mgrpindex[g], mgrpindex[g+1]-mgrpindex[g]/*mstartix[g+1]-mstartix[g]*/, mstartix[g], (mstartix[g+1]-mstartix[g])/3);
-	}
+	if((uint)iwtcolor >= muvlist.len) iwtcolor = 0;
+	renderer->DrawMesh(this, iwtcolor);
 }

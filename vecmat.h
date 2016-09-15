@@ -87,6 +87,7 @@ int SphereIntersectsRay(Vector3 *sphPos, float radius, Vector3 *raystart, Vector
 struct Matrix
 {
 	union {
+		float v[16];
 		float m[4][4];
 		struct {
 			float _11, _12, _13, _14, _21, _22, _23, _24, 

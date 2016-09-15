@@ -394,7 +394,7 @@ char *OBJTYPE_str[14] = {
 "ARMY",
 "TERRAIN_ZONE",
 };
-char *SETTING_str[13] = {
+char *SETTING_str[14] = {
 "GAME_DIR",
 "FAR_Z_VALUE",
 "HARDWARE_VERTEX_PROCESSING",
@@ -408,6 +408,7 @@ char *SETTING_str[13] = {
 "FULLSCREEN",
 "SCREEN_SIZE",
 "MULTI_BCP",
+"RENDERER",
 };
 char *STASK_str[17] = {
 "TRIGGER",
