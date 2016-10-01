@@ -36,14 +36,13 @@ int readbit()
 	if(bitpos >= 8) {bitpos = 0; bytepos++;}
 	a = ((*bytepos) & (1<<bitpos))?1:0;
 	bitpos++;
-	if(bitpos >= 8) {bitpos = 0; bytepos++;}
+	//if(bitpos >= 8) {bitpos = 0; bytepos++;}
 	return a;
 }
-int readbyte()
+int readnb(int b)
 {
 	int a = 0, i;
-	//for(i = 7; i >= 0; i--)
-	for(i = 0; i < 8; i++)
+	for(i = 0; i < b; i++)
 		a |= readbit() << i;
 	return a;
 }
@@ -66,6 +65,15 @@ void CloseMap()
 	mparts.clear();
 }
 
+int GetMaxBits(int x)
+{
+	for(int i = 1; i < 32; i++)
+		if((1 << i) > x) // > sign (not >=) intentional!
+			return i;
+	//assert(0 & (int)"no max bits found");
+	return 0;
+}
+
 void LoadMapBCM(char *filename, int bitoff)
 {
 	char *fcnt, *fp; int fsize, strs;
@@ -78,19 +86,51 @@ void LoadMapBCM(char *filename, int bitoff)
 	strs = *(ushort*)fp; fp += 2 + strs;
 	maphiscale = *(float*)fp; fp += 28;
 	mapfogcolor = (*(uchar*)fp<<16) | ((*(uchar*)(fp+4))<<8) | (*(uchar*)(fp+8)); fp += 12;
+	strs = *(ushort*)fp; fp += 2 + strs;
 
 	mapnverts = (mapwidth+1)*(mapheight+1);
 	himap = (float*)malloc(mapnverts*sizeof(float));
 	if(!himap) ferr("No mem. left for heightmap.");
-	fp = fcnt + fsize - mapnverts;
-	//bytepos = fp; bitpos = 0;
-	//for(int i = 0; i < bitoff; i++) readbit();
-	bytepos = fp + (bitoff / 8); bitpos = bitoff & 7;
+
+	bytepos = fp + 0xC000; bitpos = 0;
+
+	// Lakes
+	int mapnlakes = readnb(6);
+	for(int i = 0; i < mapnlakes; i++)
+		{readnb(32); readnb(32); readnb(32); readnb(2);}
+
+	// Group name table
+	int nnames = readnb(16);
+	for(int i = 0; i < nnames; i++)
+		{int n = readnb(8);
+		for(int j = 0; j < n; j++) readnb(8);}
+
+	// ID table
+	int nids = readnb(16);
+	for(int i = 0; i < nids; i++)
+		readnb(32);
+
+	// Tiles
+	int ngrpbits = GetMaxBits(nnames);
+	int nidbits = GetMaxBits(nids);
+	for(int x = 0; x < mapwidth; x++)
+	for(int z = mapheight-1; z >= 0; z--)
+	{
+		readnb(ngrpbits); readnb(nidbits);
+		readnb(2); readbit(); readbit();
+	}
+
+	// ?
+	int nunk = readnb(32);
+	readnb(32); // this should return 0x62
+	for(int i = 0; i < nunk; i++)
+		{readnb(ngrpbits); readnb(nidbits);}
+
+	// Heightmap
 	for(int i = 0; i < mapnverts; i++)
-		himap[i] = (float)((uchar)readbyte()) * maphiscale;
+		himap[i] = (float)((uchar)readnb(8)) * maphiscale;
 
 	free(fcnt);
-
 }
 
 void LoadMapSNR(char *filename)

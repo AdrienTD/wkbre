@@ -1069,6 +1069,7 @@ struct EnodeFrontBackLeftRight : public Enode4V
 			case 2: return x->get(env);
 			case 3: return z->get(env);
 		}
+		printf("a = %f\n", a);
 		ferr("FBLR bug"); return 0;
 	}
 };

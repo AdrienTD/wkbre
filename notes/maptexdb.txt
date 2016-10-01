@@ -1,0 +1,107 @@
+// maptexdb
+
+struct MapTexture
+{
+	int id;
+	int x, y, w, h;
+	texture t;
+	int tfid;
+};
+
+struct MapTextureGroup
+{
+	char *name;
+	GrowList<MapTexture> tex;
+};
+
+GrowList<MapTextureGroup> maptexgroup;
+GrowStringList maptexfilenames;
+
+void TranslateMapTexture(char **name, int *x, int *y)
+{
+	;
+}
+
+void AddMapTexture(MapTextureGroup *g, char **word)
+{
+	MapTexture *t = g->tex.addp();
+	char *n = word[1];
+	t->x = atoi(word[2]); t->y = atoi(word[3]);
+	t->w = atoi(word[4]); t->h = atoi(word[5]);
+	t->id = atoi(word[6]);
+	TranslateMapTexture(&n, &t->x, &t->y);
+	t->t = LoadTexture(n);
+
+	int f = maptexfilenames.find(n);
+	if(f != -1) t->tfid = f;
+	else {
+		t->tfid = maptexfilenames.len;
+		maptexfilenames.add(n);
+	}
+}
+
+void ReadMapTexture(char **pntfp, char **fstline, MapTextureGroup *g)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	AddMapTexture(g, fstline);
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!strcmp(word[0], "END_TEXTURE"))
+			return;
+
+		if(!strcmp(word[0], "MATCHING"))
+			AddMapTexture(g, word);
+	}
+	ferr("UEOF");
+}
+
+void ReadMapTextureGroup(char **pntfp, char **fstline)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	MapTextureGroup *g = maptexgroup.addp();
+	g->name = strdup(fstline[1]);
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!strcmp(word[0], "END_GROUP"))
+			return;
+
+		if(!strcmp(word[0], "TEXTURE"))
+			ReadMapTexture(pntfp, word, g);
+	}
+	ferr("UEOF");
+}
+
+void LoadMapTextures()
+{
+	char *file; int fs;
+	LoadFile("Maps\\Map_Textures\\All_Textures.dat", &file, &fs, 1);
+	file[fs] = 0;
+
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	char *fp = file;
+	while(*fp)
+	{
+		fp = GetLine(fp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+
+		if(!strcmp(word[0], "TEXTURE_GROUP"))
+			ReadMapTextureGroup(&fp, word);
+	}
+
+	free(file);
+}
+
+//// to put in map.cpp ////
+
+struct MapTile
+{
+	MapTexture *t;
+	int rotation, xflip, yflip;
+};

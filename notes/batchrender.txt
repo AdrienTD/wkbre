@@ -1,0 +1,112 @@
+struct batchVertex
+{
+	float x, y, z;
+	int color;
+	float u, v;
+};
+
+int batchSize = 2048;
+
+IDirect3DVertexBuffer9 *batchvb;
+IDirect3DIndexBuffer9 *batchib;
+batchVertex *blockv; ushort *blocki;
+int actverts = 0;
+
+void Renderer::Init
+{
+	//...
+	ddev->CreateVertexBuffer(batchSize * batchVertex, D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &batchvb, NULL);
+	ddev->CreateIndexBuffer(batchSize * 2, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &batchib, NULL);
+
+void Renderer::NextMesh(int nverts, batchVertex **vpnt, ushort *ipnt, int *fi)
+{
+	if(nverts > batchSize) ferr("Mesh too big to fit in batch!");
+	if(actverts + nverts > batchSize)
+		{FlushBatch(); NewBatch();}
+	*vpnt = blockv + actverts;
+	*ipnt = blocki + actverts;
+	*fi = actverts;
+
+///////////
+
+struct RBatch
+{
+	uint maxverts, maxindis; //boolean hasib;
+	uint curverts, curindis;
+	uint nextverts, nextindis;
+
+	//RBatch(int mv = 1024, int mi = 1024) : maxverts(mv), maxindis(mi) {}
+
+	virtual void begin();
+	virtual void end();
+	virtual void flush();
+	virtual void next(int nverts, batchVertex **vpnt, ushort *ipnt, int *fi);
+};
+
+struct RBatchD3D9 : public RBatch
+{
+	IDirect3DVertexBuffer9 *vbuf;
+	IDirect3DIndexBuffer9 *ibuf;
+	batchVertex *vlock;
+	ushort *ilock;
+	boolean locked;
+};
+
+RBatch *CreateBatch(int mv, int mi)
+{
+	RBatch* b = new RBatchD3D9;
+	b->maxverts = mv; b->maxindis = mi;
+	ddev->CreateVertexBuffer(mv * sizeof(batchVertex), D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &b->vbuf, NULL);
+	ddev->CreateIndexBuffer(mi * 2, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &b->ibuf, NULL);
+}
+
+void lock()
+{
+	vbuf->Lock(0, maxverts * sizeof(batchVertex), &vlock, D3DLOCK_DISCARD);
+	ibuf->Lock(0, maxindis * 2, &ilock, D3DLOCK_DISCARD);
+	locked = 1;
+}
+
+void unlock()
+{
+	vbuf->Unlock(); ibuf->Unlock(); locked = 0;
+}
+
+void begin()
+{
+	lock();
+	curverts = curindis = nextverts = nextindis = 0;
+}
+
+void flush()
+{
+	if(!curverts) return;
+	unlock();
+	ddev->SetStreamSource(0, vbuf, 0, sizeof(batchVertex));
+	ddev->SetIndices(ibuf);
+	ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, curverts, 0, curindis / 3);
+	curverts = curindis = 0;
+}
+
+void end()
+{
+	if(curverts) flush();
+	if(locked) unlock();
+}
+
+void next(int nverts, int nindis, batchVertex **vpnt, ushort **ipnt, uint *fi)
+{
+	if(nverts > maxverts) ferr("Too many vertices to fit in the batch.");
+	if(nindis > maxindis) ferr("Too many indices to fit in the batch.");
+
+	nextverts = nverts; nextindis = nindis;
+	if((curverts + nverts > maxverts) || (curindis + nindis > maxindis))
+		flush();
+
+	if(!locked) lock();
+	*vpnt = vbuf + curverts;
+	*ipnt = ibuf + curindis;
+	*fi = curverts;
+
+	curverts += nverts; curindis += nindis;
+}

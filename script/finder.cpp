@@ -16,12 +16,45 @@
 
 #include "../global.h"
 
+GameObject *CFinder::getnext() {return _getnext();}
+
+GameObject *CFinder::defgetnext_nodis()
+{
+	GameObject *o;
+	while(o = _getnext())
+		if(!o->disableCount)
+			break;
+	return o;
+}
+
+GameObject *CFinder::defgetnext_noterm()
+{
+	GameObject *o;
+	while(o = _getnext())
+		if(!(o->flags & FGO_TERMINATED))
+			break;
+	return o;
+}
+
+GameObject *CFinder::defgetnext_nodisterm()
+{
+	GameObject *o;
+	while(o = _getnext())
+	{
+		if(o->disableCount) continue;
+		if(o->flags & FGO_TERMINATED) continue;
+		break;
+	}
+	return o;
+}
+
 /****** TEMPLATE ******
 struct FinderNew : public CFinder
 {
-	FinderNew() {}
+	FinderNew(...) {}
+	CFinder *clone() {return new FinderNew(...);}
 	void begin(SequenceEnv *env) {}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 	}
 };
@@ -31,7 +64,7 @@ struct FinderNew : public CFinder
 {
 	CFinder *clone() {return new FinderUnknown();}
 	void begin(SequenceEnv *env) {ferr("Cannot initialize a finder of unknown type.");}
-	GameObject *getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
+	GameObject *_getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
 };*/
 
 GrowStringList strUnknownFinder;
@@ -47,7 +80,7 @@ struct FinderUnknown : public CFinder
 		strcat(tb, " is unknown.");
 		ferr(tb);
 	}
-	GameObject *getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
+	GameObject *_getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
 };
 
 void FinderResToGB(CFinder *f, SequenceEnv *c, GrowList<goref> *l)
@@ -85,7 +118,7 @@ struct FinderUnion : public CFinder
 		for(int i = 0; i < num; i++)
 			f[i]->begin(env);
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(cur >= num) return 0;
 		GameObject *r;
@@ -103,7 +136,8 @@ struct FinderSpecificID : public CFinder
 	FinderSpecificID(int a) {id = a;}
 	CFinder *clone() {return new FinderSpecificID(id);}
 	void begin(SequenceEnv *env) {f = 1;}
-	GameObject *getnext() {if(f) {f = 0; return FindObjID(id);} return 0;}
+	GameObject *_getnext() {if(f) {f = 0; return FindObjID(id);} return 0;}
+	FINDER_NO_DISTERM
 };
 
 struct FinderIntersection : public CFinder
@@ -126,7 +160,7 @@ struct FinderIntersection : public CFinder
 	{
 		f[0]->begin(ctx = env);
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		GameObject *a, *b;
 		int inall;
@@ -155,7 +189,7 @@ struct FinderSelf : public CFinder
 	FinderSelf() {}
 	CFinder *clone() {return new FinderSelf();}
 	void begin(SequenceEnv *a) {f = 1; c = a;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -173,7 +207,7 @@ struct FinderSequenceExecutor : public CFinder
 	FinderSequenceExecutor() {}
 	CFinder *clone() {return new FinderSequenceExecutor();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -191,7 +225,7 @@ struct FinderTarget : public CFinder
 	FinderTarget() {}
 	CFinder *clone() {return new FinderTarget();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -215,7 +249,7 @@ struct FinderCreator : public CFinder
 	FinderCreator() {}
 	CFinder *clone() {return new FinderCreator();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -233,7 +267,7 @@ struct FinderCandidate : public CFinder
 	FinderCandidate() {}
 	CFinder *clone() {return new FinderCandidate();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -251,7 +285,7 @@ struct FinderPlayer : public CFinder
 	FinderPlayer() {}
 	CFinder *clone() {return new FinderPlayer();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -270,7 +304,7 @@ struct FinderController : public CFinder
 	FinderController() {}
 	CFinder *clone() {return new FinderController();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -293,7 +327,7 @@ struct FinderResults : public CFinder
 		if(f)	f->begin(c);
 		else	(f = finderdef[x]->clone())->begin(c);
 	}
-	GameObject *getnext() {return f->getnext();}
+	GameObject *_getnext() {return f->getnext();}
 };
 
 struct FinderChain : public CFinder
@@ -345,7 +379,7 @@ struct FinderChain : public CFinder
 		cotr = 0;
 	}
 
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(cotr >= rli->len) return 0;
 		return rli->getpnt(cotr++)->get();
@@ -358,7 +392,7 @@ struct FinderAlias : public CFinder
 	FinderAlias(int a) : t(a) {}
 	CFinder *clone() {return new FinderAlias(t);}
 	void begin(SequenceEnv *env) {e = alias[t].first;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(!e) return 0;
 		while(!e->value.valid()) {e = e->next; if(!e) return 0;}
@@ -366,6 +400,7 @@ struct FinderAlias : public CFinder
 		e = e->next;
 		return o;
 	}
+	FINDER_NO_DISTERM
 };
 
 int IsFSOResult(SequenceEnv *s, GameObject *o, int q, CObjectDefinition *d, int cl)
@@ -449,7 +484,7 @@ struct FinderSubordinates : public CFinder
 		fd->begin(ctx = env);
 		NextParent();
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		//printf("FinderSubordinates::getnext\n");
 
@@ -471,6 +506,7 @@ struct FinderSubordinates : public CFinder
 		//printf("----- FINDER_SUBORDINATES END -----\n");
 		return 0;
 	}
+	FINDER_NO_DISTERM
 };
 
 struct FinderAssociates : public CFinder
@@ -491,13 +527,15 @@ struct FinderAssociates : public CFinder
 		el = 0;
 	}
 
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(!el) return 0;
 		GameObject *o = el->value.o;
 		el = el->next;
 		return o;
 	}
+
+	FINDER_NO_DISTERM
 };
 
 struct FinderAssociators : public CFinder
@@ -518,13 +556,15 @@ struct FinderAssociators : public CFinder
 		el = 0;
 	}
 
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(!el) return 0;
 		GameObject *o = el->value.o;
 		el = el->next;
 		return o;
 	}
+
+	FINDER_NO_DISTERM
 };
 
 struct FinderPlayers : public CFinder
@@ -534,7 +574,7 @@ struct FinderPlayers : public CFinder
 	FinderPlayers(int a) : eq(a) {}
 	CFinder *clone() {return new FinderPlayers(eq);}
 	void begin(SequenceEnv *env) {env->copyAll(&c); n = levelobj->children.first;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		while(n)
 		{
@@ -556,7 +596,7 @@ struct FinderAgSelection : public CFinder
 	FinderAgSelection() {}
 	CFinder *clone() {return new FinderAgSelection();}
 	void begin(SequenceEnv *c) {e = selobjects.first;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(!e) return 0;
 		GameObject *o = e->value.get();
@@ -578,7 +618,7 @@ struct FinderFilter : public CFinder
 		if(v) max = v->get(env);
 		else max = -1;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(nomore) return 0;
 		if((max >= 0) && (robjs >= max)) {nomore = 1; return 0;}
@@ -603,7 +643,7 @@ struct FinderFilterCandidates : public CFinder
 	FinderFilterCandidates(CValue *a, CFinder *b) : v(a), f(b) {}
 	CFinder *clone() {return new FinderFilterCandidates(v, f->clone());}
 	void begin(SequenceEnv *c) {nomore = 0; env = c; f->begin(env);}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(nomore) return 0;
 		GameObject *o; SequenceEnv c;
@@ -626,7 +666,7 @@ struct FinderLevel : public CFinder
 	FinderLevel() {}
 	CFinder *clone() {return new FinderLevel();}
 	void begin(SequenceEnv *c) {f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f) {f = 0; return levelobj;}
 		return 0;
@@ -641,7 +681,7 @@ struct FinderNearestCandidate : public CFinder
 	FinderNearestCandidate(CFinder *a) : f(a) {}
 	CFinder *clone() {return new FinderNearestCandidate(f->clone());}
 	void begin(SequenceEnv *c) {f->begin(env = c); nomore = 0;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(nomore) return 0;
 		if(!env->self.valid()) {nomore = 1; return 0;}
@@ -657,6 +697,7 @@ struct FinderNearestCandidate : public CFinder
 		nomore = 1;
 		return c;
 	}
+	//FINDER_NO_???
 };
 
 struct FinderAlternative : public CFinder
@@ -678,7 +719,7 @@ struct FinderAlternative : public CFinder
 				{x = f[i]; nomore = 0; return;}
 		nomore = 1;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(nomore) return 0;
 		GameObject *tr = ne;
@@ -693,7 +734,7 @@ struct FinderPackageSender : public CFinder
 	FinderPackageSender() {}
 	CFinder *clone() {return new FinderPackageSender();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(f)
 		{
@@ -720,7 +761,7 @@ struct FinderTileRadius : public CFinder
 		ListObjsInTiles(x-r, z-r, 2*r+1, 2*r+1, &onm);
 		ob = 0;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		while(1)
 		{
@@ -736,6 +777,7 @@ struct FinderTileRadius : public CFinder
 			return a;
 		}
 	}
+	FINDER_NO_DISTERM
 };
 
 int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env);
@@ -755,7 +797,7 @@ struct FinderMetreRadius : public CFinder
 		ListObjsInTiles(x-r, z-r, 2*r+1, 2*r+1, &onm);
 		ob = 0;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		while(1)
 		{
@@ -782,6 +824,7 @@ struct FinderMetreRadius : public CFinder
 			return a;
 		}
 	}
+	FINDER_NO_DISTERM
 };
 
 struct FinderNearestToSatisfy : public CFinder
@@ -832,7 +875,7 @@ struct FinderNearestToSatisfy : public CFinder
 			}
 		}
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		if(nomore) return 0;
 		nomore = 1;
@@ -856,7 +899,7 @@ struct FinderDisabledAssociates : public CFinder
 		n = 0; return;
 daacfnd:	return;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		GameObject *r;
 		while(1)
@@ -869,6 +912,9 @@ daacfnd:	return;
 		}
 		return r;
 	}
+	// Do not filter out disabled objects.
+	// Note that FINDER_DISABLED_ASSOCIATES never returns terminated objects.
+	GameObject *getnext() {return _getnext();}
 };
 
 struct FinderGradeSelectCandidates : public CFinder
@@ -905,7 +951,7 @@ struct FinderGradeSelectCandidates : public CFinder
 		no = mx?mx->get(env):-1;
 		if(no <= 0) no = -1;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		goref g;
 		//__asm int 3
@@ -935,7 +981,7 @@ struct FinderReferencers : public CFinder
 		else
 			n = 0;
 	}
-	GameObject *getnext()
+	GameObject *_getnext()
 	{
 		while(n)
 		{
@@ -959,7 +1005,7 @@ struct FinderOrderGiver : public CFinder
 	FinderOrderGiver() {}
 	CFinder *clone() {return new FinderOrderGiver();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext() {
+	GameObject *_getnext() {
 		if(f)	{f = 0;
 			if(env->ogiver.valid()) return env->ogiver.get();}
 		return 0;
@@ -972,7 +1018,7 @@ struct FinderChainOriginalSelf : public CFinder
 	FinderChainOriginalSelf() {}
 	CFinder *clone() {return new FinderChainOriginalSelf();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext() {
+	GameObject *_getnext() {
 		if(f)	{f = 0;
 			if(env->originalself.valid()) return env->originalself.get();}
 		return 0;
@@ -985,7 +1031,7 @@ struct FinderPackageRelatedParty : public CFinder
 	FinderPackageRelatedParty() {}
 	CFinder *clone() {return new FinderPackageRelatedParty();}
 	void begin(SequenceEnv *c) {env = c; f = 1;}
-	GameObject *getnext() {
+	GameObject *_getnext() {
 		if(f)	{f = 0;
 			if(env->relatedparty.valid()) return env->relatedparty.get();}
 		return 0;
@@ -999,7 +1045,7 @@ struct FinderBeingTransferredToMe : public CFinder
 	FinderBeingTransferredToMe(CFinder *a) : f(a) {}
 	CFinder *clone() {return new FinderBeingTransferredToMe(f->clone());}
 	void begin(SequenceEnv *c) {;}
-	GameObject *getnext() {return 0;}
+	GameObject *_getnext() {return 0;}
 };
 
 struct FinderDiscoveredUnits : public CFinder
@@ -1009,7 +1055,8 @@ struct FinderDiscoveredUnits : public CFinder
 	CFinder *clone() {return new FinderDiscoveredUnits(oc);}
 	// TO IMPLEMENT
 	void begin(SequenceEnv *env) {}
-	GameObject *getnext() {return 0;}
+	GameObject *_getnext() {return 0;}
+	FINDER_NO_DISTERM
 };
 
 //////////////////////////////////////////////////////////////////////////
