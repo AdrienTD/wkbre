@@ -665,6 +665,22 @@ struct ValueAIControlled : public CValue
 	}
 };
 
+struct ValueMapWidth : public CValue
+{
+	valuetype get(SequenceEnv *env)
+	{
+		return (mapwidth - 2*mapedge) * 5;
+	}
+};
+
+struct ValueMapDepth : public CValue
+{
+	valuetype get(SequenceEnv *env)
+	{
+		return (mapheight - 2*mapedge) * 5;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -821,6 +837,10 @@ CValue *ReadValue(char ***wpnt)
 			return new ValueBuildingType(t, ReadFinder(wpnt));}
 		case VALUE_AI_CONTROLLED:
 			*wpnt += 1; return new ValueAIControlled(ReadFinder(wpnt));
+		case VALUE_MAP_WIDTH:
+			*wpnt += 1; return new ValueMapWidth();
+		case VALUE_MAP_DEPTH:
+			*wpnt += 1; return new ValueMapDepth();
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?

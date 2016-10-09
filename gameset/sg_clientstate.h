@@ -26,6 +26,7 @@ struct ClientState
 
 	int cammode; // 0=free, 1=camPath, 2=camInterpol
 	CCameraPath *camPathInProgress; uint camPathTime;
+	PosOri *curcpnodepos; uint *curcpnodetime, curcpmaxtime, curcpnn;
 	Vector3 camInterpolPos, camInterpolOri; float camInterpolDur, camInterpolTime;
 };
 

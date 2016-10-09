@@ -89,7 +89,7 @@ char *CBLUEPRINT_str[17] = {
 "BUILDING_TYPE",
 "CAN_SPAWN",
 };
-char *VALUE_str[39] = {
+char *VALUE_str[41] = {
 "CONSTANT",
 "DEFINED_VALUE",
 "ITEM_VALUE",
@@ -129,6 +129,8 @@ char *VALUE_str[39] = {
 "BUILDING_TYPE",
 "BUILDING_TYPE_OPERAND",
 "AI_CONTROLLED",
+"MAP_WIDTH",
+"MAP_DEPTH",
 };
 char *ENODE_str[24] = {
 "ADDITION",
@@ -195,7 +197,7 @@ char *FINDER_str[37] = {
 "FILTER_CANDIDATES",
 "NEAREST_CANDIDATE",
 };
-char *POSITION_str[13] = {
+char *POSITION_str[14] = {
 "CENTRE_OF_MAP",
 "LOCATION_OF",
 "OUT_AT_ANGLE",
@@ -209,6 +211,7 @@ char *POSITION_str[13] = {
 "IN_FRONT_OF",
 "FIRING_ATTACHMENT_POINT",
 "NEAREST_VALID_STAMPDOWN_POS",
+"OFFSET_FROM",
 };
 char *ACTION_str[95] = {
 "REMOVE",
@@ -394,7 +397,7 @@ char *OBJTYPE_str[14] = {
 "ARMY",
 "TERRAIN_ZONE",
 };
-char *SETTING_str[14] = {
+char *SETTING_str[15] = {
 "GAME_DIR",
 "FAR_Z_VALUE",
 "HARDWARE_VERTEX_PROCESSING",
@@ -409,6 +412,7 @@ char *SETTING_str[14] = {
 "SCREEN_SIZE",
 "MULTI_BCP",
 "RENDERER",
+"USE_MAP_TEXTURE_DATABASE",
 };
 char *STASK_str[17] = {
 "TRIGGER",

@@ -60,9 +60,10 @@ char *ReadClientState(char *fp, char **fstline)
 		else if(!stricmp(word[0], "CAMERA_PATH_IN_PROGRESS"))
 		{
 			int s = strCameraPath.find(word[1]); mustbefound(s);
-			c->camPathInProgress = &gscamerapath[s];
+			SetCameraPath(&gscamerapath[s], c->obj.get());
 			c->camPathTime = atoi(word[2]);
-			c->cammode = 1;
+			//c->camPathInProgress = &gscamerapath[s];
+			//c->cammode = 1;
 		}
 		else if(!stricmp(word[0], "CAMERA_INTERPOLATION_IN_PROGRESS"))
 		{

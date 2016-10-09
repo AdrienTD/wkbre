@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern Vector3 camerapos, vLAD;
-extern Matrix matrix;
+extern Matrix matrix, matView, mWorld;
 extern float farzvalue, occlurate;
 extern float camyaw, campitch;
 

@@ -147,7 +147,7 @@ void UpdateClientsCam()
 		switch(c->cammode)
 		{
 			case 1:
-				break;
+				UpdateCameraPath(c); break;
 			case 2:
 				{if(c->camInterpolTime < 0) c->camInterpolTime = 0;
 				if(c->camInterpolTime >= c->camInterpolDur)

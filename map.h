@@ -14,9 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+struct MapTile;
+struct MapTexture;
+
 struct MapPart
 {
 	int x, y, w, h; float minhi, maxhi;
+	DynList<MapTile*> *tpt;
 
 	IDirect3DVertexBuffer9 *vbuf;
 	IDirect3DIndexBuffer9 *ibuf;
@@ -25,13 +29,23 @@ struct MapPart
 	GLushort *glindices;
 };
 
+struct MapTile
+{
+	MapTexture *mt;
+	uint rot, xflip, zflip;
+	uint x, z;
+};
+
 extern int mapwidth, mapheight, mapedge, mapfogcolor; extern float maphiscale;
 
 extern char lastmap[256];
 
 extern float *himap;
+extern MapTile *maptiles;
 
 extern uint mappartw, mapparth;
+
+extern boolean usemaptexdb;
 
 void InitMap();
 void CloseMap();

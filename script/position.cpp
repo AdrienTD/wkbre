@@ -225,6 +225,19 @@ struct PositionNearestValidStampdownPos : public CPosition
 	}
 };
 
+struct PositionOffsetFrom : public CPosition
+{
+	CFinder *f; CValue *x, *y, *z;
+	PositionOffsetFrom(CFinder *a, CValue *b, CValue *c, CValue *d) : f(a), x(b), y(c), z(d) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		FinderToPosOri(po, f, env);
+		po->pos.x += x->get(env);
+		po->pos.y += y->get(env);
+		po->pos.z += z->get(env);
+	}
+};
+
 CPosition *ReadCPosition(char ***wpnt)
 {
 	char **word = *wpnt; CPosition *cv;
@@ -291,6 +304,13 @@ CPosition *ReadCPosition(char ***wpnt)
 			int od = FindObjDef(CLASS_BUILDING, **wpnt); mustbefound(od);
 			CObjectDefinition *a = &objdef[od];
 			*wpnt += 1; return new PositionNearestValidStampdownPos(a, ReadCPosition(wpnt));}
+		case POSITION_OFFSET_FROM:
+			{*wpnt += 1;
+			CFinder *f = ReadFinder(wpnt);
+			CValue *x = ReadValue(wpnt);
+			CValue *y = ReadValue(wpnt);
+			CValue *z = ReadValue(wpnt);
+			return new PositionOffsetFrom(f, x, y, z);}
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

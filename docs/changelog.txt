@@ -17,6 +17,11 @@ wkbre changelog:
 - CAMERA_PATH_IN_PROGRESS and CAMERA_INTERPOLATION_IN_PROGRESS loaded and saved.
 - Certain object finders will now avoid to return terminated or disabled objects.
 - BCM maps now always load correctly. No need to use the 9 & 0 keys anymore.
+- Map textures are now used.
+- Camera paths can now be played.
+- Added MAP_WIDTH and MAP_DEPTH value determinators.
+- Added OFFSET_FROM position determinator.
+- Invisible map parts behind the camera are no longer drawn.
 - Bug fixes...
 
 [0.0.4] 09/08/2016

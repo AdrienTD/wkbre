@@ -1,6 +1,7 @@
 // This is the settings file.
 
 GAME_DIR "C:\Program Files (x86)\Empire Interactive\Warrior Kings - Battles"
+//GAME_DIR "G:\agapps\wkdemo"
 
 FAR_Z_VALUE 250
 OCCLUSION_RATE 0.5
@@ -23,3 +24,4 @@ SCREEN_SIZE 640 480
 MULTI_BCP 1
 
 RENDERER 1
+USE_MAP_TEXTURE_DATABASE 1

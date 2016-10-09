@@ -16,6 +16,7 @@
 
 extern uint sysabstime;
 extern float game_speed;
+extern float petnormal, petgame;
 
 float GetElapsedTime();
 void InitTime();

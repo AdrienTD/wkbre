@@ -18,7 +18,7 @@
 #define BMFORMAT_R8G8B8 2
 #define BMFORMAT_B8G8R8 3
 #define BMFORMAT_R8G8B8A8 4
-#define BMFORMAT_B8G8R8A8 2
+#define BMFORMAT_B8G8R8A8 5
 #define CM_BGRA(r, g, b, a) ( (b) | ((g)<<8) | ((r)<<16) | ((a)<<24) )
 #define CM_RGBA(r, g, b, a) ( (r) | ((g)<<8) | ((b)<<16) | ((a)<<24) )
 

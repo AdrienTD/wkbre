@@ -62,6 +62,7 @@ struct BCPack
 	boolean loadFile(char *fn, char **out, int *outsize, int extraBytes);
 	boolean fileExists(char *fn);
 	void listFileNames(char *dn, GrowStringList *gsl);
+	void listDirectories(char *dn, GrowStringList *gsl);
 };
 
 char gamedir[384] = ".";
@@ -329,6 +330,15 @@ void BCPack::listFileNames(char *dn, GrowStringList *gsl)
 			gsl->add(ad->files[i].name);
 }
 
+void BCPack::listDirectories(char *dn, GrowStringList *gsl)
+{
+	BCPDirectory *ad = getDirectory(dn);
+	if(!ad) return;
+	for(int i = 0; i < ad->ndirs; i++)
+		if(!gsl->has(ad->dirs[i].name))
+			gsl->add(ad->dirs[i].name);
+}
+
 BCPack *mainbcp;
 
 void LoadBCP(char *fn)
@@ -435,5 +445,13 @@ GrowStringList *ListFiles(char *dn)
 			if(!gsl->has(fnd.cFileName))
 				gsl->add(fnd.cFileName);
 	} while(FindNextFile(hf, &fnd));
+	return gsl;
+}
+
+GrowStringList *ListDirectories(char *dn)
+{
+	GrowStringList *gsl = new GrowStringList;
+	for(int i = 0; i < bcpacks.len; i++)
+		bcpacks[i]->listDirectories(dn, gsl);
 	return gsl;
 }

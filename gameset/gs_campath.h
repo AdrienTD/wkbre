@@ -25,6 +25,10 @@ struct CCameraPath
 	char *name;
 	boolean startAtCurCamPos, loopCamPath;
 	GrowList<CamPathNode> nodes;
+	ActionSeq *postPlaySeq;
 };
 
 void ReadCCameraPath(char **pntfp, char **fstline);
+void SetCameraPath(CCameraPath *c, GameObject *o);
+void UpdateCameraPath(ClientState *s);
+void StopCameraPath(ClientState *s);

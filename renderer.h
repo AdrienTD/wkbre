@@ -14,6 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+struct batchVertex
+{
+	float x, y, z;
+	int color;
+	float u, v;
+};
+
+struct RBatch
+{
+	uint maxverts, maxindis;
+	uint curverts, curindis;
+
+	virtual ~RBatch() {}
+	virtual void begin() = 0;
+	virtual void end() = 0;
+	virtual void flush() = 0;
+	virtual void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi) = 0;
+};
+
 struct IRenderer
 {
 	// Initialisation
@@ -55,6 +74,10 @@ struct IRenderer
 	virtual void CreateMesh(Mesh *m) = 0;
 	virtual void BeginMeshDrawing() = 0;
 	virtual void DrawMesh(Mesh *m, int iwtcolor) = 0;
+
+	// Batch drawing
+	virtual RBatch *CreateBatch(int mv, int mi) = 0;
+	virtual void BeginBatchDrawing() = 0;
 };
 
 IRenderer *CreateD3D9Renderer();

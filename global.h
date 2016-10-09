@@ -137,6 +137,7 @@ extern "C" {
 #include "play/play.h"
 #include "play/otproc.h"
 #include "renderer.h"
+#include "maptexdb.h"
 
 extern GEContainer *actualpage;
 extern int appexit;

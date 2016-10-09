@@ -51,6 +51,16 @@ D3DVERTEXELEMENT9 mapvdecli[] = {
 };
 IDirect3DVertexDeclaration9 *dvdmap;
 
+///////////////
+// Batch
+D3DVERTEXELEMENT9 batchvdecl[] = {
+ {0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
+ {0, 12, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 0},
+ {0, 16, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
+ D3DDECL_END()
+};
+IDirect3DVertexDeclaration9 *dvdbatch;
+
 ////////////////////////////////
 ////////////////////////////////
 
@@ -58,6 +68,63 @@ void ReleaseDevice()
 {
 	if(ddev) ddev->Release();
 }
+
+struct RBatchD3D9 : public RBatch
+{
+	IDirect3DVertexBuffer9 *vbuf;
+	IDirect3DIndexBuffer9 *ibuf;
+	batchVertex *vlock;
+	ushort *ilock;
+	boolean locked;
+
+	~RBatchD3D9()
+	{
+		if(locked) unlock();
+		vbuf->Release();
+		ibuf->Release();
+	}
+
+	void lock()
+	{
+		vbuf->Lock(0, maxverts * sizeof(batchVertex), (void**)&vlock, D3DLOCK_DISCARD);
+		ibuf->Lock(0, maxindis * 2, (void**)&ilock, D3DLOCK_DISCARD);
+		locked = 1;
+	}
+	void unlock()
+	{
+		vbuf->Unlock(); ibuf->Unlock(); locked = 0;
+	}
+
+	void begin() {}
+	void end() {}
+
+	void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi)
+	{
+		if(nverts > maxverts) ferr("Too many vertices to fit in the batch.");
+		if(nindis > maxindis) ferr("Too many indices to fit in the batch.");
+
+		if((curverts + nverts > maxverts) || (curindis + nindis > maxindis))
+			flush();
+
+		if(!locked) lock();
+		*vpnt = vlock + curverts;
+		*ipnt = ilock + curindis;
+		*fi = curverts;
+
+		curverts += nverts; curindis += nindis;
+	}
+
+	void flush()
+	{
+		if(locked) unlock();
+		if(!curverts) return;
+		ddev->SetStreamSource(0, vbuf, 0, sizeof(batchVertex));
+		ddev->SetIndices(ibuf);
+		ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, curverts, 0, curindis / 3);
+		curverts = curindis = 0;
+	}
+	
+};
 
 struct D3D9Renderer : public IRenderer
 {
@@ -103,6 +170,8 @@ devok:
 
 	// InitMap
 	ddev->CreateVertexDeclaration(mapvdecli, &dvdmap);
+
+	ddev->CreateVertexDeclaration(batchvdecl, &dvdbatch);
 }
 
 void Reset()
@@ -389,6 +458,22 @@ void DisableColorBlend()
 void SetBlendColor(int c)
 {
 	ddev->SetRenderState(D3DRS_BLENDFACTOR, c);
+}
+
+RBatch *CreateBatch(int mv, int mi)
+{
+	RBatchD3D9* b = new RBatchD3D9;
+	b->maxverts = mv; b->maxindis = mi;
+	b->curverts = b->curindis = 0;
+	ddev->CreateVertexBuffer(mv * sizeof(batchVertex), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &b->vbuf, NULL);
+	ddev->CreateIndexBuffer(mi * 2, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &b->ibuf, NULL);
+	b->locked = 0;
+	return b;
+}
+
+void BeginBatchDrawing()
+{
+	ddev->SetVertexDeclaration(dvdbatch);
 }
 
 };

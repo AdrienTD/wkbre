@@ -1637,10 +1637,182 @@ void Test21()
 	}
 }
 
-#define NUMTESTS 21
+void Test22()
+{
+	int curgrp = 0; char tb[512];
+
+	printf("Use LTTT? ");
+	int uselt = atoi(gets(tb));
+
+	LoadBCP("data.bcp");
+	InitWindow();
+	InitFont();
+
+	if(uselt) LoadLTTT("Maps\\Map_Textures\\128_4Peaks.lttt");
+	LoadMapTextures();
+
+	//MessageBox(hWindow, "Terrain textures loaded.", appName, 64);
+	printf("%u groups:\n", maptexgroup.len);
+	for(int i = 0; i < maptexgroup.len; i++)
+	{
+		MapTextureGroup *g = maptexgroup.getpnt(i);
+		printf(" * %s\n", g->name);
+		printf("   %u textures:\n", g->tex->len);
+		for(int j = 0; j < g->tex->len; j++)
+			printf("    - %u\n", g->tex->getpnt(j)->id);
+	}
+	//texture t = GetTexture("Warrior Kings Game Set\\Textures\\Tavern.pcx");
+	while(!appexit)
+	{
+		BeginDrawing();
+		InitRectDrawing();
+
+		//SetTexture(0, maptexgroup.getpnt(0)->tex->getpnt(0)->t);
+		//SetTexture(0, t);
+		//DrawRect(0, 0, 256, 256, -1);
+
+		MapTextureGroup *g = maptexgroup.getpnt(curgrp);
+		sprintf(tb, "%s (%u/%u)", g->name, curgrp, maptexgroup.len);
+		DrawFont(0, 0, tb);
+		for(int i = 0; i < g->tex->len; i++)
+		{
+			MapTexture *t = g->tex->getpnt(i);
+			SetTexture(0, t->t);
+			DrawRect(i * 65, 32, 64, 64, -1, t->x / 256.f, t->y / 256.f, t->w / 256.f, t->h / 256.f);
+			sprintf(tb, "%u", t->id);
+			DrawFont(i * 65, 96, tb);
+		}
+
+		if(keypressed[VK_LEFT])
+		{
+			keypressed[VK_LEFT] = 0;
+			if(curgrp > 0) curgrp--;
+		}
+		if(keypressed[VK_RIGHT])
+		{
+			keypressed[VK_RIGHT] = 0;
+			if(curgrp < maptexgroup.len-1) curgrp++;
+		}
+
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+int AskMap(char *o, char *hs = 0)
+{
+	GrowStringList *sl = ListDirectories("Maps");
+	int x = ListDlgBox(sl, hs ? hs : "Select a map.", 0);
+	if(x == -1) return 0;
+	strcpy(o, "Maps\\");
+	strcat(o, sl->getdp(x));
+	strcat(o, "\\");
+	strcat(o, sl->getdp(x));
+	int e = strlen(o);
+	strcpy(o+e, ".bcm");
+	if(FileExists(o)) return 1;
+	strcpy(o+e, ".snr");
+	if(FileExists(o)) return 1;
+	MessageBox(hWindow, "The selected map directory does not contain a BCM nor a SNR file.", appName, 48);
+	return 0;
+}
+
+void Test23()
+{
+	int px = 0, pz = 0, ps = 64;
+
+	LoadBCP("data.bcp");
+	ReadLanguageFile();
+	InitWindow();
+	InitFont();
+	//LoadSaveGame("Save_Games\\Advanced Economy.lvl");
+	//LoadMap("Maps\\oritest.bcm");
+	char mn[512];
+	if(!AskMap(mn, "Select a map you want to view.")) return;
+	LoadMap(mn);
+
+	DynList<MapTile*> *ttlist = new DynList<MapTile*>[maptexfilenames.len];
+	for(int z = 0; z < mapheight; z++)
+	for(int x = 0; x < mapwidth; x++)
+	{
+		MapTile *t = &maptiles[z*mapwidth+x];
+		ttlist[t->mt->tfid].add(t);
+	}
+
+	while(!appexit)
+	{
+		BeginDrawing();
+		InitRectDrawing();
+
+		//RBatch *batch = renderer->CreateBatch(1024, 1536);
+		RBatch *batch = renderer->CreateBatch(2*8192, 3*8192);
+		renderer->BeginBatchDrawing();
+		Matrix mx; CreateZeroMatrix(&mx);
+		mx._11 = 2.0f / scrw; mx._22 = -2.0f / scrh;
+		mx._41 = -1 - (0.5f / (scrw)); mx._42 = 1 + (0.5f / (scrh));
+		//mx._41 = -1; mx._42 = 1;
+		mx._44 = 1;
+		renderer->SetTransformMatrix(&mx);
+
+		for(int i = 0; i < maptexfilenames.len; i++)
+		{
+			int tns = 1;
+			for(DynListEntry<MapTile*> *e = ttlist[i].first; e; e = e->next)
+			{
+				MapTile *c = e->value;
+				int dx = (c->x - px) * ps, dy = (c->z - pz) * ps;
+				if(((uint)dx >= scrw) || ((uint)dy >= scrh)) continue;
+				MapTexture *t = c->mt;
+				if(tns) {SetTexture(0, t->t); tns = 0;}
+
+				batchVertex *bv; ushort *bi; uint fi;
+				batch->next(4, 6, &bv, &bi, &fi);
+				int a = c->rot, f = ((c->zflip&1)?1:0) ^ ((c->xflip&1)?3:0);
+
+				bv[0].x = dx;			bv[0].y = dy;
+				bv[1].x = dx + ps;		bv[1].y = dy;
+				bv[2].x = dx + ps;		bv[2].y = dy + ps;
+				bv[3].x = dx;			bv[3].y = dy + ps;
+
+				bv[((0^f)+a)&3].u = t->x / 256.f;		bv[((0^f)+a)&3].v = t->y / 256.f;
+				bv[((1^f)+a)&3].u = (t->x+t->w) / 256.f;	bv[((1^f)+a)&3].v = t->y / 256.f;
+				bv[((2^f)+a)&3].u = (t->x+t->w) / 256.f;	bv[((2^f)+a)&3].v = (t->y+t->h) / 256.f;
+				bv[((3^f)+a)&3].u = t->x / 256.f;		bv[((3^f)+a)&3].v = (t->y+t->h) / 256.f;
+
+				for(int j = 0; j < 4; j++)
+					{bv[j].z = 0; bv[j].color = -1;
+					}//bv[j].x -= 0.5f; bv[j].y -= 0.5f;}
+					 // L-> this will drop FPS because it rereads the locked buffer!
+				bi[0] = fi+0; bi[1] = fi+1; bi[2] = fi+3;
+				bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;
+			}
+			batch->flush();
+		}
+		delete batch;
+
+		if(keypressed[VK_LEFT])
+			{keypressed[VK_LEFT] = 0; px--;}
+		if(keypressed[VK_RIGHT])
+			{keypressed[VK_RIGHT] = 0; px++;}
+		if(keypressed[VK_UP])
+			{keypressed[VK_UP] = 0; pz--;}
+		if(keypressed[VK_DOWN])
+			{keypressed[VK_DOWN] = 0; pz++;}
+		if(keypressed[VK_MULTIPLY])
+			{keypressed[VK_MULTIPLY] = 0; ps <<= 1;}
+		if(keypressed[VK_DIVIDE])
+			{keypressed[VK_DIVIDE] = 0; ps >>= 1;}
+		if(ps <= 0) ps = 1;
+
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+#define NUMTESTS 23
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20, Test21};
+ Test18, Test19, Test20, Test21, Test22, Test23};
 
 #endif
 

@@ -78,16 +78,16 @@ Bitmap *LoadTGA(char *data, int ds)
 Bitmap *LoadPCX(char *data, int ds)
 {
 	Bitmap *bm = new Bitmap;
+	int nplanes = (uchar)data[65];
+	if((uchar)data[3] != 8) ferr("PCX files that don't have 8 bits per channel are not supported.");
 	bm->w = *((ushort*)&(data[8])) - *((ushort*)&(data[4])) + 1;
 	bm->h = *((ushort*)&(data[10])) - *((ushort*)&(data[6])) + 1;
-	bm->form = BMFORMAT_P8;
-	bm->pix = (uchar*)malloc(bm->w * bm->h);
+	bm->form = (nplanes==3) ? BMFORMAT_R8G8B8 : BMFORMAT_P8;
+	bm->pix = (uchar*)malloc(bm->w * bm->h * nplanes);
 	int p = (bm->w & 1) ? (bm->w + 1) : bm->w;
-	//for(int y = 0; y < bm->h; y++)
-	//	memcpy(bm->pix + y * bm->w, data + 128 + y * p, bm->w);
 
 	uchar *f = (uchar*)data + 128, *o = bm->pix; int pp = 0;
-	while(pp < (bm->w * bm->h))
+	while(pp < (bm->w * bm->h * nplanes))
 	{
 		int a = *f++, c;
 		if(a >= 192)
@@ -95,9 +95,18 @@ Bitmap *LoadPCX(char *data, int ds)
 		else	c = 1;
 		for(; c > 0; c--)
 			{if(bm->w & 1)
-				if( ((uint)(o-bm->pix) % (bm->w+1)) == bm->w)	
+				if( (pp % (bm->w+1)) == bm->w)	
 					continue;
-			*o++ = a; pp++;}
+			if(bm->form == BMFORMAT_P8)
+				*o++ = a;
+			else if(bm->form == BMFORMAT_R8G8B8)
+			{
+				int pl = (pp / bm->w) % 3;
+				int oy = (pp / bm->w) / 3;
+				int ox = pp % bm->w;
+				bm->pix[(oy*bm->w+ox)*3+pl] = a;
+			}
+			pp++;}
 	}
 
 	bm->pal = (uchar*)malloc(768);

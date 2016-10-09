@@ -822,6 +822,7 @@ struct ActionSnapCameraToPosition : public CAction
 		while(o = f->getnext())
 		{
 			if(!o->client) continue;
+			StopCameraPath(o->client);
 			PosOri x; p->get(env, &x);
 			o->client->camerapos = x.pos;
 			o->client->cameraori = x.ori;
@@ -926,6 +927,7 @@ struct ActionSnapCameraToStoredPosition : public CAction
 		while(o = f->getnext())
 		{
 			if(!o->client) continue;
+			StopCameraPath(o->client);
 			o->client->camerapos = o->client->storedpos;
 			o->client->cameraori = o->client->storedori;
 		}
@@ -1109,12 +1111,35 @@ struct ActionInterpolateCameraToPosition : public CAction
 		while(o = f->getnext())
 		{
 			if(!o->client) continue;
+			StopCameraPath(o->client);
 			o->client->cammode = 2;
 			o->client->camInterpolPos = a.pos;
 			o->client->camInterpolOri = a.ori;
 			o->client->camInterpolDur = b;
 			o->client->camInterpolTime = 0;
 		}
+	}
+};
+
+struct ActionPlayCameraPath : public CAction
+{
+	CCameraPath *p; CFinder *f;
+	ActionPlayCameraPath(CCameraPath *a, CFinder *b) : p(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env); GameObject *o;
+		while(o = f->getnext()) if(o->client) SetCameraPath(p, o);
+	}
+};
+
+struct ActionStopCameraPathPlayback : public CAction
+{
+	CFinder *f;
+	ActionStopCameraPathPlayback(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env); GameObject *o;
+		while(o = f->getnext()) if(o->client) StopCameraPath(o->client);
 	}
 };
 
@@ -1373,6 +1398,13 @@ CAction *ReadAction(char **pntfp, char **word)
 			CPosition *a = ReadCPosition(&w);
 			CValue *b = ReadValue(&w);
 			return new ActionInterpolateCameraToPosition(a, b, ReadFinder(&w));}
+		case ACTION_PLAY_CAMERA_PATH:
+			{w += 3;
+			int x = strCameraPath.find(word[2]); mustbefound(x);
+			return new ActionPlayCameraPath(&(gscamerapath[x]), ReadFinder(&w));}
+		case ACTION_STOP_CAMERA_PATH_PLAYBACK:
+			{w += 2;
+			return new ActionStopCameraPathPlayback(ReadFinder(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -1390,8 +1422,6 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_SHOW_BLINKING_DOT_ON_MINIMAP:
 		case ACTION_ENABLE_GAME_INTERFACE:
 		case ACTION_DISABLE_GAME_INTERFACE:
-		case ACTION_PLAY_CAMERA_PATH:
-		case ACTION_STOP_CAMERA_PATH_PLAYBACK:
 		//case ACTION_INTERPOLATE_CAMERA_TO_POSITION:
 		case ACTION_SET_ACTIVE_MISSION_OBJECTIVES:
 		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY:

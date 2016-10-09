@@ -33,6 +33,39 @@ void OGL1Quit()
 		ChangeDisplaySettings(NULL, 0);
 }
 
+struct RBatchOGL1 : public RBatch
+{
+	batchVertex *vbuf; ushort *ibuf;
+
+	~RBatchOGL1() {delete [] vbuf; delete [] ibuf;}
+
+	void begin() {}
+	void end() {}
+
+	void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi)
+	{
+		if(nverts > maxverts) ferr("Too many vertices to fit in the batch.");
+		if(nindis > maxindis) ferr("Too many indices to fit in the batch.");
+		if((curverts + nverts > maxverts) || (curindis + nindis > maxindis))
+			flush();
+
+		*vpnt = vbuf + curverts;
+		*ipnt = ibuf + curindis;
+		*fi = curverts;
+
+		curverts += nverts; curindis += nindis;
+	}
+
+	void flush()
+	{
+		if(!curverts) return;
+		glVertexPointer(3, GL_FLOAT, sizeof(batchVertex), &vbuf->x);
+		glTexCoordPointer(2, GL_FLOAT, sizeof(batchVertex), &vbuf->u);
+		glDrawElements(GL_TRIANGLES, curindis, GL_UNSIGNED_SHORT, ibuf);
+		curverts = curindis = 0;
+	}
+};	
+
 struct OGL1Renderer : public IRenderer
 {
 
@@ -351,6 +384,25 @@ void DrawMesh(Mesh *m, int iwtcolor)
 		glBindTexture(GL_TEXTURE_2D, m->lstmattex[g].gl);
 		glDrawElements(GL_TRIANGLES, m->mstartix[g+1]-m->mstartix[g], GL_UNSIGNED_SHORT, ((short*)m->mindices.gb.memory) + m->mstartix[g]);
 	}
+}
+
+RBatch *CreateBatch(int mv, int mi)
+{
+	//ferr("Batch unsupported in OpenGL driver.");
+	RBatchOGL1 *b = new RBatchOGL1;
+	b->maxverts = mv; b->maxindis = mi;
+	b->curverts = b->curindis = 0;
+	b->vbuf = new batchVertex[mv];
+	b->ibuf = new ushort[mi];
+	return b;
+}
+
+void BeginBatchDrawing()
+{
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glColor4ub(255, 255, 255, 255);
 }
 
 };

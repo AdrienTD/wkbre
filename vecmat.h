@@ -75,6 +75,7 @@ void CreateRotationYMatrix(Matrix *m, float a);
 void CreateRotationZMatrix(Matrix *m, float a);
 void MultiplyMatrices(Matrix *m, Matrix *a, Matrix *b);
 void TransposeMatrix(Matrix *m, Matrix *a);
+void TransformVector3(Vector3 *v, Vector3 *a, Matrix *m);
 void TransformNormal3(Vector3 *v, Vector3 *a, Matrix *m);
 void CreatePerspectiveMatrix(Matrix *m, float fovy, float aspect, float zn, float zf);
 void CreateLookAtLHViewMatrix(Matrix *m, Vector3 *eye, Vector3 *at, Vector3 *up);
