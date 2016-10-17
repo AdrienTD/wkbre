@@ -33,6 +33,10 @@ Matrix mIdentity;
 int enableMap = 1, drawdebug = 1;
 int fogenabled = 0, showrepresentations = 0;
 
+boolean meshbatching = 0;
+GrowList<GameObject*> *oobm[2];
+RBatch *mshbatch;
+
 void SetConstantMatrices()
 {
 	Vector3 vCamDir = Vector3(0.0f, 0.0f, 5.0f);
@@ -72,6 +76,57 @@ void SetMatrices(Vector3 is, Vector3 ir, Vector3 it)
 	//ddev->SetTransform( D3DTS_WORLD, &matrix );
 
 	//mWorldMulView = mWorld * matView;
+}
+
+void InitOOBMList()
+{
+	if(!meshbatching) return;
+	for(int i = 0; i < 2; i++)
+		oobm[i] = new GrowList<GameObject*>[strMaterials.len];
+	mshbatch = renderer->CreateBatch(16384, 25000);
+}
+
+void DrawOOBM()
+{
+	renderer->BeginBatchDrawing();
+	SetTransformMatrix(&vpmatrix);
+	for(int t = 0; t < strMaterials.len; t++)
+	{
+		int txset = 0;
+		for(int a = 0; a < 2; a++)
+		{
+			int afset = 0;
+			GrowList<GameObject*> *l = &((oobm[a])[t]);
+
+			for(int i = 0; i < l->len; i++)
+			{
+				GameObject *o = l->get(i);
+
+				int dif = -1;
+				if((o->flags & FGO_SELECTED) || (currentSelection == o))
+				{
+					if((o->flags & FGO_SELECTED) && (currentSelection == o))
+						dif = 0xFFFF00FF;
+					else
+						dif = (currentSelection==o)?0xFFFF0000:0xFF0000FF;
+				}
+
+				Mesh *msh = o->objdef->subtypes[o->subtype].appear[o->appearance];
+				for(int g = 0; g < msh->ngrp; g++)
+					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
+					{
+						if(!txset) {txset = 1; SetTexture(0, msh->lstmattex[g]);}
+						if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
+						SetMatrices(o->scale, -o->orientation, o->position);
+						msh->drawInBatch(mshbatch, g, o->color, dif);
+					}
+			}
+
+			l->clear();
+			mshbatch->flush();
+		}
+		mshbatch->flush();
+	}
 }
 
 //GrowList<GameObject*> visobj;	// Visible objects
@@ -170,19 +225,26 @@ void DrawObj(GameObject *o)
 			if(SphereIntersectsRay(&sphPos, msh->sphere[3]*o->scale.y/2.0f, &raystart, &raydir))
 				{newSelection = o; newSelZ = pntz;}
 
-			if((o->flags & FGO_SELECTED) || (currentSelection == o))
+			if(!meshbatching)
 			{
-				renderer->EnableColorBlend();
-				if((o->flags & FGO_SELECTED) && (currentSelection == o))
-					renderer->SetBlendColor(0xFFFF00FF);
-				else
-					renderer->SetBlendColor((currentSelection==o)?0xFFFF0000:0xFF0000FF);
+				if((o->flags & FGO_SELECTED) || (currentSelection == o))
+				{
+					renderer->EnableColorBlend();
+					if((o->flags & FGO_SELECTED) && (currentSelection == o))
+						renderer->SetBlendColor(0xFFFF00FF);
+					else
+						renderer->SetBlendColor((currentSelection==o)?0xFFFF0000:0xFF0000FF);
+				}
+				SetTransformMatrix(&matrix);
+				msh->draw(o->color);
+				if((o->flags & FGO_SELECTED) || (currentSelection == o))
+					renderer->DisableColorBlend();
 			}
-			SetTransformMatrix(&matrix);
-
-			msh->draw(o->color);
-			if((o->flags & FGO_SELECTED) || (currentSelection == o))
-				renderer->DisableColorBlend();
+			else
+			{
+				for(int i = 0; i < msh->ngrp; i++)
+					(oobm[msh->lstmatflags[i]&1])[msh->lstmattid[i]].add(o);
+			}
 		}
 	}
 
@@ -214,6 +276,8 @@ void DrawScene()
 		currentSelection = newSelection;
 		//printf("New selection: %i\n", newSelection);
 	}
+
+	if(meshbatching) DrawOOBM();
 
 if(experimentalKeys) {
 	// Stampdown

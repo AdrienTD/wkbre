@@ -52,6 +52,7 @@ struct CObjectDefinition
 	Mesh *representation;
 	GrowList<CCommand*> offeredCmds;
 	int buildingType;
+	int movSpeedEq;
 
 	void *operator new(size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}
 	void *operator new[](size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}

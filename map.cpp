@@ -400,7 +400,8 @@ else
 	//RBatch *batch = renderer->CreateBatch(2*8192, 3*8192);
 	//RBatch *batch = renderer->CreateBatch(2*768, 3*768);
 	//RBatch *batch = renderer->CreateBatch(2*400, 3*400);
-	RBatch *batch = renderer->CreateBatch(2*1024, 3*1024);
+	//RBatch *batch = renderer->CreateBatch(2*1024, 3*1024);
+	RBatch *batch = renderer->CreateBatch(4*1024, 6*1024);
 	renderer->BeginBatchDrawing();
 
 	for(int i = 0; i < maptexfilenames.len; i++)

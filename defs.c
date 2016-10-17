@@ -70,7 +70,7 @@ char *CCOMMAND_str[5] = {
 "BLUEPRINT_TOOLTIP",
 "START_SEQUENCE",
 };
-char *CBLUEPRINT_str[17] = {
+char *CBLUEPRINT_str[18] = {
 "ITEM",
 "STARTS_WITH_ITEM",
 "BLUEPRINT_TOOLTIP",
@@ -88,8 +88,9 @@ char *CBLUEPRINT_str[17] = {
 "REPRESENT_AS",
 "BUILDING_TYPE",
 "CAN_SPAWN",
+"MOVEMENT_SPEED_EQUATION",
 };
-char *VALUE_str[41] = {
+char *VALUE_str[42] = {
 "CONSTANT",
 "DEFINED_VALUE",
 "ITEM_VALUE",
@@ -131,6 +132,7 @@ char *VALUE_str[41] = {
 "AI_CONTROLLED",
 "MAP_WIDTH",
 "MAP_DEPTH",
+"GRADIENT_IN_FRONT",
 };
 char *ENODE_str[24] = {
 "ADDITION",
@@ -397,7 +399,7 @@ char *OBJTYPE_str[14] = {
 "ARMY",
 "TERRAIN_ZONE",
 };
-char *SETTING_str[15] = {
+char *SETTING_str[16] = {
 "GAME_DIR",
 "FAR_Z_VALUE",
 "HARDWARE_VERTEX_PROCESSING",
@@ -413,6 +415,7 @@ char *SETTING_str[15] = {
 "MULTI_BCP",
 "RENDERER",
 "USE_MAP_TEXTURE_DATABASE",
+"MESH_BATCHING",
 };
 char *STASK_str[17] = {
 "TRIGGER",

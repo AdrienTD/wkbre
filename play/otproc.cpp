@@ -31,7 +31,14 @@ void ObjStepMove(GameObject *o, Vector3 dest, float mindist)
 	if(l < mindist) return;
 	v /= l; v.y = 0;
 
-	o->position += v * elapsed_time * 2;
+	float ms = 1;
+	if(o->objdef->movSpeedEq != -1)
+	{
+		SequenceEnv env; env.self = o;
+		ms = equation[o->objdef->movSpeedEq]->get(&env);
+	}
+
+	o->position += v * elapsed_time * ms;   // * 2;
 	//if((dest-o->position).sqlen2xz() > l*l) o->position = dest;
 	o->position.y = GetHeight(o->position.x, o->position.z);
 

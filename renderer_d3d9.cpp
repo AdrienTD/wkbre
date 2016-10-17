@@ -435,12 +435,12 @@ void DisableFog()
 
 void EnableAlphaTest()
 {
-	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+	ddev->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 }
 
 void DisableAlphaTest()
 {
-	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	ddev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 }
 
 void EnableColorBlend()

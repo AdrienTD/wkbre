@@ -681,6 +681,17 @@ struct ValueMapDepth : public CValue
 	}
 };
 
+struct ValueGradientInFront : public CValue
+{
+	CFinder *f;
+	ValueGradientInFront(CFinder *a) : f(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT (only seen in WK1)
+		return 0;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -841,6 +852,8 @@ CValue *ReadValue(char ***wpnt)
 			*wpnt += 1; return new ValueMapWidth();
 		case VALUE_MAP_DEPTH:
 			*wpnt += 1; return new ValueMapDepth();
+		case VALUE_GRADIENT_IN_FRONT:
+			*wpnt += 1; return new ValueGradientInFront(ReadFinder(wpnt));
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?

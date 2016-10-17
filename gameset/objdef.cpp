@@ -163,6 +163,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		memset(objdef[x].valueTagInterpret, 0, strValueTag.len * sizeof(CValue*));
 		objdef[x].representation = 0;
 		objdef[x].buildingType = -1;
+		objdef[x].movSpeedEq = -1;
 	}
 
 	while(*fp)
@@ -260,6 +261,9 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				if(i != -1)
 					objdef[x].offeredCmds.add(&(gscommand[i]));
 				break;}
+			case CBLUEPRINT_MOVEMENT_SPEED_EQUATION:
+				objdef[x].movSpeedEq = strEquation.find(word[1]);
+				break;
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

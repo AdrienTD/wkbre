@@ -997,6 +997,8 @@ void Test7()
 
 	ChangeCursor(defcursor = LoadCursor("Interface\\C_DEFAULT.TGA"));
 
+	InitOOBMList();
+
 	while(!appexit)
 	{
 //#ifndef WKBRE_RELEASE
@@ -1213,9 +1215,14 @@ void Test7()
 			keypressed['W'] = 0;
 			//GameObject *a = FindObjID(3102);
 			//if(a) printf("Got %i\n", a->id);
+/*
 			int t = FindObjDef(CLASS_MARKER, "Standard");
 			for(int i = 0; i < 16384; i++)
 				CreateObject(&objdef[t], levelobj);
+*/
+			printf("%i material textures:\n", strMaterials.len);
+			for(int i = 0; i < strMaterials.len; i++)
+				printf(" - %s\n", strMaterials.getdp(i));
 		}
 #endif
 		if(keypressed['A'])

@@ -27,6 +27,9 @@ extern int showrepresentations;
 
 extern Vector3 stdownpos; extern int stdownvalid;
 
+extern boolean meshbatching;
+
+void InitOOBMList();
 void MakeVisObjList();
 void InitScene();
 void DrawScene();

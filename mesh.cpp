@@ -16,6 +16,8 @@
 
 #include "global.h"
 
+GrowStringList strMaterials;
+
 inline uchar readchar(FILE *file) {return fgetc(file);}
 inline ushort readshort(FILE *file) {ushort a; fread(&a, 2, 1, file); return a;}
 inline uint readint(FILE *file) {uint a; fread(&a, 4, 1, file); return a;}
@@ -100,10 +102,19 @@ Mesh::Mesh(char *fn)
 	int nmat = *(ushort*)fp; fp += 2;
 	lstmatflags = (int*)malloc(nmat*sizeof(int));
 	lstmattex = (texture*)malloc(nmat*sizeof(texture));
+	lstmattid = (int*)malloc(nmat*sizeof(int));
 	for(i = 0; i < nmat; i++)
 	{
 		char *s = new char[256]; char *p = s;
 		lstmatflags[i] = *(uchar*)fp; fp++;
+
+		int tid = strMaterials.find(fp);
+		if(tid != -1)
+			lstmattid[i] = tid;
+		else
+			{lstmattid[i] = strMaterials.len;
+			strMaterials.add(fp);}
+
 		strcpy(s, "Warrior Kings Game Set\\Textures\\");
 		p = s + strlen(s);
 		while(*(p++) = *(fp++));
@@ -176,4 +187,26 @@ void Mesh::draw(int iwtcolor)
 {
 	if((uint)iwtcolor >= muvlist.len) iwtcolor = 0;
 	renderer->DrawMesh(this, iwtcolor);
+}
+
+void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif)
+{
+	if((uint)uvl >= muvlist.len) uvl = 0;
+	int sv = mgrpindex[grp+1] - mgrpindex[grp];
+	int si = mstartix[grp+1] - mstartix[grp];
+	batchVertex *vp; ushort *ip; uint fi;
+	batch->next(sv, si, &vp, &ip, &fi);
+
+	for(int i = mgrpindex[grp]; i < mgrpindex[grp+1]; i++)
+	{
+		Vector3 p(mverts[i*3], mverts[i*3+1], mverts[i*3+2]), t;
+		TransformVector3(&t, &p, &mWorld);
+		vp->x = t.x; vp->y = t.y; vp->z = t.z;
+		vp->color = dif;
+		vp->u = muvlist[uvl]->get(i*2); vp->v = muvlist[uvl]->get(i*2+1);
+		vp++;
+	}
+
+	for(int i = mstartix[grp]; i < mstartix[grp+1]; i++)
+		*(ip++) = mindices[i] - mgrpindex[grp] + fi;
 }

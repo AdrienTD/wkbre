@@ -16,8 +16,12 @@
 
 #define dbg(a) 
 
+extern GrowStringList strMaterials;
+
 void InitMeshDrawing();
 void BeginMeshDrawing();
+
+struct RBatch;
 
 class Mesh
 {
@@ -27,6 +31,7 @@ public:
 	texture *lstmattex;
 	float **lstuvlist;
 	//GrowList<GrowList<int>*> lstgroup;
+	int *lstmattid;
 
 	GrowList<float> mverts;
 	GrowList<GrowList<float>*> muvlist;
@@ -43,6 +48,7 @@ public:
 	Mesh(char *fn);
 
 	void draw(int iwtcolor = 0);
+	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0);
 };
 
 Mesh *LoadAnim(char *fn);

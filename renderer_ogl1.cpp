@@ -223,12 +223,12 @@ void DisableFog()
 
 void EnableAlphaTest()
 {
-	;
+	glEnable(GL_ALPHA_TEST);
 }
 
 void DisableAlphaTest()
 {
-	;
+	glDisable(GL_ALPHA_TEST);
 }
 
 void EnableColorBlend()

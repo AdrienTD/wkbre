@@ -70,6 +70,8 @@ void ReadSettingsFile()
 				reqRender = atoi(word[1]); break;
 			case SETTING_USE_MAP_TEXTURE_DATABASE:
 				usemaptexdb = atoi(word[1]); break;
+			case SETTING_MESH_BATCHING:
+				meshbatching = atoi(word[1]); break;
 		}
 	}
 
