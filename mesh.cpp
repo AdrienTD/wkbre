@@ -87,10 +87,20 @@ Mesh::Mesh(char *fn)
 	fp += 16;
 
 	// Remapper
+	int nremap;
 	if(ver < 4)
 	{
-		i = *(ushort*)fp; fp += 2;
-		fp += 2 * i;
+		nremap = *(ushort*)fp; fp += 2;
+		remapper = new uint[nremap];
+		for(int i = 0; i < nremap; i++)
+			{remapper[*(ushort*)fp] = i; fp += 2;}
+	}
+	else
+	{
+		nremap = nverts;
+		remapper = new uint[nremap];
+		for(int i = 0; i < nremap; i++)
+			remapper[i] = i;
 	}
 
 	// Normals
@@ -147,6 +157,7 @@ Mesh::Mesh(char *fn)
 		for(int j = 0; j < sg; j++)
 		{
 			int v = *(ushort*)fp; fp += 2;
+			iverts.add(v);
 			for(int k = 0; k < 3; k++)
 				mverts.add(lstverts[v*3+k]);
 			fp += 2; // Index to normal list
@@ -202,6 +213,7 @@ void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif)
 		Vector3 p(mverts[i*3], mverts[i*3+1], mverts[i*3+2]), t;
 		TransformVector3(&t, &p, &mWorld);
 		vp->x = t.x; vp->y = t.y; vp->z = t.z;
+		//vp->x = 0; vp->y = 0; vp->z = 0;
 		vp->color = dif;
 		vp->u = muvlist[uvl]->get(i*2); vp->v = muvlist[uvl]->get(i*2+1);
 		vp++;

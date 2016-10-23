@@ -84,6 +84,7 @@ void InitOOBMList()
 	for(int i = 0; i < 2; i++)
 		oobm[i] = new GrowList<GameObject*>[strMaterials.len];
 	mshbatch = renderer->CreateBatch(16384, 25000);
+	//mshbatch = renderer->CreateBatch(9000, 9000);
 }
 
 void DrawOOBM()
@@ -112,6 +113,7 @@ void DrawOOBM()
 				}
 
 				Mesh *msh = o->objdef->subtypes[o->subtype].appear[o->appearance];
+				if(showrepresentations && o->objdef->representation) msh = o->objdef->representation;
 				for(int g = 0; g < msh->ngrp; g++)
 					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
 					{

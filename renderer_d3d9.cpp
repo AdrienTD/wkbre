@@ -16,6 +16,8 @@
 
 #include "global.h"
 
+struct RBatchD3D9;
+
 IDirect3D9 *d3d9; IDirect3DDevice9 *ddev = 0;
 D3DPRESENT_PARAMETERS dpp = {0, 0, D3DFMT_UNKNOWN, 0, D3DMULTISAMPLE_NONE, 0,
 	D3DSWAPEFFECT_DISCARD, 0, TRUE, TRUE, D3DFMT_D24X8, D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL, 0, 0/*D3DPRESENT_INTERVAL_IMMEDIATE*/};
@@ -60,6 +62,7 @@ D3DVERTEXELEMENT9 batchvdecl[] = {
  D3DDECL_END()
 };
 IDirect3DVertexDeclaration9 *dvdbatch;
+DynList<RBatchD3D9*> rblist;
 
 ////////////////////////////////
 ////////////////////////////////
@@ -76,12 +79,14 @@ struct RBatchD3D9 : public RBatch
 	batchVertex *vlock;
 	ushort *ilock;
 	boolean locked;
+	DynListEntry<RBatchD3D9*> *rble;
 
 	~RBatchD3D9()
 	{
 		if(locked) unlock();
 		vbuf->Release();
 		ibuf->Release();
+		rblist.remove(rble);
 	}
 
 	void lock()
@@ -176,11 +181,29 @@ devok:
 
 void Reset()
 {
+	// Release batches
+	for(DynListEntry<RBatchD3D9*> *e = rblist.first; e; e = e->next)
+	{
+		RBatchD3D9 *b = e->value;
+		b->vbuf->Release(); b->ibuf->Release();
+		b->curverts = b->curindis = 0;
+		b->locked = 0;
+	}
+
+	// Reset device
 	dpp.BackBufferWidth = scrw;
 	dpp.BackBufferHeight = scrh;
 	HRESULT r = ddev->Reset(&dpp);
 	//if(FAILED(r)) ferr("D3D9 device reset failed.");
 	lostdev = 0;
+
+	// Recreate batches
+	for(DynListEntry<RBatchD3D9*> *e = rblist.first; e; e = e->next)
+	{
+		RBatchD3D9 *b = e->value;
+		ddev->CreateVertexBuffer(b->maxverts * sizeof(batchVertex), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &b->vbuf, NULL);
+		ddev->CreateIndexBuffer(b->maxindis * 2, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &b->ibuf, NULL);
+	}
 }
 
 //***********************************//
@@ -468,6 +491,8 @@ RBatch *CreateBatch(int mv, int mi)
 	ddev->CreateVertexBuffer(mv * sizeof(batchVertex), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &b->vbuf, NULL);
 	ddev->CreateIndexBuffer(mi * 2, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &b->ibuf, NULL);
 	b->locked = 0;
+	rblist.add(b);
+	b->rble = rblist.last;
 	return b;
 }
 

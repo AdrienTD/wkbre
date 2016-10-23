@@ -1816,10 +1816,57 @@ void Test23()
 	}
 }
 
-#define NUMTESTS 23
+void DrawAnim(Anim *anim, RBatch *batch, int uvl, int tm)
+{
+	for(int i = 0; i < anim->mesh->ngrp; i++)
+	{
+		SetTexture(0, anim->mesh->lstmattex[i]);
+		if(anim->mesh->lstmatflags[i]&1) renderer->EnableAlphaTest();
+		else renderer->DisableAlphaTest();
+		anim->drawInBatch(batch, 0, uvl, -1, tm);
+		batch->flush();
+	}
+}
+
+void Test24()
+{
+	LoadBCP("data.bcp");
+	InitWindow();
+	Anim tm("Warrior Kings Game Set\\Characters\\Abaddon\\GRAB1.ANIM3");
+	//Anim tm("Warrior Kings Game Set\\Characters\\Michael\\SPECIALMOVE.ANIM3");
+	RBatch *batch = renderer->CreateBatch(16384, 16384);
+
+	Matrix m1, m2;
+	CreateScaleMatrix(&m1, 1.5, 1.5, 1.5);
+	CreateTranslationMatrix(&m2, 0, -4, 0);
+	mWorld = m1 * m2;
+
+	while(!appexit)
+	{
+		BeginDrawing();
+		BeginMeshDrawing();
+		renderer->BeginBatchDrawing();
+		SetModelMatrices();
+		//CreateIdentityMatrix(&mWorld);
+
+
+		//tm.mesh->draw(1);
+		//tn.draw(2);
+
+		//tm.drawInBatch(batch, 0, 1, -1, 0);
+		//batch->flush();
+
+		DrawAnim(&tm, batch, 1, timeGetTime());
+
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+#define NUMTESTS 24
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20, Test21, Test22, Test23};
+ Test18, Test19, Test20, Test21, Test22, Test23, Test24};
 
 #endif
 

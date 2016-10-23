@@ -83,6 +83,7 @@ extern GrowStringList strWorkOrder;
 extern GrowStringList strCommission;
 extern GrowStringList strPlan;
 extern GrowStringList strCondition; extern CCondition *gscondition;
+extern GrowStringList strAnimationTag;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

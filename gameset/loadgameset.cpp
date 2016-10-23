@@ -46,6 +46,7 @@ GrowStringList strWorkOrder;
 GrowStringList strCommission;
 GrowStringList strPlan;
 GrowStringList strCondition; CCondition *gscondition;
+GrowStringList strAnimationTag;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -311,6 +312,8 @@ switch(ipass)
 			case CLASS_CONDITION:
 				strCondition.add(word[1]);
 				fp = SkipClass(fp, "END_CONDITION"); break;
+			case CLASS_ANIMATION_TAG:
+				strAnimationTag.add(word[1]); break;
 		} break;
 
 /*******************************************************************/
@@ -429,6 +432,7 @@ void BeginLooking()
 void LoadGameSet(char *filename)
 {
 	strAppearTag.add("Default");
+	strAnimationTag.add("Default");
 	glone.add("Default");
 
 	// Put engine-declared game events (like "On Stampdown")

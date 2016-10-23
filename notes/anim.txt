@@ -1,0 +1,117 @@
+struct Anim3PosCoord
+{
+	uint nframes;
+	uint *ft;
+	float **verts;
+};
+
+struct Anim
+{
+	Mesh *mesh;
+	uint dur;
+	Anim3PosCoord coord[3];
+
+	Anim();
+};
+
+Anim::Anim(char *fn)
+{
+	char *fcnt, *fp; uint fsize; int i, ver, nparts, nverts, form;
+	Anim *anim = this;
+
+	LoadFile(fn, &fcnt, &fsize); fp = fcnt;
+	form = *(uint*)fp; fp += 4;
+	if(form != 'minA')
+		ferr("Not an anim3 file.");
+
+	fp += 4;
+	char mshname[512]; i = 0;
+	while(mshname[i++] = *(fp++));
+	anim->mesh = new Mesh(mshname);
+	anim->dur = *(uint*)fp; fp += 4;
+	fp += 16;
+	nverts = *(uint*)fp; fp += 4;
+
+	for(i = 0; i < 3; i++)
+	{
+		anim->coord[i].nframes = *(uint*)fp; fp += 4;
+		anim->coord[i].ft = new uint[anim->coord[i].nframes];
+		anim->coord[i].verts = new float*[anim->coord[i].nframes];
+		for(int j = 0; j < anim->coord[i].nframes; j++)
+			{anim->coord[i].ft[j] = *(uint*)fp; fp += 4;}
+		for(int j = 0; j < anim->coord[i].nframes; j++)
+		{
+			float *v = anim->coord[i].verts[j] = new float[nverts];
+			float ftrans = *(float*)fp; fp += 4;
+			float fscale = *(float*)fp; fp += 4;
+			for(int k = 0; k < nverts / 3; k++)
+			{
+				uint w = *(uint*)fp; fp += 4;
+				for(int l = 0; l < 3; l++)
+					*(v++) = (((w>>(l*11))&1023)/1023.0f) * fscale + ftrans;
+			}
+			if(nverts % 3)
+			{
+				uint w = *(uint*)fp; fp += 4;
+				for(int l = 0; l < (nverts%3); l++)
+					*(v++) = (((w>>(l*11))&1023)/1023.0f) * fscale + ftrans;
+			}
+		}
+	}
+
+	fclose(file);
+}
+
+void Anim::CreateVertsFromTime(batchVertex *out, int tm, int grp)
+{
+	if(!dur) ferr("anim->dur == 0");
+	tm = tm % dur;
+	for(int c = 0; c < 3; c++)
+	{
+		int f;
+		Anim3PosCoord *ac = &(coord[c]);
+		for(f = 1; f < ac->nframes; f++)
+			if(ac->ft[f] > tm)
+				break;
+		int fstart = f-1, fend = f;
+		float ipol = (float)(tm-ac->ft[fstart]) / (float)(ac->ft[fend]-ac->ft[fstart]);
+		batchVertex *o = out;
+		for(int i = mesh->mgrpindex[grp]; i < mesh->mgrpindex[grp+1]; i++)
+		{
+			float v1 = (ac->verts[fstart])[mesh->remapper[iverts[i]]];
+			float v2 = (ac->verts[fend])[mesh->remapper[iverts[i]]];
+			(o++)->p[c] = v1 + (v2-v1) * ipol;
+		}
+	}
+}
+
+void Anim::draw(int iwtcolor)
+{
+	mesh->draw(iwtcolor);
+}
+
+void Anim::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
+{
+	if((uint)uvl >= muvlist.len) uvl = 0;
+	int sv = mesh->mgrpindex[grp+1] - mesh->mgrpindex[grp];
+	int si = mesh->mstartix[grp+1] - mesh->mstartix[grp];
+
+	batchVertex *o = new batchVertex[sv], *p; p = o;
+	CreateVertsFromTime(o, tm, grp);
+	for(int i = mesh->mgrpindex[grp]; i < mesh->mgrpindex[grp+1]; i++)
+	{
+		Vector3 v(p->x, p->y, p->z), t;
+		TransformVector3(&t, &p, &mWorld);
+		p->x = t.x; p->y = t.y; p->z = t.z;
+		p->color = dif;
+		p->u = muvlist[uvl]->get(i*2); p->v = muvlist[uvl]->get(i*2+1);
+		p++;
+	}
+	batchVertex *vp; ushort *ip; uint fi;
+	batch->next(sv, si, &vp, &ip, &fi);
+	memcpy(vp, o, sv * sizeof(batchVertex));
+	delete o;
+
+	for(int i = mstartix[grp]; i < mstartix[grp+1]; i++)
+		*(ip++) = mindices[i] - mgrpindex[grp] + fi;
+}

@@ -21,7 +21,7 @@
 
 int mapwidth, mapheight, mapedge, mapnverts, mapfogcolor; float maphiscale;
 float *himap = 0;
-texture grass;
+texture grass; RBatch *mapbatch;
 char lastmap[256];
 boolean usemaptexdb = 1;
 MapTile *maptiles;
@@ -53,6 +53,15 @@ int readnb(int b)
 void InitMap()
 {
 	grass = GetTexture("grass.tga");
+
+	if(usemaptexdb)
+	{
+		//mapbatch = renderer->CreateBatch(2*8192, 3*8192);
+		//mapbatch = renderer->CreateBatch(2*768, 3*768);
+		//mapbatch = renderer->CreateBatch(2*400, 3*400);
+		//mapbatch = renderer->CreateBatch(2*1024, 3*1024);
+		mapbatch = renderer->CreateBatch(4*1024, 6*1024);
+	}
 }
 
 void CloseMap()
@@ -397,11 +406,6 @@ if(!usemaptexdb)
 }
 else
 {
-	//RBatch *batch = renderer->CreateBatch(2*8192, 3*8192);
-	//RBatch *batch = renderer->CreateBatch(2*768, 3*768);
-	//RBatch *batch = renderer->CreateBatch(2*400, 3*400);
-	//RBatch *batch = renderer->CreateBatch(2*1024, 3*1024);
-	RBatch *batch = renderer->CreateBatch(4*1024, 6*1024);
 	renderer->BeginBatchDrawing();
 
 	for(int i = 0; i < maptexfilenames.len; i++)
@@ -423,7 +427,7 @@ else
 				if(tns) {SetTexture(0, t->t); tns = 0;}
 
 				batchVertex *bv; ushort *bi; uint fi;
-				batch->next(4, 6, &bv, &bi, &fi);
+				mapbatch->next(4, 6, &bv, &bi, &fi);
 				int a = c->rot, f = ((c->zflip&1)?1:0) ^ ((c->xflip&1)?3:0);
 
 				bv[0].x = c->x;			bv[0].z = c->z;
@@ -455,9 +459,7 @@ else
 				bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;
 				//bi[3] = fi+1; bi[4] = fi+2; bi[5] = fi+3;
 		}
-	} batch->flush();}
-
-	delete batch;
+	} mapbatch->flush();}
 }
 }
 

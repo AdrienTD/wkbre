@@ -127,6 +127,7 @@ extern "C" {
 #include "gfxcon.h"
 #include "map.h"
 #include "mesh.h"
+#include "anim.h"
 #include "gameset/gameset.h"
 #include "scene.h"
 #include "dialog.h"

@@ -16,7 +16,11 @@
 
 struct batchVertex
 {
-	float x, y, z;
+	union
+	{
+		struct {float x, y, z;};
+		float p[3];
+	};
 	int color;
 	float u, v;
 };

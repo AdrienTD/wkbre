@@ -14,43 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#define dbg(a) 
-
-extern GrowStringList strMaterials;
-
-void InitMeshDrawing();
-void BeginMeshDrawing();
-
-struct RBatch;
-
-class Mesh
+struct Anim3PosCoord
 {
-public:
-	float *lstverts;
-	int *lstmatflags;
-	texture *lstmattex;
-	float **lstuvlist;
-	//GrowList<GrowList<int>*> lstgroup;
-	int *lstmattid;
-
-	GrowList<float> mverts;
-	GrowList<uint> iverts;
-	GrowList<GrowList<float>*> muvlist;
-	uint *mgrpindex;
-	GrowList<ushort> mindices;
-	uint *mstartix;
-	int ngrp;
-	float sphere[4];
-	uint *remapper;
-
-	IDirect3DVertexBuffer9 *dvbverts;
-	IDirect3DIndexBuffer9 *dixbuf;
-	GrowList<IDirect3DVertexBuffer9*> dvbtexc;
-
-	Mesh(char *fn);
-
-	void draw(int iwtcolor = 0);
-	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0);
+	uint nframes;
+	uint *ft;
+	float **verts;
 };
 
-Mesh *LoadAnim(char *fn);
+struct batchVertex;
+struct RBatch;
+
+struct Anim
+{
+	Mesh *mesh;
+	uint dur;
+	Anim3PosCoord coord[3];
+
+	Anim(char *fn);
+	void CreateVertsFromTime(batchVertex *out, int tm, int grp);
+	void draw(int iwtcolor = 0);
+	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0);
+};

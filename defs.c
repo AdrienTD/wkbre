@@ -1,7 +1,8 @@
-char *CLASS_str[63] = {
+char *CLASS_str[64] = {
 "DECLARE_ITEM",
 "DEFINE_VALUE",
 "APPEARANCE_TAG",
+"ANIMATION_TAG",
 "USER",
 "LEVEL",
 "PLAYER",
