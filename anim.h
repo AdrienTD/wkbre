@@ -24,9 +24,9 @@ struct Anim3PosCoord
 struct batchVertex;
 struct RBatch;
 
-struct Anim
+struct Anim : public Model
 {
-	Mesh *mesh;
+	//Mesh *mesh;
 	uint dur;
 	Anim3PosCoord coord[3];
 

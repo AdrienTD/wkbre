@@ -72,6 +72,8 @@ void ReadSettingsFile()
 				usemaptexdb = atoi(word[1]); break;
 			case SETTING_MESH_BATCHING:
 				meshbatching = atoi(word[1]); break;
+			case SETTING_ANIMATED_MODELS:
+				animsEnabled = atoi(word[1]); break;
 		}
 	}
 

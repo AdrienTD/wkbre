@@ -23,7 +23,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 struct PhysicalSubtype
 {
 	//char *path;
-	Mesh **appear;
+	Model **appear;
 	char *name;
 };
 
@@ -49,7 +49,7 @@ struct CObjectDefinition
 	CObjectDefinition **mappedType;
 	GrowList<CReaction *> ireact;
 	CValue **valueTagInterpret;
-	Mesh *representation;
+	Model *representation;
 	GrowList<CCommand*> offeredCmds;
 	int buildingType;
 	int movSpeedEq;

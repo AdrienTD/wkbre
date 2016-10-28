@@ -454,7 +454,7 @@ void LoadGameSet(char *filename)
 
 	AllocateCL();
 	nullPS = new PhysicalSubtype;
-	nullPS->appear = (Mesh**)calloc(strAppearTag.len, sizeof(Mesh*));
+	nullPS->appear = (Model**)calloc(strAppearTag.len, sizeof(Mesh*));
 	for(int j = 0; j < OBJTYPE_NUM; j++)
 	{
 		int i = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, OBJTYPE_str[j]), "Standard");

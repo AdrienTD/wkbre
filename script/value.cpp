@@ -80,7 +80,7 @@ struct ValueEquationResult : public CValue
 		env->copyAll(&n);
 		GameObject *o = f->getfirst(env);
 		if(o) n.self = o;
-		else n.self.deref();
+		else return 0; //n.self.deref();
 		return equation[x]->get(&n);
 	}
 };

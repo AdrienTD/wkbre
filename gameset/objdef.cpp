@@ -79,11 +79,8 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 					strcat(checkfile, fline[2]);
 				oddbg("[DBG] DEF checkfile = %s\n", checkfile);
 				FindModel(checkfile, ff, m);
-				if(ff) {
-					if(!m)	objdef[x].subtypes[y].appear[0] = LoadAnim(checkfile);
-					else	objdef[x].subtypes[y].appear[0] = new Mesh(checkfile);
-				}
-					
+				if(ff)
+					objdef[x].subtypes[y].appear[0] = GetModel(checkfile);
 			}
 			return fp; // Load mesh here?
 		}
@@ -121,8 +118,7 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 appearend:		if(foundfile)
 			{
 				oddbg("[DBG] Final ANIM3 file: %s\n", finalfile);
-				if(!fm)	objdef[x].subtypes[y].appear[z] = LoadAnim(finalfile);
-				else	objdef[x].subtypes[y].appear[z] = new Mesh(finalfile);
+				objdef[x].subtypes[y].appear[z] = GetModel(finalfile);
 			}
 			else	{oddbg("[DBG] No ANIM3\n"); objdef[x].subtypes[y].appear[z] = 0;}
 		}
@@ -147,7 +143,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		objdef[x].subtypes = (PhysicalSubtype*)malloc(pstObjDef[x]->len * sizeof(PhysicalSubtype));
 		for(int i = 0; i < pstObjDef[x]->len; i++)
 		{
-			objdef[x].subtypes[i].appear = (Mesh**)calloc(strAppearTag.len, sizeof(Mesh*));
+			objdef[x].subtypes[i].appear = (Model**)calloc(strAppearTag.len, sizeof(Mesh*));
 			objdef[x].subtypes[i].name = pstObjDef[x]->getdp(i);
 		}
 		if((objdef[x].type == CLASS_BUILDING) || (objdef[x].type == CLASS_CHARACTER) ||
@@ -188,10 +184,8 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 					strcat(checkfile, fstline[2]);
 				oddbg("[DBG] DEFSB checkfile = %s\n", checkfile);
 				FindModel(checkfile, ff, m);
-				if(ff) {
-					if(!m)	objdef[x].subtypes[0].appear[0] = LoadAnim(checkfile);
-					else	objdef[x].subtypes[0].appear[0] = new Mesh(checkfile);
-				}
+				if(ff)
+					objdef[x].subtypes[0].appear[0] = GetModel(checkfile);
 				objdef[x].life = 2;
 			}
 			return fp;
@@ -243,7 +237,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				strcpy(mn, "Warrior Kings Game Set\\");
 				strcat(mn, word[1]);
 				if(FileExists(mn))
-					objdef[x].representation = LoadAnim(mn);
+					objdef[x].representation = GetModel(mn);
 				break;}
 			case CBLUEPRINT_OFFERS_COMMAND:
 				{int i = strCommand.find(word[1]);

@@ -1,0 +1,73 @@
+struct ODAnimation
+{
+	int animtag;
+	int var;
+	boolean isanim;
+	Model *model;
+};
+
+struct ODAppearance
+{
+	Model *defmodel;
+	GrowList<ODAnimation> anim;
+};
+
+ODAnimation *FindODAnim(ODAppearance *ap, int animtag, int var, boolean isanim)
+{
+	for(int i = 0; i < ap->anim.len; i++)
+	{
+		ODAnimation *an = ap->anim.getpnt(i);
+		if(an->animtag == animtag)
+			if(an->var == var)
+				if(an->isanim == isanim)
+					return an;
+	}
+	return 0;
+}
+
+void LoadODAnims(ODAppearance *ap, char *dn)
+{
+	GrowStringList *fl = ListFiles(dn);
+
+	for(int i = 0; i < fl->len; i++)
+	{
+		char *s = fl.getdp(i);
+		char b[512]; strcpy(b, s);
+		char *ext = strrchr(b, '.');
+		if(!ext) continue;
+		int notanim = stricmp(ext+1, "anim3");
+		if(notanim && stricmp(ext+1, "mesh3")) continue;
+		*ext = 0;
+		int n = strcspn(b, "0123456789");
+		int v = b[n] ? (b[n] - '0') : 0;
+		b[n] = 0;
+		int t = strAnimationTag.find(b);
+		if(t == -1) continue;
+
+		ODAnimation *an = 0;
+		if(FindODAnim(ap, t, v, !notanim)) continue;
+		if(!notanim)
+		{
+			ODAnimation *no = FindODAnim(ap, t, v, 0);
+			if(no) an = no;
+		}
+		if(!an) an = ap->anim.addp();
+
+		an->animtag = t;
+		an->var = v;
+		an->isanim = !notanim;
+		an->model = GetModel(s);
+	}
+}
+
+ODAnimation *GetODAnim(ODAppearance *ap, int t)
+{
+	ODAnimation *f = 0; int n = 1;
+	for(int i = 0; i < ap->anim.len; i++)
+	{
+		ODAnimation *an = ap->anim.getpnt(i);
+		if(an->animtag != t) continue;
+		if(!(rand()%(n++))) f = an;
+	}
+	return f;
+}

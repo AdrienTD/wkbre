@@ -790,6 +790,7 @@ struct FinderMetreRadius : public CFinder
 	void begin(SequenceEnv *c)
 	{
 		env = c;
+		if(!env->self.valid()) return; // _getnext will then directly return 0 in this case.
 		onm.clear();
 		dist = v->get(c); dist2 = dist*dist;
 		int r = dist/5;		// TODO: :( (round up/down?)

@@ -400,7 +400,7 @@ char *OBJTYPE_str[14] = {
 "ARMY",
 "TERRAIN_ZONE",
 };
-char *SETTING_str[16] = {
+char *SETTING_str[17] = {
 "GAME_DIR",
 "FAR_Z_VALUE",
 "HARDWARE_VERTEX_PROCESSING",
@@ -417,6 +417,7 @@ char *SETTING_str[16] = {
 "RENDERER",
 "USE_MAP_TEXTURE_DATABASE",
 "MESH_BATCHING",
+"ANIMATED_MODELS",
 };
 char *STASK_str[17] = {
 "TRIGGER",

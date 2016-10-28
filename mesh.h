@@ -16,14 +16,17 @@
 
 #define dbg(a) 
 
-extern GrowStringList strMaterials;
-
-void InitMeshDrawing();
-void BeginMeshDrawing();
-
+struct Mesh;
 struct RBatch;
 
-class Mesh
+struct Model
+{
+	Mesh *mesh;
+	virtual void draw(int iwtcolor = 0) = 0;
+	virtual void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0) = 0;
+};
+
+class Mesh : public Model
 {
 public:
 	float *lstverts;
@@ -50,7 +53,12 @@ public:
 	Mesh(char *fn);
 
 	void draw(int iwtcolor = 0);
-	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0);
+	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0);
 };
 
+extern GrowStringList strMaterials;
+
+void InitMeshDrawing();
+void BeginMeshDrawing();
 Mesh *LoadAnim(char *fn);
+Model *GetModel(char *fn);

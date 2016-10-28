@@ -53,10 +53,36 @@ Mesh *LoadAnim(char *fn)
 	return m;
 }
 
+GrowStringList alModelFn;
+GrowList<Model*> alModel;
+
+Model *GetModel(char *fn)
+{
+	int x = alModelFn.find(fn);
+	if(x != -1)
+		return alModel[x];
+
+	Model *m;
+	char *ext = strrchr(fn, '.');
+	if(!ext) ferr("Invalid model file name.");
+	ext++;
+	if(!stricmp(ext, "mesh3"))
+		m = new Mesh(fn);
+	else if(!stricmp(ext, "anim3"))
+		m = new Anim(fn);
+	else
+		ferr("Invalid model file name extension.");
+	alModelFn.add(fn);
+	alModel.add(m);
+	return m;
+}
+
 Mesh::Mesh(char *fn)
 {
 	FILE *file; int i, ver, nparts, nverts;
 	char *fcnt; int fsize; char *fp;
+
+	mesh = this;
 
 	LoadFile(fn, &fcnt, &fsize);
 	fp = fcnt + 4;
@@ -200,7 +226,7 @@ void Mesh::draw(int iwtcolor)
 	renderer->DrawMesh(this, iwtcolor);
 }
 
-void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif)
+void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 {
 	if((uint)uvl >= muvlist.len) uvl = 0;
 	int sv = mgrpindex[grp+1] - mgrpindex[grp];

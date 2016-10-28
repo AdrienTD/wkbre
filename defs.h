@@ -416,8 +416,9 @@ extern char *OBJTYPE_str[14];
 #define SETTING_RENDERER 13
 #define SETTING_USE_MAP_TEXTURE_DATABASE 14
 #define SETTING_MESH_BATCHING 15
-#define SETTING_NUM 16
-extern char *SETTING_str[16];
+#define SETTING_ANIMATED_MODELS 16
+#define SETTING_NUM 17
+extern char *SETTING_str[17];
 #define STASK_TRIGGER 0
 #define STASK_TARGET 1
 #define STASK_PROXIMITY 2

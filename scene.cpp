@@ -33,7 +33,7 @@ Matrix mIdentity;
 int enableMap = 1, drawdebug = 1;
 int fogenabled = 0, showrepresentations = 0;
 
-boolean meshbatching = 0;
+boolean meshbatching = 0, animsEnabled = 0;
 GrowList<GameObject*> *oobm[2];
 RBatch *mshbatch;
 
@@ -89,6 +89,7 @@ void InitOOBMList()
 
 void DrawOOBM()
 {
+	uint tt = timeGetTime();
 	renderer->BeginBatchDrawing();
 	SetTransformMatrix(&vpmatrix);
 	for(int t = 0; t < strMaterials.len; t++)
@@ -112,15 +113,16 @@ void DrawOOBM()
 						dif = (currentSelection==o)?0xFFFF0000:0xFF0000FF;
 				}
 
-				Mesh *msh = o->objdef->subtypes[o->subtype].appear[o->appearance];
-				if(showrepresentations && o->objdef->representation) msh = o->objdef->representation;
+				Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance];
+				if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
+				Mesh *msh = md->mesh;
 				for(int g = 0; g < msh->ngrp; g++)
 					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
 					{
 						if(!txset) {txset = 1; SetTexture(0, msh->lstmattex[g]);}
 						if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
 						SetMatrices(o->scale, -o->orientation, o->position);
-						msh->drawInBatch(mshbatch, g, o->color, dif);
+						(animsEnabled?md:md->mesh)->drawInBatch(mshbatch, g, o->color, dif, tt);
 					}
 			}
 
@@ -216,8 +218,9 @@ void DrawObj(GameObject *o)
 	{
 		if(IsPointOnScreen(o->position, &pntz))
 		{
-			Mesh *msh = o->objdef->subtypes[o->subtype].appear[o->appearance];
-			if(showrepresentations && o->objdef->representation) msh = o->objdef->representation;
+			Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance];
+			if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
+			Mesh *msh = md->mesh;
 			objsdrawn++;
 			SetMatrices(o->scale, -o->orientation, o->position);
 
