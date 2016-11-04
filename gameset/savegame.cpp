@@ -900,10 +900,10 @@ void SetRandomSubtypeAndAppearance(GameObject *o)
 	CObjectDefinition *d = o->objdef; uint s;
 	s = o->subtype = (d->numsubtypes > 1) ? ((rand()%(d->numsubtypes-1)) + 1) : 0;
 	if((uint)o->appearance < (uint)strAppearTag.len)
-		if(d->subtypes[s].appear[o->appearance])
+		if(d->subtypes[s].appear[o->appearance].def)	// :S
 			return;
 	for(uint i = 0; i < strAppearTag.len; i++)
-		if(d->subtypes[s].appear[i])
+		if(d->subtypes[s].appear[i].def)		// :S
 			{o->appearance = i; return;}
 	o->appearance = 0;
 }
@@ -1050,6 +1050,7 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	go->disableCount = 0;
 	if(go->objdef->type == CLASS_PLAYER)	go->player = go;
 	else if(go->parent)			go->player = go->parent->player;
+	else					go->player = 0;
 	//go->name = (new wchar_t[] = L"(No name)");
 	if((def->type == CLASS_LEVEL) || (def->type == CLASS_PLAYER))
 		{go->name = new wchar_t[10]; wcscpy(go->name, L"(No name)");}
@@ -1068,6 +1069,10 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 
 	go->client = 0;
 	go->aicontroller = 0;
+
+	go->animtag = 0; go->animvar = 0;
+	go->animtimeref = current_time * 1000;
+	go->animlooping = 1; go->animlooped = 0;
 
 	return go;
 }
@@ -1089,6 +1094,7 @@ void ConvertObject(GameObject *o, CObjectDefinition *d)
 	o->objdef = d;
 	//o->appearance = 0;
 	SetRandomSubtypeAndAppearance(o);
+	SetObjectAnimationIfNotPlayed(o, 0, 1);
 }
 
 void AddReaction(GameObject *o, int r)
@@ -1104,4 +1110,94 @@ void RemoveReaction(GameObject *o, int r)
 	for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
 		if(e->value == r)
 			{o->iReaction.remove(e); return;}
+}
+
+Model *GetObjectModel(GameObject *o)
+{
+	//return o->objdef->subtypes[o->subtype].appear[o->appearance];
+	ODAppearance *ap = &(o->objdef->subtypes[o->subtype].appear[o->appearance]);
+	if(ap->anim) if(ap->anim[o->animtag])
+	{
+		ODAnimation *at = ap->anim[o->animtag];
+		if(at->numvar == 0)
+		{
+			if(at->mesh)
+				return at->mesh;
+		}
+		else
+		{
+			if(at->var[o->animvar])
+				return at->var[o->animvar];
+		}
+	}
+	return ap->def;
+}
+
+void SetObjectAnimation(GameObject *o, int animtag, boolean loop)
+{
+	o->animtag = animtag;
+	o->animvar = 0;
+	o->animtimeref = current_time * 1000;
+	o->animlooping = loop; o->animlooped = 0;
+}
+
+void SetObjectAnimationIfNotPlayed(GameObject *o, int animtag, boolean loop)
+{
+	o->animlooping = loop;
+	if(o->animtag != animtag)
+		SetObjectAnimation(o, animtag, loop);
+}
+
+void PlayMovementAnimation(GameObject *o)
+{
+/*
+	if(o->objdef->movBands.len)
+	{
+		SetObjectAnimationIfNotPlayed(o,
+			GetBestPlayAnimationTag(o->objdef->movBands[0]->playAnim, o),
+			1);
+	}
+*/
+	if(!o->objdef->movBands.len) return;
+	if(o->objdef->movBands.len == 1)
+	{
+		SetObjectAnimationIfNotPlayed(o,
+			GetBestPlayAnimationTag(o->objdef->movBands[0]->playAnim, o),
+			1);
+		return;
+	}
+
+	// Get movement speed
+	float ms = 1;
+	if(o->objdef->movSpeedEq != -1)
+	{
+		SequenceEnv env; env.self = o;
+		ms = equation[o->objdef->movSpeedEq]->get(&env);
+	}
+
+	// Find best matching movement band
+	int i;
+	for(i = o->objdef->movBands.len-1; i >= 0; i--)
+	  if(ms >= o->objdef->movBands[i]->naturalMovSpeed)
+	{
+		int at = GetBestPlayAnimationTag(o->objdef->movBands[i]->playAnim, o);
+		if(DoesObjectHaveUniqueAnimation(o, at))
+		{
+			SetObjectAnimationIfNotPlayed(o, at, 1);
+			return;
+		}
+	}
+	SetObjectAnimationIfNotPlayed(o, 0, 1);
+}
+
+boolean DoesObjectHaveUniqueAnimation(GameObject *o, int rat)
+{
+	ODAppearance *ap = &(o->objdef->subtypes[o->subtype].appear[o->appearance]);
+	if(ap->anim) if(ap->anim[rat])
+	{
+		ODAnimation *at = ap->anim[rat];
+		if(at->numvar || at->mesh)
+			return 1;
+	}
+	return 0;
 }

@@ -69,7 +69,8 @@ Anim::Anim(char *fn)
 void Anim::CreateVertsFromTime(batchVertex *out, int tm, int grp)
 {
 	if(!dur) ferr("anim->dur == 0");
-	tm = tm % dur;
+	//tm = tm % dur;
+	if(tm >= dur) tm = dur-1;
 	for(int c = 0; c < 3; c++)
 	{
 		int f;

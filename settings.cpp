@@ -74,6 +74,8 @@ void ReadSettingsFile()
 				meshbatching = atoi(word[1]); break;
 			case SETTING_ANIMATED_MODELS:
 				animsEnabled = atoi(word[1]); break;
+			case SETTING_VERTICAL_FOV:
+				verticalfov = atof(word[1]) * M_PI / 180.0f; break;
 		}
 	}
 

@@ -432,7 +432,7 @@ void BeginLooking()
 void LoadGameSet(char *filename)
 {
 	strAppearTag.add("Default");
-	strAnimationTag.add("Default");
+	strAnimationTag.add("Default"); strAnimationTag.add("Idle");
 	glone.add("Default");
 
 	// Put engine-declared game events (like "On Stampdown")
@@ -454,7 +454,7 @@ void LoadGameSet(char *filename)
 
 	AllocateCL();
 	nullPS = new PhysicalSubtype;
-	nullPS->appear = (Model**)calloc(strAppearTag.len, sizeof(Mesh*));
+	nullPS->appear = (ODAppearance*)calloc(strAppearTag.len, sizeof(ODAppearance));
 	for(int j = 0; j < OBJTYPE_NUM; j++)
 	{
 		int i = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, OBJTYPE_str[j]), "Standard");

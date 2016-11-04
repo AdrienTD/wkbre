@@ -94,6 +94,7 @@ void ReadCTask(char **pntfp, char **fstline)
 	ct->usePreviousTaskTarget = ct->rejectTargetIfItIsTerminated = 0;
 	ct->terminateEntireOrderIfNoTarget = ct->identifyTargetEachCycle = 0;
 	ct->satf = 0;
+	ct->playAnim = 0; ct->playAnimOnce = 0;
 	ct->initSeq = ct->startSeq = ct->suspendSeq = ct->resumeSeq = ct->cancelSeq =
 		ct->terminateSeq = ct->proxSatisfiedSeq = ct->proxDissatisfiedSeq = 0;
 	while(**pntfp)
@@ -147,6 +148,10 @@ void ReadCTask(char **pntfp, char **fstline)
 				ct->terminateEntireOrderIfNoTarget = 1; break;
 			case CTASK_IDENTIFY_TARGET_EACH_CYCLE:
 				ct->identifyTargetEachCycle = 1; break;
+			case CTASK_PLAY_ANIMATION:
+				ct->playAnim = ReadPlayAnimation(pntfp, word, nwords); break;
+			case CTASK_PLAY_ANIMATION_ONCE:
+				ct->playAnimOnce = 1; break;
 		}
 	}
 	ferr("UEOF"); return;

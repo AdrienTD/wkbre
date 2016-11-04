@@ -1,0 +1,124 @@
+#define MAX_ANIM_VARS 10
+
+struct ODAnimation
+{
+	uint did;
+	Model *mesh;
+	uint numvar;
+	Model *var[MAX_ANIM_VARS];
+};
+
+struct ODAppearance
+{
+	Model *def;
+	ODAnimation **anim;
+};
+
+void LoadODAnims(ODAppearance *ap, char *dn, int did)
+{
+	GrowStringList *fl = ListFiles(dn);
+	for(int i = 0; i < fl->len; i++)
+	{
+		char *s = fl.getdp(i);
+		char b[512]; strcpy(b, s);
+		char *ext = strrchr(b, '.');
+		if(!ext) continue;
+		*ext = 0;
+		int isanim = !stricmp(ext+1, "anim3");
+		if(!isanim && stricmp(ext+1, "mesh3")) continue;
+		int n = strcspn(b, "0123456789");
+		int v = b[n] ? (b[n] - '0') : 0;
+		b[n] = 0;
+		int t = strAnimationTag.find(b);
+		if(t == -1) continue;
+		if(ap->anim[t] ? (ap->anim[t]->did < did) : 1)
+		{
+			if(!ap->anim[t])
+				ap->anim[t] = malloc(sizeof(ODAnimation));
+			ap->anim[t]->did = did:
+			ap->anim[t]->mesh = 0;
+			ap->anim[t]->numvar = 0;
+			//memset(ap->anim[t]->var, 0, sizeof(Model*)*MAX_ANIM_VARS);
+		}
+
+		ODAnimation *at = ap->anim[t];
+		if(!isanim) // Mesh
+		{
+			if(!at->mesh)
+				at->mesh = GetModel(s);
+		}
+		else // Anim
+		{
+			if(at->numvar < MAX_ANIM_VARS)
+				at->var[at->numvar++] = GetModel(s);
+		}
+	}
+}
+
+Model *GetObjectModel(GameObject *o)
+{
+	//return o->objdef->subtypes[o->subtype].appear[o->appearance];
+	ODAppearance *ap = o->objdef->subtypes[o->subtype].appear[o->appearance];
+	if(ap) if(ap->anim[o->animtag])
+	{
+		ODAnimation *at = ap->anim[o->animtag];
+		if(at->numvar == 0)
+		{
+			if(at->mesh)
+				return at->mesh;
+		}
+		else
+		{
+			if(at->var[o->animvar])
+				return at->var[o->animvar];
+		}
+	}
+	return 0;
+}
+
+//////////////
+
+void LoadODAnims(ODAppearance *ap, char *dn)
+{
+	GrowStringList *fl = ListFiles(dn);
+	for(int i = 0; i < fl->len; i++)
+	{
+		char *s = fl.getdp(i);
+		char b[512]; strcpy(b, s);
+		char *ext = strrchr(b, '.');
+		if(!ext) continue;
+		int notanim = stricmp(ext+1, "anim3");
+		if(notanim && stricmp(ext+1, "mesh3")) continue;
+		*ext = 0;
+		int n = strcspn(b, "0123456789");
+		int v = b[n] ? (b[n] - '0') : 0;
+		b[n] = 0;
+		int t = strAnimationTag.find(b);
+		if(t == -1) continue;
+
+		////
+
+		ODAnimation *an = 0;
+		if(FindODAnim(ap, t, v, !notanim)) continue;
+		if(!notanim)
+		{
+			ODAnimation *no = FindODAnim(ap, t, v, 0);
+			if(no) an = no;
+		}
+		if(!an) an = ap->anim.addp();
+
+		an->animtag = t;
+		an->var = v;
+		an->isanim = !notanim;
+		an->model = GetModel(s);
+
+		////
+
+		if(!ap->anim[t])
+			{ap->anim[t] = malloc(sizeof(ODAnimation));
+			ap->anim[t]->numvar = 0;
+			memset(ap->anim[t]->var, 0, sizeof(Model*)*MAX_ANIM_VARS);}
+
+		
+	}
+}

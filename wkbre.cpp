@@ -251,7 +251,7 @@ void Test5()
 
 	printf("These ObjDefs have \"Default\" subtype and \"Default\" appearance:\n");
 	for(int i = 0; i < strObjDef.len; i++)
-		printf("- %s: %s\n", strObjDef[i], objdef[i].subtypes[0].appear[0]?"Yes":"No");
+		printf("- %s: %s\n", strObjDef[i], objdef[i].subtypes[0].appear[0].def?"Yes":"No"); // :S
 
 	getch();
 
@@ -262,7 +262,7 @@ void Test5()
 		BeginDrawing();
 		BeginMeshDrawing();
 		SetModelMatrices();
-		objdef[a].subtypes[0].appear[0]->draw();
+		objdef[a].subtypes[0].appear[0].def->draw(); // :S
 		EndDrawing();
 		HandleWindow();
 	}
@@ -1220,9 +1220,22 @@ void Test7()
 			for(int i = 0; i < 16384; i++)
 				CreateObject(&objdef[t], levelobj);
 */
+/*
 			printf("%i material textures:\n", strMaterials.len);
 			for(int i = 0; i < strMaterials.len; i++)
 				printf(" - %s\n", strMaterials.getdp(i));
+*/
+/*
+			printf("%i unique models:\n", alModelFn.len);
+			for(int i = 0; i < alModelFn.len; i++)
+				printf(" - %s\n", alModelFn.getdp(i));
+*/
+			if(selobjects.len)
+			if(selobjects.first->value.valid())
+			{
+				GameObject *o = selobjects.first->value.get();
+				printf("animtag = %i, animlooping = %i\n", o->animtag, o->animlooping);
+			}
 		}
 #endif
 		if(keypressed['A'])

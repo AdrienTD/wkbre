@@ -87,6 +87,9 @@ struct GameObject
 	ClientState *client;
 	SAIController *aicontroller;
 
+	int animtag, animvar;
+	int animtimeref; boolean animlooping, animlooped;
+
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);
 	valuetype getIndexedItem(int x, int y);
@@ -164,3 +167,8 @@ void ConvertObject(GameObject *o, CObjectDefinition *d);
 void AddReaction(GameObject *o, int r);
 void RemoveReaction(GameObject *o, int r);
 void UpdateParentDependantValues(GameObject *o);
+Model *GetObjectModel(GameObject *o);
+void SetObjectAnimation(GameObject *o, int animtag, boolean loop);
+void SetObjectAnimationIfNotPlayed(GameObject *o, int animtag, boolean loop);
+void PlayMovementAnimation(GameObject *o);
+boolean DoesObjectHaveUniqueAnimation(GameObject *o, int rat);

@@ -50,6 +50,55 @@ void FindModel(char *checkfile, int &ff, int &m)
 	}
 }
 
+void LoadODAnims(ODAppearance *ap, char *dn, int did)
+{
+	//printf("LoadODAnims %s\n", dn);
+	GrowStringList *fl = ListFiles(dn);
+	for(int i = 0; i < fl->len; i++)
+	{
+		char *s = fl->getdp(i);
+		//printf("AP %s\n", s);
+		char b[512]; strcpy(b, s);
+		char *ext = strrchr(b, '.');
+		if(!ext) continue;
+		*ext = 0;
+		int isanim = !stricmp(ext+1, "anim3");
+		if(!isanim && stricmp(ext+1, "mesh3")) continue;
+		int n = strcspn(b, "0123456789");
+		int v = b[n] ? (b[n] - '0') : 0;
+		b[n] = 0;
+		int t = strAnimationTag.find(b);
+		if(t == -1) continue;
+		if(!ap->anim)
+			ap->anim = (ODAnimation**)calloc(strAnimationTag.len, sizeof(ODAnimation*));
+		if(ap->anim[t] ? (ap->anim[t]->did < did) : 1)
+		{
+			if(!ap->anim[t])
+				ap->anim[t] = new ODAnimation;
+			ap->anim[t]->did = did;
+			ap->anim[t]->mesh = 0;
+			ap->anim[t]->numvar = 0;
+			//memset(ap->anim[t]->var, 0, sizeof(Model*)*MAX_ANIM_VARS);
+		}
+
+		ODAnimation *at = ap->anim[t];
+		char ff[512]; strcpy(ff, dn); strcat(ff, s);
+		if(!FileExists(ff)) continue;
+		if(!isanim) // Mesh
+		{
+			if(!at->mesh)
+				{//printf("AT Mesh: %s\n", s);
+				at->mesh = GetModel(ff);}
+		}
+		else // Anim
+		{
+			if(at->numvar < MAX_ANIM_VARS)
+				{//printf("AT Anim: %s\n", s);
+				at->var[at->numvar++] = GetModel(ff);}
+		}
+	}
+}
+
 char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppname)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
@@ -66,7 +115,7 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 		{
 			// Load default appearance if not specified but available.
 			// "Default" appear tag is expected to be 0 (first declared).
-			if(!objdef[x].subtypes[y].appear[0])
+			if(!objdef[x].subtypes[y].appear[0].def)
 			{
 				int si; int ff = 0, m = 0;
 				// Anim path: path1 + fline[2]
@@ -78,9 +127,10 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 				if(fwords >= 3)
 					strcat(checkfile, fline[2]);
 				oddbg("[DBG] DEF checkfile = %s\n", checkfile);
+				LoadODAnims(&(objdef[x].subtypes[y].appear[0]), checkfile, 0);
 				FindModel(checkfile, ff, m);
 				if(ff)
-					objdef[x].subtypes[y].appear[0] = GetModel(checkfile);
+					objdef[x].subtypes[y].appear[0].def = GetModel(checkfile);
 			}
 			return fp; // Load mesh here?
 		}
@@ -89,6 +139,7 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 			foundfile = 0;
 			int z = strAppearTag.find(word[1]); mustbefound(z);
 			int fm;
+			int ov = 0;
 			while(*fp)
 			{
 				fp = GetLine(fp, wwl);
@@ -109,6 +160,7 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 						strcat(checkfile, fline[2]);
 					strcat(checkfile, word[1]);
 					oddbg("[DBG] checkfile = %s\n", checkfile);
+					LoadODAnims(&(objdef[x].subtypes[y].appear[z]), checkfile, ov++);
 					FindModel(checkfile, ff, m);
 					if(ff)
 						{strcpy(finalfile, checkfile); foundfile = 1; fm = m;}
@@ -118,9 +170,9 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 appearend:		if(foundfile)
 			{
 				oddbg("[DBG] Final ANIM3 file: %s\n", finalfile);
-				objdef[x].subtypes[y].appear[z] = GetModel(finalfile);
+				objdef[x].subtypes[y].appear[z].def = GetModel(finalfile);
 			}
-			else	{oddbg("[DBG] No ANIM3\n"); objdef[x].subtypes[y].appear[z] = 0;}
+			else	{oddbg("[DBG] No ANIM3\n"); objdef[x].subtypes[y].appear[z].def = 0;}
 		}
 	}
 	ferr("UEOF"); return fp;
@@ -143,7 +195,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		objdef[x].subtypes = (PhysicalSubtype*)malloc(pstObjDef[x]->len * sizeof(PhysicalSubtype));
 		for(int i = 0; i < pstObjDef[x]->len; i++)
 		{
-			objdef[x].subtypes[i].appear = (Model**)calloc(strAppearTag.len, sizeof(Mesh*));
+			objdef[x].subtypes[i].appear = (ODAppearance*)calloc(strAppearTag.len, sizeof(ODAppearance));
 			objdef[x].subtypes[i].name = pstObjDef[x]->getdp(i);
 		}
 		if((objdef[x].type == CLASS_BUILDING) || (objdef[x].type == CLASS_CHARACTER) ||
@@ -171,7 +223,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		{
 			// Load default subtype and appearance if not specified but available.
 			if(!e && (objdef[x].life==1))
-			if(!objdef[x].subtypes[0].appear[0])
+			if(!objdef[x].subtypes[0].appear[0].def)
 			{
 				int si; int ff = 0, m = 0;
 				// Anim path: path1
@@ -183,9 +235,10 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				if(fwords >= 3)
 					strcat(checkfile, fstline[2]);
 				oddbg("[DBG] DEFSB checkfile = %s\n", checkfile);
+				LoadODAnims(&(objdef[x].subtypes[0].appear[0]), checkfile, 0);
 				FindModel(checkfile, ff, m);
 				if(ff)
-					objdef[x].subtypes[0].appear[0] = GetModel(checkfile);
+					objdef[x].subtypes[0].appear[0].def = GetModel(checkfile);
 				objdef[x].life = 2;
 			}
 			return fp;
@@ -215,7 +268,8 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				objdef[x].scale.z = atov(word[3]);
 				break;
 			case CBLUEPRINT_MOVEMENT_BAND:
-				fp = SkipClass(fp, "END_MOVEMENT_BAND"); break;
+				//fp = SkipClass(fp, "END_MOVEMENT_BAND"); break;
+				objdef[x].movBands.add(ReadMovementBand(&fp)); break;
 			case CBLUEPRINT_INHERITS_FROM:
 				y = FindObjDef(objdef[x].type, word[1]); mustbefound(y);
 				memcpy(objdef[x].startItems, objdef[y].startItems, strItems.len * sizeof(valuetype));

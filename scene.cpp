@@ -22,7 +22,7 @@ Vector3 nullvector(0.0f, 0.0f, 0.0f), onevector(1.0f, 1.0f, 1.0f);
 
 Matrix matView, matProj, mWorld, camworld;
 D3DVIEWPORT9 dvport;
-float farzvalue = 250.0f, occlurate = 2.0f/3.0f;
+float farzvalue = 250.0f, occlurate = 2.0f/3.0f, verticalfov = 52.5f * M_PI / 180.0f;
 float camyaw = 0.0f, campitch = 0.0f;
 Vector3 vLAD;
 goref currentSelection, newSelection; float newSelZ;
@@ -54,7 +54,7 @@ void SetConstantMatrices()
 	CreateLookAtLHViewMatrix(&matView, &camerapos, &vLookatPt, &vUpVec);
 	//ddev->SetTransform( D3DTS_VIEW, &matView );
 
-	CreatePerspectiveMatrix( &matProj, M_PI / 3.5, (float)scrw/(float)scrh, 1.0f, farzvalue );
+	CreatePerspectiveMatrix( &matProj, verticalfov, (float)scrw/(float)scrh, 1.0f, farzvalue );
 	//ddev->SetTransform( D3DTS_PROJECTION, &matProj );
 
 	MultiplyMatrices(&vpmatrix, &matView, &matProj);
@@ -113,7 +113,8 @@ void DrawOOBM()
 						dif = (currentSelection==o)?0xFFFF0000:0xFF0000FF;
 				}
 
-				Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance];
+				//Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance].def;
+				Model *md = GetObjectModel(o);
 				if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
 				Mesh *msh = md->mesh;
 				for(int g = 0; g < msh->ngrp; g++)
@@ -122,7 +123,11 @@ void DrawOOBM()
 						if(!txset) {txset = 1; SetTexture(0, msh->lstmattex[g]);}
 						if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
 						SetMatrices(o->scale, -o->orientation, o->position);
-						(animsEnabled?md:md->mesh)->drawInBatch(mshbatch, g, o->color, dif, tt);
+
+						uint tm = (int)(current_time*1000.0f) - o->animtimeref;
+						if(o->animlooping) if(md != md->mesh)
+							tm %= ((Anim*)md)->dur;
+						(animsEnabled?md:md->mesh)->drawInBatch(mshbatch, g, o->color, dif, tm);
 					}
 			}
 
@@ -213,12 +218,13 @@ void CalcStampdownPos()
 void DrawObj(GameObject *o)
 {
 	float pntz;
-	if((o->renderable && o->objdef->subtypes[o->subtype].appear[o->appearance])
+	if((o->renderable && o->objdef->subtypes[o->subtype].appear[o->appearance].def)
 	  || (showrepresentations && o->objdef->representation))
 	{
 		if(IsPointOnScreen(o->position, &pntz))
 		{
-			Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance];
+			//Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance].def;
+			Model *md = GetObjectModel(o);
 			if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
 			Mesh *msh = md->mesh;
 			objsdrawn++;
@@ -295,7 +301,7 @@ if(experimentalKeys) {
 		{
 			SetMatrices(onevector, nullvector, stdownpos);
 			SetTransformMatrix(&matrix);
-			objdef[od].subtypes[0].appear[0]->draw(0);
+			objdef[od].subtypes[0].appear[0].def->draw(0);
 			//sprintf(statustextbuf, "stdownpos = (%f, %f, %f)", stdownpos.x, stdownpos.y, stdownpos.z);
 			//sprintf(statustextbuf, "raydir = (%f, %f, %f)", raydir.x, raydir.y, raydir.z);
 			//sprintf(statustextbuf, "raystart = (%f, %f, %f)", raystart.x, raystart.y, raystart.z);

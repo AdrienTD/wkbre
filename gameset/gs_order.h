@@ -21,6 +21,8 @@ struct CTrigger
 	CValue *period;
 };
 
+struct CPlayAnimation;
+
 struct CTask
 {
 	char *name;
@@ -32,6 +34,8 @@ struct CTask
 	CValue *proxRequirement;
 	GrowList<CTrigger> triggers;
 	CValue *satf;
+	CPlayAnimation *playAnim;
+	boolean playAnimOnce;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq, *proxSatisfiedSeq, *proxDissatisfiedSeq;
 };

@@ -12,7 +12,8 @@ You need a copy of the game if you want to execute wkbre. The game is still avai
 
 Currently, wkbre only works on __Windows__ (XP, Vista, 7, 8, 8.1, 10, and later). But a port to other OSs is planned.
 
-There's a video of an old version of wkbre on [YouTube](https://www.youtube.com/watch?v=K2LLjLelEJA).
+You can watch a trailer of wkbre on [YouTube](https://www.youtube.com/watch?v=8agit5vO6cw).
+There's also a video of an older version of wkbre on [YouTube](https://www.youtube.com/watch?v=K2LLjLelEJA).
 
 ## Compilation
 __Note:__ It is recommended to build a 32-bit executable, otherwise if you make a 64-bit executable it might not find all your savegames (if the game is in the "Program Files" directory and you often run the game without administrator rights).
@@ -41,4 +42,4 @@ For more information see [docs/help.htm](docs/help.htm).
 ## Conclusion
 I hope you find wkbre and its source code interesting and useful. Comments/suggestions/bug reports are really appreciated.
 
-I also made a __"WK Modding kit"__ with some programs for viewing and editing game files. You can download it [here](http://warriorkingsevents.jimdo.com/tools/).
+I also made a __"WK Modding kit"__ with some programs for viewing and editing game files. You can download it [here](https://github.com/AdrienTD/wktools).

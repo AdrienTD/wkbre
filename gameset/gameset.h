@@ -50,6 +50,7 @@ public:
 #include "gs_3dclip.h"
 #include "gs_campath.h"
 #include "sg_ai.h"
+#include "gs_animation.h"
 
 // From loadgameset.cpp
 

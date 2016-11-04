@@ -57,6 +57,8 @@ public:
 };
 
 extern GrowStringList strMaterials;
+extern GrowStringList alModelFn;
+extern GrowList<Model*> alModel;
 
 void InitMeshDrawing();
 void BeginMeshDrawing();

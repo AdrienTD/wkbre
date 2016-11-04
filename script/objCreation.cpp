@@ -93,7 +93,7 @@ void CObjectCreation::run(SequenceEnv *env, CFinder *findcreator)
 				o->subtype = 0;
 			else
 				o->subtype = mr->subtype;
-			if(o->objdef->subtypes[o->subtype].appear[mr->appearance])
+			if(o->objdef->subtypes[o->subtype].appear[mr->appearance].def) // :S
 				o->appearance = mr->appearance;
 		}
 

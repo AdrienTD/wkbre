@@ -46,6 +46,7 @@ void ObjStepMove(GameObject *o, Vector3 dest, float mindist)
 	o->orientation.y = M_PI - atan2(v.x, v.z);
 
 	GOPosChanged(o);
+	PlayMovementAnimation(o);
 }
 
 void StartCurrentTaskTriggers(GameObject *o)
@@ -169,6 +170,8 @@ void ProcessCurrentTask(GameObject *o)
 					}
 					if(t->processState == 1)
 					{
+						if(c->playAnim) SetObjectAnimationIfNotPlayed(o, GetBestPlayAnimationTag(c->playAnim, o), !c->playAnimOnce);
+						else SetObjectAnimationIfNotPlayed(o, 0, 1);
 						StartCurrentTaskTriggers(o);
 						CheckCurrentTaskTriggers(o);
 					}
@@ -177,6 +180,7 @@ void ProcessCurrentTask(GameObject *o)
 					boolean pps = t->flags & FSTASK_PROXIMITY_SATISFIED;
 					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
 					StopCurrentTaskTriggers(o);
+					//SetObjectAnimationIfNotPlayed(o, 0, 1);
 					if(pps) if(c->proxDissatisfiedSeq)
 					{
 						SequenceEnv env; env.self = o;
@@ -375,6 +379,8 @@ void TerminateTask(GameObject *o)
 	RemoveObjReference(o);
 
 	t->processState = 5;
+
+	SetObjectAnimation(o, 0, 1);
 
 	if(t->type->type == ORDTSKTYPE_SPAWN)
 	{

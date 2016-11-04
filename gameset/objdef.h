@@ -20,16 +20,32 @@
 int FindObjDef(int t, char *s);
 char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, int e);
 
+#define MAX_ANIM_VARS 10
+
+struct ODAnimation
+{
+	uint did, numvar;
+	Model *mesh;
+	Model *var[MAX_ANIM_VARS];
+};
+
+struct ODAppearance
+{
+	Model *def;
+	ODAnimation **anim;
+};
+
 struct PhysicalSubtype
 {
 	//char *path;
-	Model **appear;
+	ODAppearance *appear;
 	char *name;
 };
 
 struct CReaction;
 struct CValue;
 struct CCommand;
+struct CMovementBand;
 
 // NOTE: This is an "object type declaration". All ingame objects of the same type
 //       (ex: CHARACTER "Peasant") share some information in this structure.
@@ -53,6 +69,7 @@ struct CObjectDefinition
 	GrowList<CCommand*> offeredCmds;
 	int buildingType;
 	int movSpeedEq;
+	GrowList<CMovementBand*> movBands;
 
 	void *operator new(size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}
 	void *operator new[](size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}

@@ -1,0 +1,15 @@
+struct AnimState
+{
+	uint timeref, time;
+	boolean looping, play;
+	boolean looped;
+};
+
+void UpdateAnimState(GameObject *o)
+{
+	// Return if current model is a static mesh.
+	if(o->model == o->model->mesh)
+		return;
+	Anim *a = (Anim*)o->model;
+	uint dur = a->dur;
+	uint nt = o->animstate.timeref + 

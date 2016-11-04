@@ -449,7 +449,7 @@ struct ActionSwitchAppearance : public CAction
 		GameObject *o;
 		f->begin(env);
 		while(o = f->getnext())
-			if(o->objdef->subtypes[o->subtype].appear[apt])
+			if(o->objdef->subtypes[o->subtype].appear[apt].def)	// :S
 				o->appearance = apt;
 	}
 };

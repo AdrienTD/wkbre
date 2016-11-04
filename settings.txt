@@ -5,6 +5,7 @@ GAME_DIR "C:\Program Files (x86)\Empire Interactive\Warrior Kings - Battles"
 
 FAR_Z_VALUE 250
 OCCLUSION_RATE 0.5
+VERTICAL_FOV 52
 MAP_MAX_PART_SIZE 32 32
 
 HARDWARE_VERTEX_PROCESSING 1
@@ -14,7 +15,7 @@ VSYNC 1
 FOG 1
 FONT "Fonts\Proportional\20\Proportional - 20.font"
 //FONT "Fonts\Morpheus\20\Morpheus - 20.font"
-HARDWARE_CURSOR 1
+HARDWARE_CURSOR 0
 
 FULLSCREEN 1
 SCREEN_SIZE 1366 768

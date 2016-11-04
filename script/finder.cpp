@@ -1068,6 +1068,9 @@ int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
 	if(!c->refobj) r = env->self.get();
 	else r = env->originalself.get();
 
+	// Avoid objects who aren't owned by players if player comparaison required.
+	if(c->diplo) if(!o->player || !r->player) return 0;
+
 	switch(c->diplo)
 	{
 		case 1: if(o->player != r->player) return 0; break;

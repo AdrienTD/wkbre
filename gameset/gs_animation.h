@@ -14,23 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-extern Vector3 camerapos, vLAD;
-extern Matrix matrix, matView, mWorld;
-extern float farzvalue, occlurate, verticalfov;
-extern float camyaw, campitch;
+struct CPlayAnimation
+{
+	int defaulttag;
+	GrowList<int> equlist;
+	GrowList<int> taglist;
+};
 
-extern int enableMap;
-extern goref currentSelection;
-extern int drawdebug;
-extern int fogenabled;
-extern int showrepresentations;
+struct CMovementBand
+{
+	float naturalMovSpeed;
+	CPlayAnimation *playAnim;
+};
 
-extern Vector3 stdownpos; extern int stdownvalid;
+CPlayAnimation *ReadPlayAnimation(char **pntfp, char **fstline, int fwords);
+int GetBestPlayAnimationTag(CPlayAnimation *pa, GameObject *o);
 
-extern boolean meshbatching, animsEnabled;
-
-void InitOOBMList();
-void MakeVisObjList();
-void InitScene();
-void DrawScene();
-int IsPointOnScreen(Vector3 a);
+CMovementBand *ReadMovementBand(char **pntfp);
