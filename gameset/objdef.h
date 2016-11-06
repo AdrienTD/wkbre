@@ -40,6 +40,7 @@ struct PhysicalSubtype
 	//char *path;
 	ODAppearance *appear;
 	char *name;
+	uint nUsedAppears;
 };
 
 struct CReaction;

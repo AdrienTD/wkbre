@@ -116,6 +116,7 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 			// Load default appearance if not specified but available.
 			// "Default" appear tag is expected to be 0 (first declared).
 			if(!objdef[x].subtypes[y].appear[0].def)
+			if(!objdef[x].subtypes[y].nUsedAppears)
 			{
 				int si; int ff = 0, m = 0;
 				// Anim path: path1 + fline[2]
@@ -140,6 +141,7 @@ char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppn
 			int z = strAppearTag.find(word[1]); mustbefound(z);
 			int fm;
 			int ov = 0;
+			objdef[x].subtypes[y].nUsedAppears++;
 			while(*fp)
 			{
 				fp = GetLine(fp, wwl);
@@ -197,6 +199,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		{
 			objdef[x].subtypes[i].appear = (ODAppearance*)calloc(strAppearTag.len, sizeof(ODAppearance));
 			objdef[x].subtypes[i].name = pstObjDef[x]->getdp(i);
+			objdef[x].subtypes[i].nUsedAppears = 0;
 		}
 		if((objdef[x].type == CLASS_BUILDING) || (objdef[x].type == CLASS_CHARACTER) ||
 		   (objdef[x].type == CLASS_CONTAINER) || (objdef[x].type == CLASS_MISSILE) ||
@@ -224,6 +227,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 			// Load default subtype and appearance if not specified but available.
 			if(!e && (objdef[x].life==1))
 			if(!objdef[x].subtypes[0].appear[0].def)
+			if(!objdef[x].subtypes[0].nUsedAppears)
 			{
 				int si; int ff = 0, m = 0;
 				// Anim path: path1
