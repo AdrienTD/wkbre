@@ -32,25 +32,25 @@ texture CreateTexture(Bitmap *bm, int mipmaps)
 	return renderer->CreateTexture(bm, mipmaps);
 }
 
-texture LoadTexture(char *fn)
+texture LoadTexture(char *fn, int tc, int mipmaps)
 {
 	Bitmap *bm;
 	if(FileExists(fn))
 		bm = LoadBitmap(fn);
 	else
 		bm = LoadBitmap("netexfb.tga");
-	texture t = CreateTexture(bm);
+	texture t = CreateTexture(bm, mipmaps);
 	FreeBitmap(bm);
 	return t;
 }
 
-texture GetTexture(char *fn, int tc)
+texture GetTexture(char *fn, int tc, int mipmaps)
 {
 	int t = alTexFn.find(fn);
 	if(t != -1)
 		return alTextures[t];
 
-	texture x = LoadTexture(fn);
+	texture x = LoadTexture(fn, tc, mipmaps);
 	alTextures.add(x);
 	alTexFn.add(fn);
 	return x;

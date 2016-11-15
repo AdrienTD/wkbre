@@ -29,6 +29,6 @@ extern int TXCenabled;
 
 void ResetTexList();
 texture CreateTexture(Bitmap *bm, int mipmaps = 0);
-texture LoadTexture(char *fn);
-texture GetTexture(char *fn, int tc = 1);
+texture LoadTexture(char *fn, int tc = 1, int mipmaps = 0);
+texture GetTexture(char *fn, int tc = 1, int mipmaps = 0);
 void FreeTexture(texture t);

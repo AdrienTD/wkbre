@@ -152,3 +152,6 @@ extern char statustextbuf[1024];
 extern ClientState *curclient;
 
 extern int findertargetcommand;
+
+extern boolean multiSel; extern int mselx, msely;
+extern GrowList<GameObject*> msellist;

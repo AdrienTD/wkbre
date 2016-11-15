@@ -108,7 +108,7 @@ Font::Font(char *fn)
 	free(fb);
 	// Generate textures...
 	for(int i = 0; i < setbmp.len; i++)
-		settex.add(CreateTexture(setbmp.getpnt(i)));
+		settex.add(CreateTexture(setbmp.getpnt(i), 1));
 	//printf("num glyphs: %i\n", glyphs.len);
 }
 

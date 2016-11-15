@@ -171,9 +171,17 @@ texture CreateTexture(Bitmap *bm, int mipmaps)
 	glGenTextures(1, &t.gl);
 	glBindTexture(GL_TEXTURE_2D, t.gl);
 	if(mipmaps != 1)
+	{
 		gluBuild2DMipmaps(GL_TEXTURE_2D, 4, c->w, c->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, c->pix);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	}
 	else
+	{
 		glTexImage2D(GL_TEXTURE_2D, 0, 4, c->w, c->h, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, c->pix);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
 
 	if(bm->form != BMFORMAT_B8G8R8A8)
 		FreeBitmap(c);
@@ -252,8 +260,8 @@ void InitRectDrawing()
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	Matrix m; CreateZeroMatrix(&m);
 	m._11 = 2.0f / scrw;
@@ -286,6 +294,18 @@ void DrawGradientRect(int x, int y, int w, int h, int c0, int c1, int c2, int c3
 		glTexCoord2f(0, 1); glVertex3f(x  , y+h, 0.5f);
 		glColor4ub((c3>>16)&255, (c3>>8)&255, c3&255, (c3>>24)&255);
 		glTexCoord2f(1, 1); glVertex3f(x+w, y+h, 0.5f);
+	glEnd();
+}
+
+void DrawFrame(int x, int y, int w, int h, int c)
+{
+	glColor4ub((c>>16)&255, (c>>8)&255, c&255, (c>>24)&255);
+	glBegin(GL_LINE_STRIP);
+		glVertex3f(x  , y  , 0.5f);
+		glVertex3f(x+w, y  , 0.5f);
+		glVertex3f(x+w, y+h, 0.5f);
+		glVertex3f(x  , y+h, 0.5f);
+		glVertex3f(x  , y  , 0.5f);
 	glEnd();
 }
 
@@ -336,8 +356,8 @@ void BeginMapDrawing()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glDisable(GL_BLEND);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -365,8 +385,8 @@ void BeginMeshDrawing()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
 	glDisable(GL_BLEND);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_LINEAR_MIPMAP_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //GL_LINEAR);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);

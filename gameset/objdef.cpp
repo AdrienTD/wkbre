@@ -97,6 +97,16 @@ void LoadODAnims(ODAppearance *ap, char *dn, int did)
 				at->var[at->numvar++] = GetModel(ff);}
 		}
 	}
+
+	// Set appear.def
+	if(ap->anim)
+	if(ap->anim[0])
+	{
+		if(ap->anim[0]->numvar)
+			ap->def = ap->anim[0]->var[0];
+		else if(ap->anim[0]->mesh)
+			ap->def = ap->anim[0]->mesh;
+	}
 }
 
 char *LookPSt(char *fp, char **fline, int fwords, char *path1, int x, char *cppname)

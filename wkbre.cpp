@@ -29,6 +29,9 @@ int playMode = 0, enableObjTooltips = 0;
 ClientState *curclient = 0;
 boolean objmovalign = 0;
 Cursor *defcursor;
+boolean mouseRot = 0; int msrotx, msroty;
+boolean multiSel = 0; int mselx, msely;
+GrowList<GameObject*> msellist;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -294,6 +297,14 @@ void RotateCurCamera(float x, float y)
 		curclient->cameraori += Vector3(x, y, 0);
 	else
 		{campitch += x; camyaw += y;}
+}
+
+void GetCurCamera(float *x, float *y)
+{
+	if(curclient)
+		{*x = curclient->cameraori.x; *y = curclient->cameraori.y;}
+	else
+		{*x = campitch; *y = camyaw;}
 }
 
 void PresentObject(int igo)
@@ -916,6 +927,12 @@ void SetTargetCursor()
 
 void T7ClickWindow(void *param)
 {
+	if(!multiSel)
+	{
+		multiSel = 1;
+		mselx = mouseX; msely = mouseY;
+	}
+
 	if(!keypressed[VK_SHIFT])
 		DeselectAll();
 	if(!currentSelection.valid()) return;
@@ -958,6 +975,36 @@ void T7RightClick(void *param)
 		}
 }
 
+texture tex_toppanel, tex_bottomleftpanel, tex_bottomrightpanel;
+
+void InitHUD()
+{
+	tex_toppanel = GetTexture("Interface\\InGame\\Top Panel\\Standard Panel.tga");
+	tex_bottomleftpanel = GetTexture("Interface\\InGame\\Bottom_Left_Panel.tga");
+	tex_bottomrightpanel = GetTexture("Interface\\InGame\\Bottom_Right_Panel.tga");
+}
+
+void DrawHUD()
+{
+	float w, h;
+	SetTexture(0, tex_toppanel);
+	DrawRect(0, 0, scrw, 85.0f*scrh/768);
+	SetTexture(0, tex_bottomleftpanel);
+	w = 132.0f * scrw / 640; h = 129.0f * scrh / 480;
+	DrawRect(0, scrh-h, w, h);
+	SetTexture(0, tex_bottomrightpanel);
+	w = 136.0f * scrw / 640; h = 136.0f * scrh / 480;
+	DrawRect(scrw-w, scrh-h, w, h);
+/*
+	if(curclient)
+	{
+		char tb[512];
+		sprintf(tb, "%i", (int)curclient->obj->getItem(?);
+		// ...
+	}
+*/
+}
+
 void Test7()
 {
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
@@ -984,19 +1031,20 @@ void Test7()
 
 	loadinginfo("Savegame loaded!\n");
 
-	//InitMenuBar();
-	actualpage = new GEContainer;
-	actualpage->buttonClick = T7ClickWindow;
-	actualpage->buttonRightClick = T7RightClick;
-	GEMenuBar *menubar = new GEMenuBar(menubarstr, menucmds, 4, actualpage);
-	actualpage->add(menubar);
+	GEContainer *editInterface = new GEContainer;
+	actualpage = editInterface;
+	editInterface->buttonClick = T7ClickWindow;
+	editInterface->buttonRightClick = T7RightClick;
+	GEMenuBar *menubar = new GEMenuBar(menubarstr, menucmds, 4, editInterface);
+	editInterface->add(menubar);
 	menubar->setRect(0, 0, 32767, 20);
 	menubar->bgColor = 0xC0000080;
-	//onClickWindow = T7ClickWindow;
-	InitGTWs();
+	InitGTWs(); // :S
+
+	boolean playView = 0;
+	InitHUD();
 
 	ChangeCursor(defcursor = LoadCursor("Interface\\C_DEFAULT.TGA"));
-
 	InitOOBMList();
 
 	while(!appexit)
@@ -1025,9 +1073,13 @@ void Test7()
 			BeginDrawing();
 			DrawScene();
 			InitRectDrawing();
+			if(multiSel) {
+				NoTexture(0);
+				renderer->DrawFrame(mselx, msely, mouseX-mselx, mouseY-msely, -1);
+			}
 			NoTexture(0);
 			if(actualpage) actualpage->draw(0, 0);
-			if(statustext)
+			if(statustext) if(!playView)
 			{
 				NoTexture(0);
 				DrawRect(0, scrh-20 , scrw, 20, 0xC0000080);
@@ -1035,7 +1087,7 @@ void Test7()
 			}
 			if(enableObjTooltips) DrawTooltip();
 //#ifndef WKBRE_RELEASE
-		if(experimentalKeys)
+		if(experimentalKeys) if(!playView)
 		{	char st[256];
 			sprintf(st, "current_time = %f", current_time);
 			DrawFont(0, 80, st);
@@ -1059,6 +1111,9 @@ void Test7()
 			}
 //#endif
 		}
+			if(playView) DrawHUD();
+			//NoTexture(0); renderer->DrawFrame(64, 64, 64, 64, -1);
+
 			SetTargetCursor();
 			DrawCursor();
 			EndDrawing();
@@ -1071,6 +1126,12 @@ void Test7()
 			tooltip_x = mouseX; tooltip_y = mouseY;
 		}
 		else	tooltip_str = 0;
+
+		if(keypressed['\r'])
+		{
+			keypressed['\r'] = 0;
+			playView = !playView;
+		}
 
 		if(keypressed[VK_SHIFT]) walkstep = objmovalign ? 5.0f : 4.0f;
 		else walkstep = objmovalign ? 2.5f : 1.0f;
@@ -1200,6 +1261,49 @@ void Test7()
 
 		if(keypressed['O']) {keypressed['O'] = 0; CallCommand(CMD_SELECT_OBJECT_ID);}
 		if(keypressed[VK_TAB]) {keypressed[VK_TAB] = 0; CallCommand(CMD_CHANGE_OBJMOVALIGN);}
+
+		if(keypressed[VK_NUMPAD0])
+		{
+			if(!mouseRot)
+			{
+				mouseRot = 1;
+				msrotx = mouseX; msroty = mouseY;
+			}
+			else
+			{
+				float rx = (mouseX-msrotx)/200.0f;
+				float ry = (mouseY-msroty)/200.0f;
+				//float ox, oy; GetCurCamera(&ox, &oy);
+				//if(abs(ox + rx) < M_PI/2)
+				//if(abs(oy + ry) < M_PI/2)
+					RotateCurCamera(-ry, -rx);
+				//campitch -= ry; camyaw -= rx;
+				//if(campitch >= M_PI/2) campitch = M_PI/2 - 0.0001;
+				//if(campitch <= -M_PI/2) campitch = -M_PI/2 + 0.0001;
+				//printf("pitch = %f; yaw = %f\n", campitch, camyaw);
+				msrotx = mouseX; msroty = mouseY;
+			}
+		}
+		else mouseRot = 0;
+/*
+		if(lmbPressed)
+		{
+			if(!multiSel)
+			{
+				multiSel = 1;
+				mselx = mouseX; msely = mouseY;
+			}
+		}
+		else multiSel = 0;
+*/
+		if(!lmbPressed)
+		if(multiSel)
+		{
+			multiSel = 0;
+			for(int i = 0; i < msellist.len; i++)
+				SelectObject(msellist[i]);
+		}
+		msellist.clear();
 
 	if(experimentalKeys)
 	{

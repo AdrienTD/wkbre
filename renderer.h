@@ -67,6 +67,7 @@ struct IRenderer
 	virtual void InitRectDrawing() = 0;
 	virtual void DrawRect(int x, int y, int w, int h, int c, float u, float v, float o, float p) = 0;
 	virtual void DrawGradientRect(int x, int y, int w, int h, int c0, int c1, int c2, int c3) = 0;
+	virtual void DrawFrame(int x, int y, int w, int h, int c) = 0;
 
 	// 3D Landscape/Heightmap drawing
 	virtual void CreateMapPart(MapPart *p, int x, int y, int w, int h) = 0;

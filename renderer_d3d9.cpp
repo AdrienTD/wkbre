@@ -33,6 +33,7 @@ MYVERTEX verts[] =
     { 639.0f,   0.0f, 0.5f, 1.0f, 0, 1.0f, 0.0f},
     {   0.0f, 479.0f, 0.5f, 1.0f, 0, 0.0f, 1.0f},
     { 639.0f, 479.0f, 0.5f, 1.0f, 0, 1.0f, 1.0f},
+    { 639.0f, 479.0f, 0.5f, 1.0f, 0, 1.0f, 1.0f},
 };
 
 ///////////////
@@ -334,6 +335,17 @@ void DrawGradientRect(int x, int y, int w, int h, int c0, int c1, int c2, int c3
 	verts[0].color = c0;	verts[1].color = c1;
 	verts[2].color = c2;	verts[3].color = c3;
 	ddev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, verts, sizeof(MYVERTEX));
+}
+
+void DrawFrame(int x, int y, int w, int h, int c)
+{
+	verts[0].x = x;		verts[0].y = y;
+	verts[1].x = x + w;	verts[1].y = y;
+	verts[2].x = x + w;	verts[2].y = y + h;
+	verts[3].x = x;		verts[3].y = y + h;
+	verts[4].x = x;		verts[4].y = y;
+	for(int i = 0; i < 5; i++) {verts[i].color = c; verts[i].x -= 0.5f; verts[i].y -= 0.5f;}
+	ddev->DrawPrimitiveUP(D3DPT_LINESTRIP, 4, verts, sizeof(MYVERTEX));
 }
 
 //***********************************//

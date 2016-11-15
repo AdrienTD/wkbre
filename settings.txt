@@ -15,6 +15,7 @@ VSYNC 1
 FOG 1
 FONT "Fonts\Proportional\20\Proportional - 20.font"
 //FONT "Fonts\Morpheus\20\Morpheus - 20.font"
+//FONT "Fonts\Drop_Shadow_White\DROP_SHADOW_WHITE.FONT"
 HARDWARE_CURSOR 0
 
 FULLSCREEN 1

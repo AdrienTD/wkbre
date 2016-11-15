@@ -235,6 +235,35 @@ void DrawObj(GameObject *o)
 			if((newSelZ == -1) || (pntz < newSelZ))
 			if(SphereIntersectsRay(&sphPos, msh->sphere[3]*o->scale.y/2.0f, &raystart, &raydir))
 				{newSelection = o; newSelZ = pntz;}
+/*
+			if(multiSel)
+			{
+				Vector3 tdp;
+				TransformCoord3(&tdp, &nullvector, &matrix);
+				float bx = (float)mselx * 2.0f / scrw - 1;
+				float by = (float)msely * 2.0f / scrh - 1;
+				float bw = (float)(mouseX-mselx) * 2.0f / scrw - 1;
+				float bh = (float)(mouseY-msely) * 2.0f / scrh - 1;
+				printf("x=%f y=%f\n", tdp.x, tdp.y);
+				//if((tdp.x >= bx) && (tdp.x <= (bx+bw)) &&
+				//   (-tdp.y >= by) && (-tdp.y <= (by+bh)))
+				if((abs(tdp.x - bx - bw/2) < abs(bw/2))
+				    && (abs(-tdp.y - by - bh/2) < abs(bh/2)))
+					printf("Gotcha!\n");
+			}
+*/
+			if(multiSel)
+			{
+				Vector3 tdp;
+				TransformCoord3(&tdp, &nullvector, &matrix);
+				float ba = (float)((mselx<mouseX)?mselx:mouseX) * 2.0f / scrw - 1;
+				float bb = (float)((msely<mouseY)?msely:mouseY) * 2.0f / scrh - 1;
+				float bc = (float)((mselx>mouseX)?mselx:mouseX) * 2.0f / scrw - 1;
+				float bd = (float)((msely>mouseY)?msely:mouseY) * 2.0f / scrh - 1;
+				if((tdp.x >= ba) && (tdp.x <= bc) &&
+				   (-tdp.y >= bb) && (-tdp.y <= bd))
+					msellist.add(o);
+			}
 
 			if(!meshbatching)
 			{

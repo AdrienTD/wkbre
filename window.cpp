@@ -23,7 +23,7 @@ bool keypressed[256];
 
 int scrw = 640, scrh = 480;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
-int mouseX = 0, mouseY = 0;
+int mouseX = 0, mouseY = 0; boolean lmbPressed = 0;
 int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 3, reqRender = 1;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
@@ -57,6 +57,7 @@ void GUIMouseMove()
 
 void GUIMouseClick()
 {
+	lmbPressed = 1;
 	if(actsubmenu)
 		if(!IsPointInRect(actsubmenu->posx, actsubmenu->posy, actsubmenu->width, actsubmenu->height, mouseX, mouseY))
 			actsubmenu->enabled = 0;
@@ -75,6 +76,7 @@ void GUIMouseRightClick()
 
 void GUIMouseRelease()
 {
+	lmbPressed = 0;
 	if(actualpage)
 		actualpage->onMouseRelease(mouseX, mouseY);
 }

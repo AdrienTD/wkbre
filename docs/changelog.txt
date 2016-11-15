@@ -15,6 +15,7 @@ wkbre changelog:
 - TERMINATE action improved.
 - Added REMOVE_MULTIPLAYER_PLAYER action.
 - CAMERA_PATH_IN_PROGRESS and CAMERA_INTERPOLATION_IN_PROGRESS loaded and saved.
+- OpenGL renderer added.
 - Certain object finders will now avoid to return terminated or disabled objects.
 - BCM maps now always load correctly. No need to use the 9 & 0 keys anymore.
 - Map textures are now used.
@@ -22,6 +23,11 @@ wkbre changelog:
 - Added MAP_WIDTH and MAP_DEPTH value determinators.
 - Added OFFSET_FROM position determinator.
 - Invisible map parts behind the camera are no longer drawn.
+- Mesh batching, which allows drawing multiple meshes in a single draw call.
+- The move speed equations of characters are now used.
+- Animations (.anim3) can now be read and drawn.
+- Objects will change their animations when changing their current tasks.
+- NumPad 0 key for mouse camera rotation.
 - Bug fixes...
 
 [0.0.4] 09/08/2016
