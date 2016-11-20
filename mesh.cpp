@@ -79,12 +79,21 @@ Model *GetModel(char *fn)
 
 Mesh::Mesh(char *fn)
 {
+	fname = strdup(fn);
+	ready = 0;
+	if(preloadModels) prepare();
+}
+
+void Mesh::prepare()
+{
+	if(ready) return;
+
 	FILE *file; int i, ver, nparts, nverts;
 	char *fcnt; int fsize; char *fp;
 
 	mesh = this;
 
-	LoadFile(fn, &fcnt, &fsize);
+	LoadFile(fname, &fcnt, &fsize);
 	fp = fcnt + 4;
 	ver = *(uint*)fp;
 
@@ -218,16 +227,22 @@ Mesh::Mesh(char *fn)
 	renderer->CreateMesh(this);
 
 	free(lstverts); free(lstuvlist);
+
+	ready = 1;
 }
 
 void Mesh::draw(int iwtcolor)
 {
+	if(!ready) prepare();
+
 	if((uint)iwtcolor >= muvlist.len) iwtcolor = 0;
 	renderer->DrawMesh(this, iwtcolor);
 }
 
 void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 {
+	if(!ready) prepare();
+
 	if((uint)uvl >= muvlist.len) uvl = 0;
 	int sv = mgrpindex[grp+1] - mgrpindex[grp];
 	int si = mstartix[grp+1] - mstartix[grp];

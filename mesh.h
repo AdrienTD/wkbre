@@ -22,6 +22,8 @@ struct RBatch;
 struct Model
 {
 	Mesh *mesh;
+	char *fname; boolean ready;
+	virtual void prepare() = 0;
 	virtual void draw(int iwtcolor = 0) = 0;
 	virtual void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0) = 0;
 };
@@ -52,6 +54,7 @@ public:
 
 	Mesh(char *fn);
 
+	void prepare();
 	void draw(int iwtcolor = 0);
 	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0);
 };

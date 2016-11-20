@@ -418,8 +418,9 @@ extern char *OBJTYPE_str[14];
 #define SETTING_MESH_BATCHING 15
 #define SETTING_ANIMATED_MODELS 16
 #define SETTING_VERTICAL_FOV 17
-#define SETTING_NUM 18
-extern char *SETTING_str[18];
+#define SETTING_PRELOAD_ALL_MODELS 18
+#define SETTING_NUM 19
+extern char *SETTING_str[19];
 #define STASK_TRIGGER 0
 #define STASK_TARGET 1
 #define STASK_PROXIMITY 2

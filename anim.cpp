@@ -18,17 +18,26 @@
 
 Anim::Anim(char *fn)
 {
+	fname = strdup(fn);
+	ready = 0;
+	if(preloadModels) prepare();
+}
+
+void Anim::prepare()
+{
+	if(ready) return;
+
 	char *fcnt, *fp; int fsize; int i, ver, nparts, nverts, form;
 	Anim *anim = this;
 
-	LoadFile(fn, &fcnt, &fsize); fp = fcnt;
+	LoadFile(fname, &fcnt, &fsize); fp = fcnt;
 	form = *(uint*)fp; fp += 4;
 	if(form != 'minA')
 		ferr("Not an anim3 file.");
 
 	fp += 4;
 	char mshname[512], *mp;
-	strcpy(mshname, fn);
+	strcpy(mshname, fname);
 	mp = strrchr(mshname, '\\');
 	mp = mp ? (mp+1) : mshname;
 	while(*(mp++) = *(fp++));
@@ -64,6 +73,7 @@ Anim::Anim(char *fn)
 		}
 	}
 	free(fcnt);
+	ready = 1;
 }
 
 void Anim::CreateVertsFromTime(batchVertex *out, int tm, int grp)
@@ -92,11 +102,16 @@ void Anim::CreateVertsFromTime(batchVertex *out, int tm, int grp)
 
 void Anim::draw(int iwtcolor)
 {
+	if(!ready) prepare();
+
 	mesh->draw(iwtcolor);
 }
 
 void Anim::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 {
+	if(!ready) prepare();
+	if(!mesh->ready) mesh->prepare();
+
 	if((uint)uvl >= mesh->muvlist.len) uvl = 0;
 	int sv = mesh->mgrpindex[grp+1] - mesh->mgrpindex[grp];
 	int si = mesh->mstartix[grp+1] - mesh->mstartix[grp];

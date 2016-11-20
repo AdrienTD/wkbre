@@ -33,8 +33,14 @@ Matrix mIdentity;
 int enableMap = 1, drawdebug = 1;
 int fogenabled = 0, showrepresentations = 0;
 
+struct OOBMTex
+{
+	int tid;
+	GrowList<GameObject*> *objs;
+};
+
 boolean meshbatching = 0, animsEnabled = 0;
-GrowList<GameObject*> *oobm[2];
+GrowList<OOBMTex> oobm[2];
 RBatch *mshbatch;
 
 void SetConstantMatrices()
@@ -81,8 +87,8 @@ void SetMatrices(Vector3 is, Vector3 ir, Vector3 it)
 void InitOOBMList()
 {
 	if(!meshbatching) return;
-	for(int i = 0; i < 2; i++)
-		oobm[i] = new GrowList<GameObject*>[strMaterials.len];
+	//for(int i = 0; i < 2; i++)
+	//	oobm[i] = new GrowList<GameObject*>[strMaterials.len];
 	mshbatch = renderer->CreateBatch(16384, 25000);
 	//mshbatch = renderer->CreateBatch(9000, 9000);
 }
@@ -98,7 +104,11 @@ void DrawOOBM()
 		for(int a = 0; a < 2; a++)
 		{
 			int afset = 0;
-			GrowList<GameObject*> *l = &((oobm[a])[t]);
+			GrowList<GameObject*> *l = 0; // = &((oobm[a])[t]);
+			for(int i = 0; i < oobm[a].len; i++)
+				if(oobm[a].getpnt(i)->tid == t)
+					{l = oobm[a].getpnt(i)->objs; break;}
+			if(!l) continue;
 
 			for(int i = 0; i < l->len; i++)
 			{
@@ -116,6 +126,7 @@ void DrawOOBM()
 				//Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance].def;
 				Model *md = GetObjectModel(o);
 				if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
+				md->prepare(); md->mesh->prepare();
 				Mesh *msh = md->mesh;
 				for(int g = 0; g < msh->ngrp; g++)
 					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
@@ -226,6 +237,7 @@ void DrawObj(GameObject *o)
 			//Model *md = o->objdef->subtypes[o->subtype].appear[o->appearance].def;
 			Model *md = GetObjectModel(o);
 			if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
+			md->prepare(); md->mesh->prepare();
 			Mesh *msh = md->mesh;
 			objsdrawn++;
 			SetMatrices(o->scale, -o->orientation, o->position);
@@ -235,23 +247,7 @@ void DrawObj(GameObject *o)
 			if((newSelZ == -1) || (pntz < newSelZ))
 			if(SphereIntersectsRay(&sphPos, msh->sphere[3]*o->scale.y/2.0f, &raystart, &raydir))
 				{newSelection = o; newSelZ = pntz;}
-/*
-			if(multiSel)
-			{
-				Vector3 tdp;
-				TransformCoord3(&tdp, &nullvector, &matrix);
-				float bx = (float)mselx * 2.0f / scrw - 1;
-				float by = (float)msely * 2.0f / scrh - 1;
-				float bw = (float)(mouseX-mselx) * 2.0f / scrw - 1;
-				float bh = (float)(mouseY-msely) * 2.0f / scrh - 1;
-				printf("x=%f y=%f\n", tdp.x, tdp.y);
-				//if((tdp.x >= bx) && (tdp.x <= (bx+bw)) &&
-				//   (-tdp.y >= by) && (-tdp.y <= (by+bh)))
-				if((abs(tdp.x - bx - bw/2) < abs(bw/2))
-				    && (abs(-tdp.y - by - bh/2) < abs(bh/2)))
-					printf("Gotcha!\n");
-			}
-*/
+
 			if(multiSel)
 			{
 				Vector3 tdp;
@@ -283,7 +279,21 @@ void DrawObj(GameObject *o)
 			else
 			{
 				for(int i = 0; i < msh->ngrp; i++)
-					(oobm[msh->lstmatflags[i]&1])[msh->lstmattid[i]].add(o);
+				{
+					int f = msh->lstmatflags[i]&1;
+					int t = msh->lstmattid[i];
+					for(int j = 0; j < oobm[f].len; j++)
+					{
+						OOBMTex *ot = oobm[f].getpnt(j);
+						if(ot->tid == t)
+							{ot->objs->add(o); goto nextgrp;}
+					}
+					OOBMTex *ot = oobm[f].addp();
+					ot->tid = t;
+					ot->objs = new GrowList<GameObject*>;
+					ot->objs->add(o);
+				nextgrp: ;
+				}
 			}
 		}
 	}

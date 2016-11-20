@@ -16,6 +16,8 @@
 
 #include "global.h"
 
+boolean preloadModels = 0;
+
 void ReadSettingsFile()
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE], *fp; int nwords;
@@ -76,6 +78,8 @@ void ReadSettingsFile()
 				animsEnabled = atoi(word[1]); break;
 			case SETTING_VERTICAL_FOV:
 				verticalfov = atof(word[1]) * M_PI / 180.0f; break;
+			case SETTING_PRELOAD_ALL_MODELS:
+				preloadModels = atoi(word[1]); break;
 		}
 	}
 
