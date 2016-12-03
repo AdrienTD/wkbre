@@ -1060,6 +1060,19 @@ struct FinderDiscoveredUnits : public CFinder
 	FINDER_NO_DISTERM
 };
 
+struct FinderUser : public CFinder
+{
+	boolean f;
+	CFinder *clone() {return new FinderUser();}
+	void begin(SequenceEnv *env) {f = 1;}
+	GameObject *_getnext()
+	{
+		// TO IMPLEMENT
+		if(f) {f = 0; return 0;}
+		return 0;
+	}
+};
+
 //////////////////////////////////////////////////////////////////////////
 
 int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
@@ -1195,6 +1208,8 @@ CFinder *ReadFinder(char ***wpnt)
 			*wpnt += 1; return new FinderBeingTransferredToMe(ReadFinder(wpnt));
 		case FINDER_DISCOVERED_UNITS:
 			*wpnt += 1; return new FinderDiscoveredUnits(ReadCObjFindCond(wpnt));
+		case FINDER_USER:
+			*wpnt += 1; return new FinderUser();
 	}
 	//ferr("Unknown finder."); return 0;
 rfunk:	int x = strUnknownFinder.find(word[0]);

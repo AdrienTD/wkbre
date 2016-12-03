@@ -692,6 +692,28 @@ struct ValueGradientInFront : public CValue
 	}
 };
 
+struct ValueCanAffordCommission : public CValue
+{
+	int com; CFinder *f;
+	ValueCanAffordCommission(int a, CFinder *b) : com(a), f(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 0;
+	}
+};
+
+struct ValueCouldReach : public CValue
+{
+	CObjectDefinition *od; CPosition *x, *y;
+	ValueCouldReach(CObjectDefinition *a, CPosition *b, CPosition *c) : od(a), x(b), y(c) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TO IMPLEMENT
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -703,13 +725,14 @@ CValue *ReadValue(char ***wpnt)
 			cv = new ValueConstant(atof(word[1]));
 			*wpnt += 2; return cv;
 		case VALUE_DEFINED_VALUE:
-			cv = new ValueConstant(defvalue[strDefValue.find(word[1])]);
-			*wpnt += 2; return cv;
+			{int i = strDefValue.find(word[1]); *wpnt += 2;
+			if(i != -1) return new ValueConstant(defvalue[i]);
+			else return new ValueConstant(0);}
 		case VALUE_ITEM_VALUE:
-			{int x = strItems.find(word[1]);
-			if(x == -1) x = 0; //mustbefound(x); // TODO: WARNING
-			*wpnt += 2;
-			return new ValueItemValue(x, ReadFinder(wpnt));}
+			{int x = strItems.find(word[1]); *wpnt += 2;
+			CFinder *f = ReadFinder(wpnt);
+			if(x == -1) return new ValueConstant(0); //mustbefound(x); // TODO: WARNING
+			return new ValueItemValue(x, f);}
 		case VALUE_NUM_OBJECTS:
 			*wpnt += 1;
 			return new ValueNumObjects(ReadFinder(wpnt));
@@ -738,12 +761,14 @@ CValue *ReadValue(char ***wpnt)
 			{*wpnt += 1;
 			return new ValueWaterBeneath(ReadFinder(wpnt));}
 		case VALUE_BLUEPRINT_ITEM_VALUE:
-			{int i = strItems.find(word[1]); mustbefound(i);
+			{*wpnt += 4;
+			int i = strItems.find(word[1]);
+			if(i == -1) return new ValueConstant(0); //mustbefound(x); // TODO: WARNING
 			int d = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, word[2]), word[3]);
 			mustbefound(d);
-			*wpnt += 4;
 			return new ValueBlueprintItemValue(i, &objdef[d]);}
 		case VALUE_DISTANCE_BETWEEN:
+		case VALUE_DISTANCE_BETWEEN_INCLUDING_RADIUS: // TODO: Distance without sphere radius?
 			{int m = stfind_cs(DISTCALCMODE_str, DISTCALCMODE_NUM, word[1]);
 			mustbefound(m);
 			*wpnt += 2;
@@ -854,6 +879,15 @@ CValue *ReadValue(char ***wpnt)
 			*wpnt += 1; return new ValueMapDepth();
 		case VALUE_GRADIENT_IN_FRONT:
 			*wpnt += 1; return new ValueGradientInFront(ReadFinder(wpnt));
+		case VALUE_CAN_AFFORD_COMMISSION:
+			{int c = strCommission.find(word[1]);
+			*wpnt += 2;
+			return new ValueCanAffordCommission(c, ReadFinder(wpnt));}
+		case VALUE_COULD_REACH:
+			{CObjectDefinition *od = &objdef[FindObjDef(CLASS_CHARACTER, word[1])];
+			*wpnt += 2;
+			CPosition *a = ReadCPosition(wpnt);
+			return new ValueCouldReach(od, a, ReadCPosition(wpnt));}
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?
@@ -945,6 +979,29 @@ struct EnodeRandomUpTo : public Enode1V
 {
 	EnodeRandomUpTo(CValue *a) : Enode1V(a) {}
 	valuetype get(SequenceEnv *env) {return RANDZEROTOONE * x->get(env);}
+};
+
+struct EnodeTrunc : public Enode1V
+{
+	EnodeTrunc(CValue *a) : Enode1V(a) {}
+	valuetype get(SequenceEnv *env) {return (float)((int)x->get(env));}
+};
+
+struct EnodeNegate : public Enode1V
+{
+	EnodeNegate(CValue *a) : Enode1V(a) {}
+	valuetype get(SequenceEnv *env) {return -x->get(env);}
+};
+
+struct EnodeRound : public Enode1V
+{
+	EnodeRound(CValue *a) : Enode1V(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		valuetype v = x->get(env);
+		valuetype t = (float)((int)v);
+		return ((v - t) >= 0.5f) ? (t+1) : t;
+	}
 };
 
 struct EnodeAddition : public Enode2V
@@ -1190,6 +1247,13 @@ CValue *ReadEqLine(char **pntfp)
 				CFinder *a = ReadFinder(&t); CFinder *b = ReadFinder(&t);
 				u = ReadEqLine(pntfp); v = ReadEqLine(pntfp); w = ReadEqLine(pntfp); x = ReadEqLine(pntfp);
 				return new EnodeFrontBackLeftRight(a, b, u, v, w, x);}
+
+			case ENODE_TRUNC:
+				return new EnodeTrunc(ReadEqLine(pntfp));
+			case ENODE_NEGATE:
+				return new EnodeNegate(ReadEqLine(pntfp));
+			case ENODE_ROUND:
+				return new EnodeRound(ReadEqLine(pntfp));
 		}
 		char **pw = &word[1];
 		return ReadValue(&pw);

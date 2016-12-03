@@ -238,6 +238,35 @@ struct PositionOffsetFrom : public CPosition
 	}
 };
 
+struct PositionDestinationOf : public CPosition
+{
+	CFinder *f;
+	PositionDestinationOf(CFinder *a) : f(a) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		FinderToPosOri(po, f, env);
+		GameObject *o = f->getfirst(env);
+		if(!o) return;
+		if(!o->ordercfg.order.len) return;
+		SOrder *s = &o->ordercfg.order.first->value;
+		STask *t = &s->task.getEntry(s->currentTask)->value;
+		if(t->type->type == ORDTSKTYPE_MOVE)
+		{
+			if(t->destinations.len)
+			{
+				po->pos.x = t->destinations.first->value.x;
+				po->pos.z = t->destinations.first->value.y;
+				po->pos.y = GetHeight(po->pos.x, po->pos.z);
+			}
+		}
+		else
+		{
+			if(t->target.valid())
+				po->pos = t->target->position;
+		}
+	}
+};
+
 CPosition *ReadCPosition(char ***wpnt)
 {
 	char **word = *wpnt; CPosition *cv;
@@ -311,6 +340,9 @@ CPosition *ReadCPosition(char ***wpnt)
 			CValue *y = ReadValue(wpnt);
 			CValue *z = ReadValue(wpnt);
 			return new PositionOffsetFrom(f, x, y, z);}
+		case POSITION_DESTINATION_OF:
+			{*wpnt += 1;
+			return new PositionDestinationOf(ReadFinder(wpnt));}
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

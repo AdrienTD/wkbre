@@ -453,7 +453,16 @@ void CreateOrder(GameObject *go, SOrder *so, COrder *co, GameObject *tg)
 			st->spawnBlueprint = 0;
 	}
 
-	so->task.first->value.target = tg;
+	if(tg)
+	{
+		if(so->task.first->value.type->type == ORDTSKTYPE_MOVE)
+		{
+			so->task.first->value.destinations.add();
+			so->task.first->value.destinations.last->value.x = tg->position.x;
+			so->task.first->value.destinations.last->value.y = tg->position.z;
+		}
+		else	so->task.first->value.target = tg;
+	}
 }
 
 void InitOrder(GameObject *o)

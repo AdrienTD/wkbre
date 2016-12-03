@@ -133,6 +133,7 @@ void LookAtFile(char *filename, int ipass)
 {
 	FILE *file; char *fcnt, *fp; int fsize, nwords; WIN32_FIND_DATA wfd; HANDLE hfind;
 	char line[MAX_LINE_SIZE], wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE], sarg[MAX_LINE_SIZE];
+	GrowStringList lkfiles;
 
 	alf.add(filename);
 
@@ -158,19 +159,9 @@ void LookAtFile(char *filename, int ipass)
 				char nlaf[512] = "Warrior Kings Game Set\\\0";
 				strcat(nlaf, word[1]);
 				if(!alf.has(nlaf))
-					LookAtFile(nlaf, ipass);
+					lkfiles.add(nlaf);
+					//LookAtFile(nlaf, ipass);
 			}
-			/*else
-			{
-				hfind = FindFirstFile(word[1], &wfd);
-				if(hfind == INVALID_HANDLE_VALUE)
-					continue;
-				do {
-					if(!alf.has(wfd.cFileName))
-						LookAtFile(wfd.cFileName, ipass);
-				} while(FindNextFile(hfind, &wfd));
-				FindClose(hfind);
-			}*/
 			else if(star[1] == '.')
 			{
 				//printf("Multiple includes: \"%s\"\n", word[1]);
@@ -189,7 +180,8 @@ void LookAtFile(char *filename, int ipass)
 						strcat(dpff, sl->getdp(i));
 						//printf(" O %s\n", dpff);
 						if(!alf.has(dpff))
-							LookAtFile(dpff, ipass);
+							lkfiles.add(dpff);
+							//LookAtFile(dpff, ipass);
 					}
 				}
 				delete sl;
@@ -411,6 +403,12 @@ switch(ipass)
 /*******************************************************************/
 }
 
+	}
+	for(int i = 0; i < lkfiles.len; i++)
+	{
+		char *s = lkfiles.getdp(i);
+		if(!alf.has(s))
+			LookAtFile(s, ipass);
 	}
 	free(fcnt);
 }

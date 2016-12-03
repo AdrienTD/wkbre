@@ -59,10 +59,23 @@ struct ActionRemove : public CAction
 	ActionRemove(CFinder *a) : f(a) {}
 	void run(SequenceEnv *c)
 	{
+/*
 		f->begin(c);
 		GameObject *o;
 		while(o = f->getnext())
 			DestroyObject(o, c);
+*/
+		GrowList<goref> gl;
+		GameObject *o;
+		f->begin(c);
+		while(o = f->getnext())
+			gl.addp()->set(o);
+		for(int i = 0; i < gl.len; i++)
+		{
+			goref *r = gl.getpnt(i);
+			if(r->valid())
+				DestroyObject(r->get(), c);
+		}
 	}
 };
 
@@ -431,6 +444,7 @@ struct ActionTransferControl : public CAction
 	void run(SequenceEnv *env)
 	{
 		GameObject *o, *p = b->getfirst(env);
+		if(!p) return;
 		a->begin(env);
 		while(o = a->getnext())
 		{
@@ -1095,7 +1109,7 @@ struct ActionRemoveMultiplayerPlayer : public CAction
 		f->begin(env);
 		while(o = f->getnext())
 			if(o->objdef->type == CLASS_PLAYER)
-				o->flags |= FGO_PLAYER_TERMINATED;
+				o->flags |= FGO_PLAYER_TERMINATED | FGO_TERMINATED;
 	}
 };
 
@@ -1140,6 +1154,115 @@ struct ActionStopCameraPathPlayback : public CAction
 	{
 		f->begin(env); GameObject *o;
 		while(o = f->getnext()) if(o->client) StopCameraPath(o->client);
+	}
+};
+
+struct ActionReevaluateTaskTarget : public CAction
+{
+	CFinder *f;
+	ActionReevaluateTaskTarget(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env); GameObject *o;
+		while(o = f->getnext())
+		{
+			if(!o->ordercfg.order.len) return;
+			SOrder *s = &o->ordercfg.order.first->value;
+			int sid = s->orderID;
+			STask *t = &s->task.getEntry(s->currentTask)->value;
+			if(t->processState != 1) return;
+
+			if(t->type->target)
+			{
+				SequenceEnv env; env.self = o;
+				t->target = t->type->target->getfirst(&env);
+			}
+		}
+	}
+};
+
+struct ActionCreateFormation : public CAction
+{
+	CObjectDefinition *t; CFinder *f;
+	ActionCreateFormation(CObjectDefinition *a, CFinder *b) : t(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		// UNSURE
+		if(!env->self.valid()) return;
+		GameObject *form = CreateObject(t, env->self->player);
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			if(o->objdef->type == CLASS_FORMATION)
+			{
+				DynListEntry<GameObject> *nx;
+				for(DynListEntry<GameObject> *e = o->children.first; e; e = nx)
+				{
+					nx = e->next;
+					SetObjectParent(&e->value, form);
+				}
+			}
+			else
+				SetObjectParent(o, form);
+		}
+	}
+};
+
+struct ActionChangeDiplomaticStatus : public CAction
+{
+	CFinder *x, *y; int s;
+	ActionChangeDiplomaticStatus(CFinder *a, CFinder *b, int c) : x(a), y(b), s(c) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *a, *b;
+		x->begin(env);
+		while(a = x->getnext())
+		{
+			y->begin(env);
+			while(b = y->getnext())
+				SetDiplomaticStatus(a, b, s);
+		}
+	}
+};
+
+struct ActionDisbandFormation : public CAction
+{
+	CFinder *f;
+	ActionDisbandFormation(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *g; f->begin(env);
+		while(g = f->getnext())
+		{
+			GameObject *p = g->parent;
+			if(!p) continue;
+			DynListEntry<GameObject> *nx;
+			for(DynListEntry<GameObject> *e = g->children.first; e; e = nx)
+			{
+				nx = e->next;
+				SetObjectParent(&e->value, p);
+			}
+		}
+		// Formation must be kept!
+	}
+};
+
+struct ActionLeaveFormation : public CAction
+{
+	CFinder *f;
+	ActionLeaveFormation(CFinder *a) : f(a) {}
+	void run(SequenceEnv *env)
+	{
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			GameObject *g = o->parent;
+			if(!g) continue;
+			if(g->objdef->type != CLASS_FORMATION) continue;
+			GameObject *p = g->parent;
+			if(!p) continue;
+			SetObjectParent(o, p);
+		}
 	}
 };
 
@@ -1405,6 +1528,23 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_STOP_CAMERA_PATH_PLAYBACK:
 			{w += 2;
 			return new ActionStopCameraPathPlayback(ReadFinder(&w));}
+		case ACTION_REEVALUATE_TASK_TARGET:
+			{w += 2;
+			return new ActionReevaluateTaskTarget(ReadFinder(&w));}
+		case ACTION_CREATE_FORMATION:
+		case ACTION_CREATE_FORMATION_REFERENCE:
+			{CObjectDefinition *od = &objdef[FindObjDef(CLASS_FORMATION, word[2])];
+			w += 3; return new ActionCreateFormation(od, ReadFinder(&w));}
+		case ACTION_CHANGE_DIPLOMATIC_STATUS:
+			{w += 2;
+			CFinder *x = ReadFinder(&w); CFinder *y = ReadFinder(&w);
+			return new ActionChangeDiplomaticStatus(x, y, strDiplomaticStatus.find(*w));}
+		case ACTION_DISBAND_FORMATION:
+			{w += 2;
+			return new ActionDisbandFormation(ReadFinder(&w));}
+		case ACTION_LEAVE_FORMATION:
+			{w += 2;
+			return new ActionLeaveFormation(ReadFinder(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -1432,6 +1572,15 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_FORCE_PLAY_MUSIC:
 		case ACTION_ADOPT_APPEARANCE_FOR:
 		case ACTION_ADOPT_DEFAULT_APPEARANCE_FOR:
+		case ACTION_ACTIVATE_COMMISSION:
+		case ACTION_DEACTIVATE_COMMISSION:
+		case ACTION_SWITCH_ON_INTENSITY_MAP:
+		case ACTION_FADE_STOP_MUSIC:
+		case ACTION_DECLINE_DIPLOMATIC_OFFER:
+		case ACTION_SEND_CHAT_MESSAGE:
+		case ACTION_MAKE_DIPLOMATIC_OFFER:
+		case ACTION_SET_CHAT_PERSONALITY:
+		case ACTION_UPDATE_USER_PROFILE:
 			return new ActionDoNothing();
 	}
 	//ferr("Unknown action command."); return 0;

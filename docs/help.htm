@@ -1,5 +1,5 @@
 <html>
-<head><title>wkbre v0.0.4.0 Help file</title></head>
+<head><title>wkbre v0.0.5.0 Help file</title></head>
 <body>
 <style>
 table, th, td {
@@ -14,21 +14,27 @@ th {
   background-color: #80a0ff;
 }
 </style>
-<h1>wkbre v0.0.4.0 Help file</h1>
+<h1>wkbre v0.0.5.0 Help file</h1>
 <h2>Introduction</h2>
-<p>wkbre is a program in which you can load, edit and save saved games of Warrior Kings (Battles). Additionally, it loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
-<p>But wkbre is currently incomplete. There may be some bugs in it. It may not load and save games properly, it cannot edit everything and the landscape has only a green texture.</p>
-<p>The source code is available here: <a href="https://github.com/AdrienTD/wkbre">https://github.com/AdrienTD/wkbre</a></p>
+<p>wkbre is a engine reimplementation of the game Warrior Kings (Battles) in which you can load, edit, play and save saved games of the game. It loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
+<p>The program is open source and is licensed under the GNU GPL 3. The source code and the latest build are available here: <a href="https://github.com/AdrienTD/wkbre">https://github.com/AdrienTD/wkbre</a></p>
 <h2>Start</h2>
 <p>If wkbre doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
 <p>First you need to configure the "settings.txt" file. Ensure that the GAME_DIR value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
 <p>After setting the GAME_DIR value you can start the executable (wkbre.exe). You will be asked which saved game you want to load. Select a file in the list then click OK or double-click on the file to open it.</p>
-<p>The landscape may look incorrect. If it does, press the '0' key repeatedly until the landscape is correct.</p>
 <p>Use the arrow, ‘E’ and ‘D’ keys to move the camera.</p>
 <p>Click an object to select it. Press the Control key and the arrow keys at the same time to move the selected object. You can also press the Insert key to duplicate the selected object, the Delete key to delete it, and the * or / key to change the size. Look at the menu bar in the program or the Keys section of this document for a list of available commands.</p>
 <p>Once you have finished doing some modifications in the level, press F3 and type the name of the new savegame. The name should end with “.sav”, otherwise the game won’t display it in its list.</p>
+<h2>Playing games in wkbre</h2>
+<p>wkbre is also able to let you play the game. This is done by interpreting the game set script which can be found in the game data (data.bcp).</p>
+<p>When you press 'P', the game will be unpaused. You can see your units moving, peasants doing their work, units attacking, etc...</p>
+<p>When you have selected an unit you can also give it an order by right-clicking a target, or press 'A' to execute button commands.</p>
+<p>Please note that savegames with AI players might not work because some game set script features related to AI are not supported yet.</p>
+<p>If you have opened a lvl file, you can press 'S' to start the level (for example in a tutorial this will show the first message).</p>
+<p>See the Keys section and the "Game" submenu in the menu bar for a list of available commands.</p>
+<p>Also please keep in mind that the ability to play games in wkbre is "experimental", this means some features are missing and bugs can be encountered.</p>
 <h2>Keys</h2>
-<p>The number (0-9) keys in the numeric keypad (NumPad) cannot be used.</p>
+<p>The number (0-9) keys in the numeric keypad (NumPad) cannot be used, except if explicitely stated.</p>
 <table>
 <thead><tr><th>Key</th><th>Function</th></tr></thead>
 <tbody>
@@ -49,8 +55,9 @@ th {
 <tr><td>6</td><td>Move to a position specified on the minimap.</td></tr>
 <tr><td>7</td><td>Reset orientation</td></tr>
 <tr><td>8</td><td>Move to client’s position</td></tr>
+<tr><td>NumPad 0</td><td>Holding it will allow you to rotate the camera by moving the mouse.</td></tr>
 <tr class="subhead"><td colspan="2"><b>Level editing</b></td></tr>
-<tr><td>Left mouse button</td><td>Select the object pointed by the mouse cursor (if the object is red).<br>(Hold Shift for multiple selection.)</td></tr>
+<tr><td>Left mouse button</td><td>Select the object pointed by the mouse cursor (if the object is red).<br>Hold Shift for multiple selection.<br>Hold the left button for drag selection.</td></tr>
 <tr><td>Insert</td><td>Duplicate selected object.</td></tr>
 <tr><td>Delete</td><td>Delete selected object.</td></tr>
 <tr><td>* (NumPad)</td><td>Multiply selected object’s scale by 1.5.</td></tr>
@@ -68,14 +75,7 @@ th {
 <tr><td>F11</td><td>Randomize subtype of all objects</td></tr>
 <tr><td>Tab</td><td>Enable/disable aligned movement.</td></tr>
 <tr><td>O</td><td>Select object per ID.</td></tr>
-<tr class="subhead"><td colspan="2"><b>Misc.</b></td></tr>
-<tr><td>F1</td><td>Display information about the program</td></tr>
-<tr><td>Escape</td><td>Exit</td></tr>
-<tr><td>M</td><td>Display/hide landscape</td></tr>
-<tr><td>9</td><td>Move the heightmap’s bit position in the BCM to the right.</td></tr>
-<tr><td>0</td><td>Move the heightmap’s bit position in the BCM to the left.</td></tr>
-<tr><td>Backspace</td><td>Display/hide menu bar.</td></tr>
-<tr class="subhead"><td colspan="2"><b>Experimental keys (enabled via menu bar > Help > Enable/disable experimental features)</b></td></tr>
+<tr class="subhead"><td colspan="2"><b>Gaming</b></td></tr>
 <tr><td>P</td><td>Pause/unpause game.</td></tr>
 <tr><td>+</td><td>Accelerate game speed.</td></tr>
 <tr><td>-</td><td>Decelerate game speed.</td></tr>
@@ -85,7 +85,7 @@ th {
 <tr><td>A</td><td>Execute command on selected objects (without target)</td></tr>
 <tr><td>Y</td><td>Execute command on first selected objects targetting last selected object.</td></tr>
 <tr><td>Q</td><td>Cancel all orders of all objects.</td></tr>
-<tr><td>S</td><td>Send "On Level Start" event to all objects.</td></tr>
+<tr><td>S</td><td>Start the level. (Send "On Level Start" event to all objects.)</td></tr>
 <tr><td>Z</td><td>Remove all delayed and periodic action sequence executions.</td></tr>
 <tr><td>H</td><td>Display a game text window.</td></tr>
 <tr><td>F</td><td>Control a client (including its camera).</td></tr>
@@ -94,9 +94,15 @@ th {
    <br>With <b>Shift</b>: Do order last.
    <br>With <b>Control</b>: Do order first (current order will be suspended).
    <br>With nothing: Cancel all orders in stack then do the order.</td></tr>
+<tr class="subhead"><td colspan="2"><b>Misc.</b></td></tr>
+<tr><td>F1</td><td>Display information about the program</td></tr>
+<tr><td>Escape</td><td>Exit</td></tr>
+<tr><td>M</td><td>Display/hide landscape</td></tr>
+<tr><td>L</td><td>Display/hide time and object information</td></tr>
+<tr><td>Backspace</td><td>Display/hide menu bar.</td></tr>
 </tbody>
 </table>
-<p>There also more commands which can only be accessed from the menu bar.</p>
+<p>There are also more commands which can only be accessed from the menu bar.</p>
 <h2>Settings</h2>
 <p>In “settings.txt”:</p>
 <table>
@@ -114,38 +120,38 @@ th {
 <tr><td>HARDWARE_CURSOR</td><td>1 = Use the system cursor, 0 = Draw cursor in game screen buffer</td></tr>
 <tr><td>SCREEN_SIZE</td><td>Initial size of the game screen/window size. Requires two numbers for width and height in pixels.</td></tr>
 <tr><td>FULLSCREEN</td><td>0 = windowed, 1 = fullscreen (<b><u>NOTE:</u></b> Fullscreen mode buggy at the moment.)</td></tr>
+<tr><td>VERTICAL_FOV</td><td>The FOV of the game camera in degrees.</td></tr>
+<tr><td>MULTI_BCP</td><td>1 = load all BCPs found in the game directory<br>0 = load only data.bcp</td></tr>
+<tr><td>RENDERER</td><td>1 = Direct3D 9, 2 = OpenGL 1.1</td></tr>
+<tr><td>USE_MAP_TEXTURE_DATABASE</td><td>0 = use a single grass texture for the terrain<br>1 = use all terrain textures from the game</td></tr>
+<tr><td>MESH_BATCHING</td><td>Regroup multiples meshes in one batch, can improve graphics performance;<br>0 = disabled, 1 = enabled</td></tr>
+<tr><td>ANIMATED_MODELS</td><td>Model animation: 0 = disabled, 1 = enabled</td></tr>
+<tr><td>PRELOAD_ALL_MODELS</td><td>0 = load models only when needed, 1 = preload all models when loading the game</td></tr>
+<tr><td>ENABLE_GAMEPLAY_SHORTCUTS</td><td>Keyboard shortcuts for gameplay and ordering by right-clicking: 0 = disabled, 1 = enabled<br>Can be changed in runtime via the menubar.</td></tr>
+<tr><td>SHOW_TIME_OBJ_INFO</td><td>Display the current time and values for the selected object: 0 = disabled, 1 = enabled<br>Can be changed in runtime via the menubar.</td></tr>
 </tbody>
 </table>
 <h2>Known issues</h2>
 <ul>
-<li><b>The landscape looks incorrect when using WKBattles files.</b>
-<br>Press the '0' key repeatedly until the landscape is correct.</li>
-<s>
-<li><b>Some parts of the manor and the village are black.</b>
-<br>To correct this issue, go to the settings.txt file and change the value of TEXTURE_COMPRESSION to 0.</li>
-</s>
-<li><b>Texture compression is disabled even with TEXTURE_COMPRESSION 0 in settings.txt</b>
+<li><b>Texture compression is disabled even with TEXTURE_COMPRESSION 1 in settings.txt</b>
 <br>The texture loading in version 0.0.3 has been rewritten, and the new code doesn’t support texture compression for various reasons.</li>
-<li><b>I don't see the landscape!</b>
-<br>The landscape mesh has too many primitives and your video card doesn’t support that. In “settings.txt” look for MAP_MAX_PART_SIZE and set lower values.</li>
 <li><b>wkbre is frozen / stops drawing.</b>
 <br>Minimize and restore the window.</li>
 <li><b>When I load a savegame made with wkbre in the original engine, there are some issues. The AI doesn’t work well, the formations move poorly, …</b>
 <br>This is going to be fixed in a next release.</li>
 <li><b>I don’t find my savegame in WKB.</b>
 <br>Look at every tab (skirmish, campaign, multiplayer).</li>
+<li><b>Firing units like light infantry and light cavalry don't spawn missiles, and thus are useless.</b>
+<br>wkbre doesn't support missile movement at the moment.</li>
+<li><b>With WKBattles data, starting the level when the level has already been started will cause an infinite loop.</b>
+<br>This bug seems to occur in the original engine too.</li>
+<li><b>There are bugs!</b>
+<br>Leave these poor living spirits alone! Anyway they will be squashed in the near or distant future.</li>
 </ul>
-<h2>Playing games in wkbre</h2>
-<p>If you click <b><u>Help > Enable experimental features</u></b>, you can enable new features that were not initially available as they are buggy, complex and you can easily make mistakes by pressing an incorrect keyboard button.</p>
-<p>The notable experimental feature is the game playing. This is done by interpreting the game set script which can be found in the game data (data.bcp). When you press 'P', the game will be unpaused. You can see your units moving, peasants doing their work, etc...</p>
-<p>When you have selected an unit you can also give it an order by right-clicking a target. Press 'A' to execute button commands.</p>
-<p>Please note that savegames with AI players might not work because some game set script features related to AI are not supported yet.</p>
-<p>If you have opened a lvl file, you can press 'S' to start the level (for example in a tutorial this will show the first message).</p>
-<p>See the Keys section of this document for list of available experimental features.</p>
-<p>Also please keep in mind that playing games in wkbre is "experimental", this means the feature is not finished and may contain bugs. wkbre cannot interpret the whole game script at the moment. It is possible to get errors like "Action ... is unknown." which means a certain action or other feature of the game script language has not been implemented yet.</p>
 <h2>Contact</h2>
 <p>If you have a questions, you have found a bug or simply have a suggestion, please contact me:</p>
 <p>Email: <a href="mailto:agpetit69@gmail.com">agpetit69@gmail.com</a></p>
-<p>Or visit the <a href="http://steamcommunity.com/groups/WARKC">Warrior Kings Community on Steam</a>.</p>
+<p>Or visit the <a href="http://steamcommunity.com/groups/WARKC">Warrior Kings Community on Steam</a> or the <a href="http://wkforums.de.to/">Warrior Kings Forum</a>.</p>
+<p>And don't forget to go to <a href="https://github.com/AdrienTD/wkbre">wkbre's GitHub repository</a> for the lastest version of wkbre and the source code!</p>
 <p>Enjoy! :) </p>
 </body></html>

@@ -28,7 +28,11 @@ wkbre changelog:
 - Animations (.anim3) can now be read and drawn.
 - Objects will change their animations when changing their current tasks.
 - NumPad 0 key for mouse camera rotation.
-- Bug fixes...
+- Added drag selection.
+- Models are loaded in run-time when needed to be drawn.
+- The menu was reorganized and was added the previously "experimental" commands.
+- Some script actions/finders/positions/values are now supported.
+- Improvements, bug fixes...
 
 [0.0.4] 09/08/2016
 - Now open source!!

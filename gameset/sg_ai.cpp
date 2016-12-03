@@ -177,7 +177,8 @@ void WriteAIController(FILE *f, GameObject *o)
 				}
 				for(DynListEntry<goref> *g = r->value.ordersAssigned.first; g; g = g->next)
 					if(g->value.valid())
-						fprintf(f, "\t\t\t\t\tORDER_ASSIGNED %i 0\n", g->value.getID());
+						if(g->value->ordercfg.order.len)
+							fprintf(f, "\t\t\t\t\tORDER_ASSIGNED %i 0\n", g->value.getID());
 			}
 			fprintf(f, "\t\t\t\tEND_REQUIREMENT\n");
 		}

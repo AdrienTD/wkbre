@@ -104,6 +104,15 @@ enum AppCommand
 	CMD_CHANGE_OBJMOVALIGN,
 	CMD_CHANGE_PLAYER_NAME,
 	CMD_CHANGE_PLAYER_COLOR,
+	CMD_EXECUTE_COMMAND,
+	CMD_EXECUTE_COMMAND_WITH_TARGET,
+	CMD_CREATE_MAPPED_TYPE_OBJECT,
+	CMD_STAMPDOWN_OBJECT,
+	CMD_START_LEVEL,
+	CMD_REMOVE_BATTLES_DELAYED_SEQS,
+	CMD_ENABLE_GTW,
+	CMD_SEND_EVENT,
+	CMD_TOGGLE_TIMEOBJINFO,
 };
 
 extern "C" {
@@ -144,6 +153,7 @@ extern GEContainer *actualpage;
 extern int appexit;
 extern HINSTANCE hInstance;
 extern int experimentalKeys;
+extern boolean showTimeObjInfo;
 
 extern DynList<goref> selobjects;
 extern char *statustext;
@@ -155,3 +165,10 @@ extern int findertargetcommand;
 
 extern boolean multiSel; extern int mselx, msely;
 extern GrowList<GameObject*> msellist;
+
+extern float walkstep;
+extern int playMode;
+
+CObjectDefinition *AskObjDef(char *head = 0);
+void Test7();
+void RunTest();

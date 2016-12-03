@@ -33,6 +33,8 @@ void OGL1Quit()
 		ChangeDisplaySettings(NULL, 0);
 }
 
+#define BGRA_TO_RGBA(x) ( (((x)&0xFF)<<16) | (((x)&0xFF0000)>>16) | ((x)&0xFF00FF00) )
+
 struct RBatchOGL1 : public RBatch
 {
 	batchVertex *vbuf; ushort *ibuf;
@@ -59,7 +61,10 @@ struct RBatchOGL1 : public RBatch
 	void flush()
 	{
 		if(!curverts) return;
+		for(int i = 0; i < curverts; i++)
+			vbuf[i].color = BGRA_TO_RGBA(vbuf[i].color);
 		glVertexPointer(3, GL_FLOAT, sizeof(batchVertex), &vbuf->x);
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(batchVertex), &vbuf->color);
 		glTexCoordPointer(2, GL_FLOAT, sizeof(batchVertex), &vbuf->u);
 		glDrawElements(GL_TRIANGLES, curindis, GL_UNSIGNED_SHORT, ibuf);
 		curverts = curindis = 0;
@@ -421,8 +426,8 @@ void BeginBatchDrawing()
 {
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-	glColor4ub(255, 255, 255, 255);
+	glEnableClientState(GL_COLOR_ARRAY);
+	//glColor4ub(255, 255, 255, 255);
 }
 
 };

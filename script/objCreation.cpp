@@ -70,7 +70,7 @@ void CObjectCreation::run(SequenceEnv *env, CFinder *findcreator)
 			o = CreateObject(objdef, ctrl);
 		else {
 			CObjectDefinition *nod = mtObjRef->getfirst(&ne)->objdef->mappedType[mappedType];
-			if(!nod) ferr("An OBJECT_CREATION found an object which doesn't support the specified type tag.");
+			if(!nod) continue; //ferr("An OBJECT_CREATION found an object which doesn't support the specified type tag.");
 			o = CreateObject(nod, ctrl);
 		}
 		

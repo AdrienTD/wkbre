@@ -285,11 +285,16 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				//fp = SkipClass(fp, "END_MOVEMENT_BAND"); break;
 				objdef[x].movBands.add(ReadMovementBand(&fp)); break;
 			case CBLUEPRINT_INHERITS_FROM:
-				y = FindObjDef(objdef[x].type, word[1]); mustbefound(y);
+				y = FindObjDef(objdef[x].type, word[1]); //mustbefound(y);
+				if(y == -1) break; // TODO: WARNING
+				if(!objdef[y].life) break;
 				memcpy(objdef[x].startItems, objdef[y].startItems, strItems.len * sizeof(valuetype));
+				for(int i = 0; i < objdef[y].ireact.len; i++)
+					objdef[x].ireact.add(objdef[y].ireact[i]);
 				break;
 			case CBLUEPRINT_MAP_TYPE_TAG:
-				{y = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, word[2]), word[3]); mustbefound(y);
+				{y = FindObjDef(stfind_cs(CLASS_str, CLASS_NUM, word[2]), word[3]); //mustbefound(y);
+				if(y == -1) break; // TODO: WARNING
 				int z = strTypeTag.find(word[1]); mustbefound(z);
 				objdef[x].mappedType[z] = &objdef[y]; break;}
 			case CBLUEPRINT_INTRINSIC_REACTION:
