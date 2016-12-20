@@ -45,7 +45,7 @@ void ObjStepMove(GameObject *o, Vector3 dest, float mindist)
 	o->orientation.x = o->orientation.z = 0;
 	o->orientation.y = M_PI - atan2(v.x, v.z);
 
-	GOPosChanged(o);
+	GOPosChanged(o, 1);
 	PlayMovementAnimation(o);
 }
 

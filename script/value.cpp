@@ -714,6 +714,19 @@ struct ValueCouldReach : public CValue
 	}
 };
 
+struct ValueNumOrders : public CValue
+{
+	CFinder *f;
+	ValueNumOrders(CFinder *a) : f(a) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TOSEE: Maybe only orders with a certain state are counted?
+		GameObject *o = f->getfirst(env);
+		if(!o) return 0;
+		return o->ordercfg.order.len;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -888,6 +901,8 @@ CValue *ReadValue(char ***wpnt)
 			*wpnt += 2;
 			CPosition *a = ReadCPosition(wpnt);
 			return new ValueCouldReach(od, a, ReadCPosition(wpnt));}
+		case VALUE_NUM_ORDERS:
+			*wpnt += 1; return new ValueNumOrders(ReadFinder(wpnt));
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?

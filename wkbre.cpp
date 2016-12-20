@@ -109,6 +109,9 @@ MenuEntry menucmds[] = {
 {0,0},
 };
 
+int orderButtX[6] = {	6,	37,	69,	93, 	100,	90	};
+int orderButtY[6] = {	364,	354,	361,	384,	416,	448	};
+
 void DrawTooltip()
 {
 	if(!tooltip_str) return;
@@ -903,9 +906,9 @@ texture tex_toppanel, tex_bottomleftpanel, tex_bottomrightpanel;
 
 void InitHUD()
 {
-	tex_toppanel = GetTexture("Interface\\InGame\\Top Panel\\Standard Panel.tga");
-	tex_bottomleftpanel = GetTexture("Interface\\InGame\\Bottom_Left_Panel.tga");
-	tex_bottomrightpanel = GetTexture("Interface\\InGame\\Bottom_Right_Panel.tga");
+	tex_toppanel = GetTexture("Interface\\InGame\\Top Panel\\Standard Panel.tga", 1);
+	tex_bottomleftpanel = GetTexture("Interface\\InGame\\Bottom_Left_Panel.tga", 1);
+	tex_bottomrightpanel = GetTexture("Interface\\InGame\\Bottom_Right_Panel.tga", 1);
 }
 
 void DrawHUD()
@@ -927,6 +930,44 @@ void DrawHUD()
 		// ...
 	}
 */
+}
+
+void DisableAllCommandButtons()
+{
+	for(int i = 0; i < strCommand.len; i++)
+		gscommand[i].gButton->enabled = 0;
+}
+
+void UpdateCommandButtons()
+{
+	DisableAllCommandButtons();
+
+	GrowList<CCommand*> l;
+	for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+		if(e->value.valid())
+			for(int i = 0; i < e->value->objdef->offeredCmds.len; i++)
+				if(!l.has(e->value->objdef->offeredCmds[i]))
+				{
+					CCommand *c = e->value->objdef->offeredCmds[i];
+					boolean ok = 1;
+					SequenceEnv env; env.self = e->value.get();
+					for(int j = 0; j < c->iconConditions.len; j++)
+						if(c->iconConditions[j] != -1)
+							if(!stpo(equation[c->iconConditions[j]]->get(&env)))
+								{ok = 0; break;}
+					if(ok) l.add(c);
+				}
+
+	int x = 0;
+	for(int i = 0; i < l.len; i++)
+	if(l[i]->buttonEnabled.valid())
+	{
+		GEPicButton *b = l[i]->gButton;
+		b->enabled = 1;
+		b->setRect(orderButtX[x] * scrw / 640, orderButtY[x] * scrh / 480, 27 * scrw / 640, 27 * scrh / 480);
+		x++;
+		if(x >= 6) return;
+	}	
 }
 
 void Test7()
@@ -964,6 +1005,7 @@ void Test7()
 	menubar->setRect(0, 0, 32767, 20);
 	menubar->bgColor = 0xC0000080;
 	InitGTWs(); // :S
+	CreateCommandButtons();
 
 	boolean playView = 0;
 	InitHUD();
@@ -1027,6 +1069,13 @@ void Test7()
 			}
 		}
 
+			if(playView)
+			{
+				UpdateCommandButtons();
+				DrawHUD();
+			}
+			else	DisableAllCommandButtons();
+
 			NoTexture(0);
 			if(actualpage) actualpage->draw(0, 0);
 			if(statustext) if(!playView)
@@ -1036,9 +1085,6 @@ void Test7()
 				DrawFont(0, scrh-20, statustext);
 			}
 			if(enableObjTooltips) DrawTooltip();
-
-			if(playView) DrawHUD();
-			//NoTexture(0); renderer->DrawFrame(64, 64, 64, 64, -1);
 
 			SetTargetCursor();
 			DrawCursor();

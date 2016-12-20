@@ -136,8 +136,9 @@ extern char *CBLUEPRINT_str[18];
 #define VALUE_CAN_AFFORD_COMMISSION 42
 #define VALUE_DISTANCE_BETWEEN_INCLUDING_RADIUS 43
 #define VALUE_COULD_REACH 44
-#define VALUE_NUM 45
-extern char *VALUE_str[45];
+#define VALUE_NUM_ORDERS 45
+#define VALUE_NUM 46
+extern char *VALUE_str[46];
 #define ENODE_ADDITION 0
 #define ENODE_SUBTRACTION 1
 #define ENODE_MULTIPLICATION 2
@@ -480,9 +481,10 @@ extern char *SORDER_str[6];
 #define PDEVENT_ON_TERMINATION 4
 #define PDEVENT_ON_DESTRUCTION 5
 #define PDEVENT_ON_SPAWN 6
-#define PDEVENT_NUM 7
-extern char *PDEVENT_str[7];
-extern char* PDEVENT_tab0[7];
+#define PDEVENT_ON_SHARE_TILE 7
+#define PDEVENT_NUM 8
+extern char *PDEVENT_str[8];
+extern char* PDEVENT_tab0[8];
 #define ORDTSKTYPE_OBJECT_REFERENCE 0
 #define ORDTSKTYPE_SPAWN 1
 #define ORDTSKTYPE_UPGRADE 2

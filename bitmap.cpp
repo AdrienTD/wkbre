@@ -33,11 +33,11 @@ Bitmap *LoadTGA(char *data, int ds)
 	Bitmap *bm = new Bitmap;
 	bm->w = *(ushort*)(data+12);
 	bm->h = *(ushort*)(data+14);
-	if(data[1] && (data[2] == 1) && (data[7] == 24) && (data[16] == 8))
+	if(data[1] && ((data[2]&7) == 1) && (data[7] == 24) && (data[16] == 8))
 		bm->form = BMFORMAT_P8;
-	else if((data[2] == 2) && (data[16] == 24))
+	else if(((data[2]&7) == 2) && (data[16] == 24))
 		bm->form = BMFORMAT_B8G8R8;
-	else if((data[2] == 2) && (data[16] == 32))
+	else if(((data[2]&7) == 2) && (data[16] == 32))
 		bm->form = BMFORMAT_B8G8R8A8;
 	else
 		ferr("Unknown TGA image format.");
@@ -65,12 +65,41 @@ Bitmap *LoadTGA(char *data, int ds)
 	int s = bm->w * bm->h * e;
 	bm->pix = (uchar*)malloc(s);
 	//memcpy(bm->pix, dp, s);
-	if(data[17] & 32)
-		for(int y = 0; y < bm->h; y++)
-			memcpy(bm->pix + (y * bm->w * e), dp + (y * bm->w * e), bm->w * e);
+	if(data[2] & 8) // RLE
+	{
+		int x = 0, y = (data[17]&32) ? 0 : (bm->h - 1);
+		char *c = dp;
+		while((y >= 0) || (y < bm->h))
+		{
+			uchar ua = *(c++);
+			uint us = ((uchar)ua & 127) + 1;
+
+			for(int i = 0; i < us; i++)
+			{
+			 	for(int j = 0; j < e; j++)	
+					bm->pix[(y * bm->w + x) * e + j] = c[j];
+				x++;
+				if(!(ua & 128)) c += e;
+				if(x >= bm->w)
+				{
+					x = 0;
+					y += (data[17]&32) ? 1 : (-1);
+					if((y < 0) || (y >= bm->h)) goto rleend;
+				}
+			}
+			if(ua & 128) c += e;
+		}
+	rleend:	;
+	}
 	else
-		for(int y = 0; y < bm->h; y++)
-			memcpy(bm->pix + ((bm->h-1-y) * bm->w * e), dp + (y * bm->w * e), bm->w * e);
+	{
+		if(data[17] & 32)
+			for(int y = 0; y < bm->h; y++)
+				memcpy(bm->pix + (y * bm->w * e), dp + (y * bm->w * e), bm->w * e);
+		else
+			for(int y = 0; y < bm->h; y++)
+				memcpy(bm->pix + ((bm->h-1-y) * bm->w * e), dp + (y * bm->w * e), bm->w * e);
+	}
 
 	return bm;
 }

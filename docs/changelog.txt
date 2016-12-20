@@ -1,6 +1,13 @@
 wkbre changelog:
 
-[0.0.5] ??/??/2016
+[0.0.6] ??/??/2017
+- "On Share Tile" events are sent (units reacting to enemies approaching them,
+  abaddons cutting trees, ...).
+- Added command buttons in game view.
+- Added support for RLE-compressed TGA files.
+- ...
+
+[0.0.5] 03/12/2016
 - PROXIMITY_DISSATISFIED_SEQUENCE supported.
 - SPAWN tasks (in buildings) can now be processed.
 - Converting an object will send the "On Conversion End" event.

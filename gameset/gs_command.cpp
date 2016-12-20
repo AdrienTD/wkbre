@@ -29,7 +29,11 @@ void ReadCCommand(char **pntfp, char **fstline)
 		if( *((uint*)(word[0])) == '_DNE' )
 			return;
 		if(!strcmp(word[0], "BUTTON_ENABLED"))
-			c->buttonEnabled = GetTexture(word[1], 0);
+			c->buttonEnabled = GetTexture(word[1], 1);
+		else if(!strcmp(word[0], "BUTTON_DEPRESSED"))
+			c->buttonDepressed = GetTexture(word[1], 1);
+		else if(!strcmp(word[0], "BUTTON_HIGHLIGHTED"))
+			c->buttonHighlighted = GetTexture(word[1], 1);
 		// ...
 		else if(!strcmp(word[0], "CURSOR"))
 		{
@@ -46,6 +50,8 @@ void ReadCCommand(char **pntfp, char **fstline)
 			else
 				c->cursorAvailableCurs.add(0);
 		}
+		else if(!strcmp(word[0], "ICON_CONDITION"))
+			c->iconConditions.add(strEquation.find(word[1]));
 		else if(!strcmp(word[0], "USE_ORDER"))
 			c->order = &(gsorder[strOrder.find(word[1])]);
 		else if(!strcmp(word[0], "START_SEQUENCE"))
@@ -93,4 +99,32 @@ void ReadCCondition(char **pntfp, char **fstline)
 			ReadDynText(&c->hint, w);
 	}
 	ferr("UEOF");
+}
+
+void OnCmdButtonClick(void *param)
+{
+	DynListEntry<goref> *n;
+	for(DynListEntry<goref> *e = selobjects.first; e; e = n)
+	{
+		n = e->next;
+		if(e->value.valid())
+			ExecuteCommand(e->value.get(), (CCommand*)param, 0, ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+	}
+}
+
+void CreateCommandButtons()
+{
+	for(int i = 0; i < strCommand.len; i++)
+	{
+		CCommand *c = &(gscommand[i]);
+		GEPicButton *b = new GEPicButton;
+		c->gButton = b;
+		actualpage->add(b);
+		b->enabled = 0;
+		b->buttonClick = OnCmdButtonClick;
+		b->cbparam = (void*)c;
+		b->texNormal = c->buttonEnabled;
+		b->texHover = c->buttonHighlighted;
+		b->texPressed = c->buttonDepressed;
+	}
 }

@@ -91,7 +91,7 @@ char *CBLUEPRINT_str[18] = {
 "CAN_SPAWN",
 "MOVEMENT_SPEED_EQUATION",
 };
-char *VALUE_str[45] = {
+char *VALUE_str[46] = {
 "CONSTANT",
 "DEFINED_VALUE",
 "ITEM_VALUE",
@@ -137,6 +137,7 @@ char *VALUE_str[45] = {
 "CAN_AFFORD_COMMISSION",
 "DISTANCE_BETWEEN_INCLUDING_RADIUS",
 "COULD_REACH",
+"NUM_ORDERS",
 };
 char *ENODE_str[27] = {
 "ADDITION",
@@ -473,7 +474,7 @@ char *SORDER_str[6] = {
 "UNIQUE_TASK_ID",
 "CURRENT_TASK",
 };
-char *PDEVENT_str[7] = {
+char *PDEVENT_str[8] = {
 "ON_STAMPDOWN",
 "ON_LEVEL_START",
 "ON_CONTROL_TRANSFERRED",
@@ -481,8 +482,9 @@ char *PDEVENT_str[7] = {
 "ON_TERMINATION",
 "ON_DESTRUCTION",
 "ON_SPAWN",
+"ON_SHARE_TILE",
 };
-char* PDEVENT_tab0[7] = {
+char* PDEVENT_tab0[8] = {
 "On Stampdown",
 "On Level Start",
 "On Control Transferred",
@@ -490,6 +492,7 @@ char* PDEVENT_tab0[7] = {
 "On Termination",
 "On Destruction",
 "On Spawn",
+"On Share Tile",
 };
 char *ORDTSKTYPE_str[10] = {
 "OBJECT_REFERENCE",

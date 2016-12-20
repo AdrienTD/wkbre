@@ -22,9 +22,11 @@ struct CCommand
 	texture buttonEnabled, buttonWait, buttonImpossible, buttonDepressed, buttonHighlighted;
 	Cursor *cursor; GrowList<int> cursorConditions;
 	GrowList<CCondition*> cursorAvailableConds; GrowList<Cursor*> cursorAvailableCurs;
+	GrowList<int> iconConditions;
 	COrder *order;
 	ActionSeq *startSeq;
-	CCommand() : name(0), cursor(0), order(0), startSeq(0) {}
+	GEPicButton *gButton;
+	CCommand() : name(0), cursor(0), order(0), startSeq(0), gButton(0) {}
 };
 
 struct CCondition
@@ -37,3 +39,5 @@ void ReadCCommand(char **pntfp, char **fstline);
 int CanExecuteCommand(CObjectDefinition *od, CCommand *cc);
 void ExecuteCommand(GameObject *o, CCommand *c, GameObject *tg, int assignmode);
 void ReadCCondition(char **pntfp, char **fstline);
+
+void CreateCommandButtons();

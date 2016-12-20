@@ -675,10 +675,34 @@ void Test24()
 	}
 }
 
-#define NUMTESTS 24
+void Test25()
+{
+	LoadBCP("data.bcp"); InitWindow();
+
+	float x1 = 0, x2 = 0;
+	texture t1, t2, t3;
+	t1 = GetTexture("Interface\\FrontEnd\\Background_Scroll_1.tga");
+	t2 = GetTexture("Interface\\FrontEnd\\Background_Scroll_2.tga");
+	t3 = GetTexture("Interface\\FrontEnd\\Background_Static_2.tga");
+
+	while(!appexit)
+	{
+		BeginDrawing();
+		InitRectDrawing();
+		SetTexture(0, t1); DrawRect(0, 0, scrw, scrh, -1, x1, 0, 1, 1);
+		SetTexture(0, t2); DrawRect(0, 0, scrw, scrh, -1, x2, 0, 1, 1);
+		SetTexture(0, t3); DrawRect(0, 0, scrw, scrh, -1, 0, 0, 1, 1);
+		x1 += 0.0003f; x2 -= 0.0003f;
+		if(x1 >= 1) x1 -= 1; if(x2 < 0) x2 += 1;
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+#define NUMTESTS 25
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20, Test21, Test22, Test23, Test24};
+ Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25};
 
 void RunTest()
 {

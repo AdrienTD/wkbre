@@ -62,3 +62,12 @@ Top priority:
 Not necessary:
 - Multiple renderers (OpenGL, etc.)
 - Sound and music
+
+--- 0.0.6 ---
+
+Top priority (this time I'm not lying):
+- Linux port:
+  -> Requires SDL2
+  -> Requires dialog boxes porting
+
+- Source code documentation (Doxygen)

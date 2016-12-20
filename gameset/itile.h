@@ -27,5 +27,5 @@ extern DynList<goref> oobobjs;
 void InitITiles();
 void PutObjsInITiles(GameObject *o);
 void ResetITiles();
-void GOPosChanged(GameObject *o);
+void GOPosChanged(GameObject *o, boolean sendEvents = 0);
 void ListObjsInTiles(int tx, int tz, int l, int w, GrowList<goref> *r);

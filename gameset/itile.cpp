@@ -57,7 +57,7 @@ void ResetITiles()
 	PutObjsInITiles(levelobj);
 }
 
-void GOPosChanged(GameObject *o)
+void GOPosChanged(GameObject *o, boolean sendEvents)
 {
 	if(!itiles) return;
 	int x, z;
@@ -79,6 +79,18 @@ void GOPosChanged(GameObject *o)
 		else
 			oobobjs.move(o->itileole, &nt->objs);
 		o->itile = nt;
+
+		if(sendEvents)
+		{
+			SequenceEnv senv; senv.self = o;
+			DynListEntry<goref> *n;
+			for(DynListEntry<goref> *e = nt->objs.first; e; e = n)
+			{
+				n = e->next;
+				if(e->value.valid())
+					SendGameEvent(&senv, e->value.get(), PDEVENT_ON_SHARE_TILE);
+			}
+		}
 	}
 }
 

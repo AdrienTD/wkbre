@@ -26,7 +26,7 @@ void InitGfxConsole()
 	strcpy(bfn, "Interface\\LOADING SCREEN ?.tga");
 	bfn[25] = (rand() % 8) + '1';
 	if(FileExists(bfn))
-		{conbgnd = GetTexture(bfn, 0); cbav = 1;}
+		{conbgnd = GetTexture(bfn, 1); cbav = 1;}
 	for(uint i = 0; i < 128; i++)
 		if(conbuf[i])
 			{delete [] conbuf[i]; conbuf[i] = 0;}
