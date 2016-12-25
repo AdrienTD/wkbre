@@ -5,6 +5,9 @@ wkbre changelog:
   abaddons cutting trees, ...).
 - Added command buttons in game view.
 - Added support for RLE-compressed TGA files.
+- Fixed a bug where objects spawned with "Quick stampdown" are put inside the
+  selected object himself and not its player.
+- Missiles now supported!
 - ...
 
 [0.0.5] 03/12/2016

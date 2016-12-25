@@ -24,7 +24,7 @@ bool keypressed[256];
 int scrw = 640, scrh = 480;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
 int mouseX = 0, mouseY = 0; boolean lmbPressed = 0;
-int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 3, reqRender = 1;
+int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 1, reqRender = 1;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
 int fullscreen = 0;

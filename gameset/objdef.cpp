@@ -331,6 +331,10 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 			case CBLUEPRINT_MOVEMENT_SPEED_EQUATION:
 				objdef[x].movSpeedEq = strEquation.find(word[1]);
 				break;
+			case CBLUEPRINT_MISSILE_SPEED:
+				{char **wp = word + 1;
+				objdef[x].missileSpeed = ReadValue(&wp);
+				break;}
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

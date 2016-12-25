@@ -126,6 +126,12 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				}
 				c->seq->run(&env);
 				return;
+			case TASKTRIGGER_STRUCK_FLOOR:
+				if(o->position.y >= GetHeight(o->position.x, o->position.z))
+					break;
+				env.self = o;
+				c->seq->run(&env);
+				return;
 		}
 		// continue loop only if trigger not executed
 	}
@@ -211,7 +217,15 @@ void ProcessCurrentTask(GameObject *o)
 				CheckCurrentTaskTriggers(o);
 				break;
 			case ORDTSKTYPE_MISSILE:
-				RemoveObject(o); return;
+				//RemoveObject(o); return;
+				{float dt = current_time - t->startTime;
+				o->position = t->initialPosition;
+				o->position += t->initialVelocity * dt;
+				o->position.y += -4.25 * dt * dt;
+				GOPosChanged(o);
+				StartCurrentTaskTriggers(o);
+				CheckCurrentTaskTriggers(o);
+				return;}
 			case ORDTSKTYPE_FACE_TOWARDS:
 				TerminateTask(o); return;
 		}
@@ -332,6 +346,23 @@ void InitTask(GameObject *o)
 		t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
 		if(t->type->startSeq)
 			t->type->startSeq->run(&env);
+
+		if(t->type->type == ORDTSKTYPE_MISSILE)
+		{
+			t->startTime = current_time;
+			t->initialPosition = o->position;
+			if(t->target.valid())
+			{
+				Vector3 dp = (t->target->position - o->position).normal2xz();
+				dp *= o->objdef->missileSpeed->get(&env);
+				float tm = (t->target->position.x - o->position.x) / dp.x;
+				t->initialVelocity = dp;
+				t->initialVelocity.y = (t->target->position.y - o->position.y - (-4.25)*tm*tm) / tm;
+				//t->initialVelocity = (t->target->position - o->position) / tm;
+				//t->initialVelocity.y = (t->target->position.y - o->position.y - (-4.25)*tm*tm) / tm;
+			}
+			else	t->initialVelocity = Vector3(0,0,0);
+		}
 	}
 }
 

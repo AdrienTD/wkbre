@@ -754,7 +754,7 @@ void CallCommand(int cmd)
 				CObjectDefinition *od;
 				if(od = AskObjDef("What do you want to stampdown (create + send the 'On Stampdown' event)?"))
 				{
-					GameObject *o = CreateObject(od, p);
+					GameObject *o = CreateObject(od, p->player ? p->player : levelobj);
 					o->position = p->position;
 					GOPosChanged(o);
 					SequenceEnv ctx;

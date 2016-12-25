@@ -71,6 +71,7 @@ struct CObjectDefinition
 	int buildingType;
 	int movSpeedEq;
 	GrowList<CMovementBand*> movBands;
+	CValue *missileSpeed;
 
 	void *operator new(size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}
 	void *operator new[](size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}
