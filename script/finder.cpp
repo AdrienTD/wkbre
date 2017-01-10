@@ -83,6 +83,14 @@ struct FinderUnknown : public CFinder
 	GameObject *_getnext() {ferr("Cannot get an object from a finder of unknown type."); return 0;}
 };
 
+struct FinderNothing : public CFinder
+{
+	FinderNothing() {}
+	CFinder *clone() {return new FinderNothing();}
+	void begin(SequenceEnv *env) {}
+	GameObject *_getnext() {return 0;}
+};
+
 void FinderResToGB(CFinder *f, SequenceEnv *c, GrowList<goref> *l)
 {
 	f->begin(c);
@@ -1154,8 +1162,12 @@ CFinder *ReadFinder(char ***wpnt)
 		case FINDER_CONTROLLER:
 			*wpnt += 1; return new FinderController();
 		case FINDER_RESULTS:
-			cf = new FinderResults(strFinderDef.find(word[1]));
-			*wpnt += 2; return cf;
+			// Hack for FINDER_RESULTS without argument in "Celestial Level 3 - Triggers.cpp". (facepalm)
+			if(!word[1])
+				{printf("WARNING: FINDER_RESULTS without argument!\n");
+				*wpnt += 1; return new FinderNothing();}
+			*wpnt += 2;
+			return new FinderResults(strFinderDef.find(word[1]));
 		case FINDER_CREATOR:
 			*wpnt += 1; return new FinderCreator();
 		case FINDER_CANDIDATE:

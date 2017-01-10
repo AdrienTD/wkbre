@@ -84,6 +84,8 @@ void ReadSettingsFile()
 				experimentalKeys = atoi(word[1]); break;
 			case SETTING_SHOW_TIME_OBJ_INFO:
 				showTimeObjInfo = atoi(word[1]); break;
+			case SETTING_ENABLE_GAMESET_TRACING:
+				scriptTraceOn = atoi(word[1]); break;
 		}
 	}
 

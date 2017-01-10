@@ -178,6 +178,19 @@ struct PositionTheOtherSideOf : public CPosition
 	}
 };
 
+struct PositionTowards : public CPosition
+{
+	CFinder *x, *y; CValue *v;
+	PositionTowards(CFinder *a, CFinder *b, CValue *c) : x(a), y(b), v(c) {}
+	void get(SequenceEnv *env, PosOri *po)
+	{
+		PosOri o, p; FinderToPosOri(&o, x, env); FinderToPosOri(&p, y, env);
+		Vector3 d = (p.pos - o.pos).normal();
+		po->pos = o.pos + (d * v->get(env));
+		po->ori.x = po->ori.z = 0; po->ori.y = atan2(d.x, -d.z);
+	}
+};
+
 struct PositionAwayFrom : public CPosition
 {
 	CFinder *x, *y; CValue *v;
@@ -267,6 +280,28 @@ struct PositionDestinationOf : public CPosition
 	}
 };
 
+struct PositionMatchingOffset : public CPosition
+{
+	CPosition *cp, *cr, *co;
+	PositionMatchingOffset(CPosition *a, CPosition *b, CPosition *c) : cp(a), cr(b), co(c) {}
+	void get(SequenceEnv *env, PosOri *ret)
+	{
+		PosOri pp, pr, po;
+		cp->get(env, &pp); cr->get(env, &pr); co->get(env, &po);
+
+		float ro, rl, vo;
+		Vector3 v = po.pos - pr.pos;
+		vo = atan2(v.x, -v.z);
+		ro = vo - pr.ori.y;
+		rl = v.len2xz();
+
+		ro += pp.ori.y;
+		Vector3 nv = Vector3(sin(ro) * rl, 0, cos(ro) * rl);
+		ret->pos = pp.pos + nv;
+		ret->ori = Vector3(0,0,0); // TODO (?)
+	}
+};
+
 CPosition *ReadCPosition(char ***wpnt)
 {
 	char **word = *wpnt; CPosition *cv;
@@ -316,6 +351,10 @@ CPosition *ReadCPosition(char ***wpnt)
 			{*wpnt += 1;
 			CFinder *x = ReadFinder(wpnt); CFinder *y = ReadFinder(wpnt);
 			return new PositionTheOtherSideOf(x, y, ReadValue(wpnt));}
+		case POSITION_TOWARDS:
+			{*wpnt += 1;
+			CFinder *x = ReadFinder(wpnt); CFinder *y = ReadFinder(wpnt);
+			return new PositionTowards(x, y, ReadValue(wpnt));}
 		case POSITION_AWAY_FROM:
 			{*wpnt += 1;
 			CFinder *x = ReadFinder(wpnt); CFinder *y = ReadFinder(wpnt);
@@ -343,6 +382,12 @@ CPosition *ReadCPosition(char ***wpnt)
 		case POSITION_DESTINATION_OF:
 			{*wpnt += 1;
 			return new PositionDestinationOf(ReadFinder(wpnt));}
+		case POSITION_MATCHING_OFFSET:
+			{*wpnt += 1;
+			CPosition *x = ReadCPosition(wpnt);
+			CPosition *y = ReadCPosition(wpnt);
+			CPosition *z = ReadCPosition(wpnt);
+			return new PositionMatchingOffset(x, y, z);}
 	}
 	//ferr("Unknown position type."); return 0;
 	int x = strUnknownPosition.find(word[0]);

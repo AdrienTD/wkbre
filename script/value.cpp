@@ -750,7 +750,13 @@ CValue *ReadValue(char ***wpnt)
 			*wpnt += 1;
 			return new ValueNumObjects(ReadFinder(wpnt));
 		case VALUE_EQUATION_RESULT:
-			{int x = strEquation.find(word[1]); mustbefound(x);
+			{int x = strEquation.find(word[1]); //mustbefound(x);
+			if(x == -1)
+			{
+				// TODO: WARNING
+				printf("WARNING! Equation \"%s\" not found in EQUATION_RESULT!\n", word[1]);
+				return new ValueConstant(1); // for WKO 1.4, missing equation "Tech Level less than 1"
+			}
 			*wpnt += 2;
 			return new ValueEquationResult(x, ReadFinder(wpnt));}
 		case VALUE_OBJECT_CLASS:

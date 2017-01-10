@@ -1403,8 +1403,12 @@ CAction *ReadAction(char **pntfp, char **word)
 			w += 3; return new ActionRemoveReaction(x, ReadFinder(&w));}
 		case ACTION_CHANGE_REACTION_PROFILE:
 			{int m = stricmp(word[2], "REMOVE") ? 0 : 1;
-			int x = strReaction.find(word[3]); mustbefound(x);
-			w += 4; return new ActionChangeReactionProfile(m, x, ReadFinder(&w));}
+			int x = strReaction.find(word[3]); //mustbefound(x);
+			w += 4;
+			if(x == -1)
+				{printf("WARNING: Reaction \"%s\" in CHANGE_REACTION_PROFILE %s not found!\n", word[3], word[2]);
+				return new ActionDoNothing();}
+			return new ActionChangeReactionProfile(m, x, ReadFinder(&w));}
 		case ACTION_SET_SCALE:
 			{w += 2;
 			CFinder *f = ReadFinder(&w);
@@ -1443,7 +1447,11 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_SWITCH_HIGHEST:
 			return new ActionSwitchHighest(ReadSwitchCases(pntfp));
 		case ACTION_DISPLAY_GAME_TEXT_WINDOW:
-			{int x = strGameTextWindow.find(word[2]); mustbefound(x);
+			{int x = strGameTextWindow.find(word[2]); //mustbefound(x);
+			// Hack for missing gtw in "Celestial Level 3 - Triggers.cpp" (double facepalm)
+			// Because of this, when the player loses the village, he won't be able to quit the game as the game interface would have been disabled, unless he presses Alt+F4!
+			// TODO: WARNING
+			if(x == -1) return new ActionDoNothing();
 			CGameTextWindow *g = &(gsgametextwin[x]);
 			w += 3; CFinder *f = ReadFinder(&w);
 			return new ActionDisplayGameTextWindow(g, f);}
@@ -1581,6 +1589,11 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_MAKE_DIPLOMATIC_OFFER:
 		case ACTION_SET_CHAT_PERSONALITY:
 		case ACTION_UPDATE_USER_PROFILE:
+		case ACTION_UNLOCK_LEVEL:
+		case ACTION_BOOT_LEVEL:
+		case ACTION_EXIT_TO_MAIN_MENU:
+		case ACTION_CONQUER_LEVEL:
+		case ACTION_DISPLAY_LOAD_GAME_MENU:
 			return new ActionDoNothing();
 	}
 	//ferr("Unknown action command."); return 0;

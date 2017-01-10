@@ -205,6 +205,7 @@ switch(ipass)
 			case CLASS_FILE_TYPE:
 				break;*/
 			case CLASS_DECLARE_ITEM:
+			case CLASS_INDIVIDUAL_ITEM:
 				strItems.add(word[1]); break;
 			case CLASS_DEFINE_VALUE:
 				strDefValue.add(word[1]);
@@ -284,7 +285,8 @@ switch(ipass)
 				strPackage.add(word[1]);
 				fp = SkipClass(fp, "END_PACKAGE"); break;
 			case CLASS_GAME_TEXT_WINDOW:
-				strGameTextWindow.add(word[1]);
+				if(!strGameTextWindow.has(word[1])) // otherwise error in "Celestial Level 3 - Triggers.cpp" due to 2 gtw of same name (triple facepalm)
+					strGameTextWindow.add(word[1]);
 				fp = SkipClass(fp, "GAME_TEXT_WINDOW_END"); break;
 			case CLASS_3D_CLIP:
 				str3DClip.add(word[1]);

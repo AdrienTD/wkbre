@@ -1046,8 +1046,8 @@ void Test7()
 
 		if(showTimeObjInfo) if(!playView)
 		{	char st[256];
-			sprintf(st, "current_time = %f", current_time);
-			DrawFont(0, 80, st);
+			sprintf(st, "current_time = %f\nCamera pos: %.2f %.2f %.2f %.2f %.2f", current_time, camerapos.x, camerapos.y, camerapos.z, campitch, camyaw);
+			DrawFont(0, 60, st);
 			if(selobjects.len)
 			if(selobjects.first->value.valid())
 			{

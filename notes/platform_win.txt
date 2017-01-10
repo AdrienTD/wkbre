@@ -1,0 +1,83 @@
+#ifdef WKBRE_PLATFORM_WIN
+
+void PlatformInit()
+{
+	hInstance = GetModuleHandle(NULL);
+}
+
+void PlatformInitWindow()
+{
+	WNDCLASS wndclass = {CS_OWNDC, WndProc, 0, 0, hInstance,
+			LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPICON)), LoadCursor(NULL, IDC_ARROW), (HBRUSH)(COLOR_WINDOW+1), NULL, className};
+	RECT rect = {0, 0, scrw, scrh};
+	wndclass.hInstance = hInstance;
+
+	// Creating Window
+	int wstyle = fullscreen ? (WS_POPUP | WS_SYSMENU | WS_MINIMIZEBOX) : WS_OVERLAPPEDWINDOW;
+	if(!RegisterClass(&wndclass)) ferr("Class registration failed.");
+	AdjustWindowRect(&rect, wstyle, FALSE);
+	hWindow = CreateWindow(className, appName, WS_CLIPCHILDREN | WS_CLIPSIBLINGS | wstyle, CW_USEDEFAULT, CW_USEDEFAULT,
+		rect.right-rect.left, rect.bottom-rect.top, NULL, NULL, hInstance, NULL);
+	if(!hWindow) ferr("Window creation failed.");
+	ShowWindow(hWindow, SW_SHOWNORMAL);
+	SetTimer(0, 0, 1000, OnSecond);
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch(uMsg)
+	{
+		case WM_MOUSEMOVE:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseMove();
+			break;
+		case WM_LBUTTONDOWN:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseClick();
+			break;
+		case WM_LBUTTONUP:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseRelease();
+			break;
+		case WM_RBUTTONDOWN:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseRightClick();
+			break;
+		case WM_KEYDOWN:
+			if(wParam & 0xFFFFFF00) break;
+			keypressed[wParam] = 1; break;
+		case WM_KEYUP:
+			if(wParam & 0xFFFFFF00) break;
+			keypressed[wParam] = 0; break;
+		case WM_SIZE:
+			if(wParam == SIZE_MINIMIZED) {winMinimized = 1; break;}
+			else if(wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED) winMinimized = 0;
+
+			if((scrw == LOWORD(lParam)) && (scrh == HIWORD(lParam))) break;
+			//MessageBeep(64);
+			scrw = LOWORD(lParam);
+			scrh = HIWORD(lParam);
+			if(/*ddev && */ (!winMinimized)) ResetDevice(); break;
+		case WM_DESTROY:
+			PostQuitMessage(0); break;
+		case WM_PAINT:
+			ValidateRect(hwnd, 0); break;
+		case WM_ERASEBKGND:
+			return 1;
+		default:
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+	return 0;
+}
+
+void HandleWindow()
+{
+	MSG msg;
+	if(winMinimized) WaitMessage();
+	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		if(msg.message == WM_QUIT) exit(msg.wParam);
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+}

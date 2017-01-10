@@ -17,6 +17,7 @@
 #include "../global.h"
 
 DynList<goref> workingObjs;
+float gravit = 9.81, halfgravit = 4.905;
 
 boolean IsCurOrderID(GameObject *o, int a)
 {
@@ -221,7 +222,12 @@ void ProcessCurrentTask(GameObject *o)
 				{float dt = current_time - t->startTime;
 				o->position = t->initialPosition;
 				o->position += t->initialVelocity * dt;
-				o->position.y += -4.25 * dt * dt;
+				o->position.y += -halfgravit * dt * dt;
+				o->orientation.y = -atan2(t->initialVelocity.x, t->initialVelocity.z);
+				//o->orientation.x = atan2(t->initialVelocity.y + (-gravit) * dt, t->initialVelocity.len2xz());
+				//o->orientation.x = atan(t->initialVelocity.y + (-gravit) * dt);
+				//o->orientation.z = atan2(t->initialVelocity.y + (-gravit) * dt, t->initialVelocity.len2xz());
+				o->orientation.x = o->orientation.z = 0;
 				GOPosChanged(o);
 				StartCurrentTaskTriggers(o);
 				CheckCurrentTaskTriggers(o);
@@ -357,9 +363,9 @@ void InitTask(GameObject *o)
 				dp *= o->objdef->missileSpeed->get(&env);
 				float tm = (t->target->position.x - o->position.x) / dp.x;
 				t->initialVelocity = dp;
-				t->initialVelocity.y = (t->target->position.y - o->position.y - (-4.25)*tm*tm) / tm;
+				t->initialVelocity.y = (t->target->position.y - o->position.y - (-halfgravit)*tm*tm) / tm;
 				//t->initialVelocity = (t->target->position - o->position) / tm;
-				//t->initialVelocity.y = (t->target->position.y - o->position.y - (-4.25)*tm*tm) / tm;
+				//t->initialVelocity.y = (t->target->position.y - o->position.y - (-halfgravit)*tm*tm) / tm;
 			}
 			else	t->initialVelocity = Vector3(0,0,0);
 		}

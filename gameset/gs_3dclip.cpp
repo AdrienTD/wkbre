@@ -35,7 +35,10 @@ void ReadC3DClip(char **pntfp, char **fstline)
 
 void Play3DClip(C3DClip *c)
 {
-	SequenceEnv env;
-	env.self = FindObjID(1027);
-	c->postClipSeq->run(&env);
+	if(c->postClipSeq)
+	{
+		SequenceEnv env;
+		env.self = FindObjID(1027);
+		c->postClipSeq->run(&env);
+	}
 }

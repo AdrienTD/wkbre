@@ -3,11 +3,14 @@ wkbre changelog:
 [0.0.6] ??/??/2017
 - "On Share Tile" events are sent (units reacting to enemies approaching them,
   abaddons cutting trees, ...).
-- Added command buttons in game view.
+- Added command buttons in game view (press ENTER).
 - Added support for RLE-compressed TGA files.
 - Fixed a bug where objects spawned with "Quick stampdown" are put inside the
-  selected object himself and not its player.
-- Missiles now supported!
+  selected object himself and not its player object.
+- Missiles now supported! (limited)
+- Better compatibility with WKO (the first Warrior Kings).
+  - Ignore a missing equation in WK 1.4.
+  - INDIVIDUAL_ITEM now supported as a synonym of DECLARE_ITEM.
 - ...
 
 [0.0.5] 03/12/2016
