@@ -90,6 +90,7 @@ int CanBeTriggeredBy(SequenceEnv *ctx, CReaction *re, int ev)
 	return 0;
 }
 
+/*
 void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 {
 	SequenceEnv ctx;
@@ -113,4 +114,84 @@ void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 		if(CanBeTriggeredBy(&ctx, o->objdef->ireact[i], ev))
 			{o->objdef->ireact[i]->seq.run(&ctx);
 			if(!gr.valid()) return;}
+}
+*/
+
+boolean IsPRTTrue(SequenceEnv *ctx, CPRTrigger *prt)
+{
+	// OK if assessments true
+	for(uint k = 0; k < prt->ass.len; k++)
+		if(!stpo(equation[prt->ass[k]]->get(ctx)))
+			return 0;
+	return 1;
+}
+
+void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
+{
+	SequenceEnv ctx;
+	if(ie) ie->copyAll(&ctx);
+	ctx.self = o;
+	if(ie) ctx.pkgsender = ie->self;
+	goref gr = o;
+
+	GrowList<CReaction*> executed;
+
+	// 1. Run reactions with TRIGGERED_BY "ev" (directly!)
+	DynListEntry<uint> *n;
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = n)
+	{
+		n = e->next;
+		CReaction *re = &(reaction[e->value]);
+		if(re->events.has(ev))
+			{re->seq.run(&ctx); executed.add(re); if(!gr.valid()) return;}
+	}
+	for(uint i = 0; i < o->objdef->ireact.len; i++)
+	{
+		CReaction *re = o->objdef->ireact[i];
+		if(executed.has(re)) continue;
+		if(re->events.has(ev))
+			{re->seq.run(&ctx); executed.add(re); if(!gr.valid()) return;}
+	}
+
+	// 2. Get a list of PACKAGE_RECEIPT_TRIGGERs triggerable by "ev" and whose
+	//    assessments are true.
+	GrowList<CPRTrigger*> trueprts;
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = n)
+	{
+		n = e->next;
+		CReaction *re = &(reaction[e->value]);
+		if(executed.has(re)) continue;
+		for(int j = 0; j < re->prts.len; j++)
+			if(re->prts[j]->events.has(ev))
+				if(IsPRTTrue(&ctx, re->prts[j]))
+					trueprts.add(re->prts[j]);
+	}
+	for(uint i = 0; i < o->objdef->ireact.len; i++)
+	{
+		CReaction *re = o->objdef->ireact[i];
+		if(executed.has(re)) continue;
+		for(int j = 0; j < re->prts.len; j++)
+			if(re->prts[j]->events.has(ev))
+				if(IsPRTTrue(&ctx, re->prts[j]))
+					trueprts.add(re->prts[j]);
+	}
+
+	// 3. Run reactions with TRIGGERED_BY "P_R_T" from the list.
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = n)
+	{
+		n = e->next;
+		CReaction *re = &(reaction[e->value]);
+		if(executed.has(re)) continue;
+		for(int j = 0; j < trueprts.len; j++)
+			if(re->prts.has(trueprts[j]))
+				{re->seq.run(&ctx); executed.add(re); if(!gr.valid()) return; else break;}
+	}
+	for(uint i = 0; i < o->objdef->ireact.len; i++)
+	{
+		CReaction *re = o->objdef->ireact[i];
+		if(executed.has(re)) continue;
+		for(int j = 0; j < trueprts.len; j++)
+			if(re->prts.has(trueprts[j]))
+				{re->seq.run(&ctx); executed.add(re); if(!gr.valid()) return; else break;}
+	}
 }

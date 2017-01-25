@@ -19,6 +19,12 @@
 DynList<goref> workingObjs;
 float gravit = 9.81, halfgravit = 4.905;
 
+void CheckIfObjIdle(GameObject *o)
+{
+	if(o->ordercfg.order.len) return;
+	SendGameEvent(0, o, PDEVENT_ON_IDLE);
+}
+
 boolean IsCurOrderID(GameObject *o, int a)
 {
 	if(!o->ordercfg.order.len) return 0;
@@ -266,6 +272,7 @@ void ProcessObjsOrder(GameObject *o)
 		ResumeOrder(o);}
 	else if(s->processState >= 4)
 		{o->ordercfg.order.remove(o->ordercfg.order.first);
+		CheckIfObjIdle(o);
 		return;}
 
 	if(gr.valid()) if(IsCurOrderID(o, sid))
@@ -546,6 +553,8 @@ void AssignOrderVia(GameObject *go, COrderAssignment *oa, SequenceEnv *env)
 void AssignOrder(GameObject *go, COrder *ord, uint mode, GameObject *tg)
 {
 	SOrder *so;
+	if(!go->ordercfg.order.len)
+		SendGameEvent(0, go, PDEVENT_ON_BUSY);
 	switch(mode)
 	{
 		case ORDERASSIGNMODE_DO_FIRST:
@@ -615,6 +624,7 @@ void CancelOrder(GameObject *o)
 
 	if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
 rmord:	o->ordercfg.order.remove(o->ordercfg.order.first);
+	CheckIfObjIdle(o);
 }
 
 void CancelAllOrders(GameObject *o)
@@ -641,4 +651,5 @@ void TerminateOrder(GameObject *o)
 
 	if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
 rmord:	o->ordercfg.order.remove(o->ordercfg.order.first);
+	CheckIfObjIdle(o);
 }

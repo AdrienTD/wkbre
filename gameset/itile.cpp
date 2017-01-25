@@ -88,6 +88,7 @@ void GOPosChanged(GameObject *o, boolean sendEvents)
 			{
 				n = e->next;
 				if(e->value.valid())
+				if(e->value.get() != o)
 					SendGameEvent(&senv, e->value.get(), PDEVENT_ON_SHARE_TILE);
 			}
 		}

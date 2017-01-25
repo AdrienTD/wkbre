@@ -99,8 +99,12 @@ struct PositionOutAtAngle : public CPosition
 		FinderToPosOri(po, f, env);
 		po->ori.y += u->get(env) * M_PI / 180;
 		float l = v->get(env);
-		po->pos.x += l * sin(M_PI + po->ori.y);
-		po->pos.z -= l * cos(M_PI + po->ori.y);
+		// Either
+		//po->pos.x += l * cos(M_PI + po->ori.y);
+		//po->pos.z += l * sin(M_PI + po->ori.y);
+		// or simply
+		po->pos.x -= l * cos(po->ori.y);
+		po->pos.z -= l * sin(po->ori.y);
 	}
 };
 

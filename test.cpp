@@ -341,6 +341,10 @@ void Test15()
 	t->setRect(16, 36, 64, 64);
 	t->setCaption("LOL!");
 
+	GEScrollBar *sb = new GEScrollBar;
+	win->add(sb);
+	sb->setRect(90, 36, 16, 80);
+
 	while(!appexit)
 	{
 		BeginDrawing();

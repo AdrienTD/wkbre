@@ -443,11 +443,13 @@ struct ActionTransferControl : public CAction
 	ActionTransferControl(CFinder *x, CFinder *y) : a(x), b(y) {}
 	void run(SequenceEnv *env)
 	{
-		GameObject *o, *p = b->getfirst(env);
+		GameObject *o, *p = b->getfirst(env), *nx;
 		if(!p) return;
 		a->begin(env);
-		while(o = a->getnext())
+		nx = a->getnext();
+		while(o = nx)
 		{
+			nx = a->getnext();
 			SetObjectParent(o, p);
 			SendGameEvent(env, o, PDEVENT_ON_CONTROL_TRANSFERRED);
 		}
@@ -1266,6 +1268,17 @@ struct ActionLeaveFormation : public CAction
 	}
 };
 
+struct ActionSkipCameraPathPlayback : public CAction
+{
+	CFinder *f; boolean skipActions;
+	ActionSkipCameraPathPlayback(CFinder *a, boolean b) : f(a), skipActions(b) {}
+	void run(SequenceEnv *env)
+	{
+		f->begin(env); GameObject *o;
+		while(o = f->getnext()) if(o->client) StopCameraPath(o->client, skipActions);
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp);
 
@@ -1553,6 +1566,12 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_LEAVE_FORMATION:
 			{w += 2;
 			return new ActionLeaveFormation(ReadFinder(&w));}
+		case ACTION_SKIP_CAMERA_PATH_PLAYBACK:
+			{w += 2;
+			CFinder *f = ReadFinder(&w);
+			boolean sa = 0;
+			if(*w) sa = !strcmp(*w, "SKIP_ACTIONS");
+			return new ActionSkipCameraPathPlayback(f, sa);}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -1594,6 +1613,7 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_EXIT_TO_MAIN_MENU:
 		case ACTION_CONQUER_LEVEL:
 		case ACTION_DISPLAY_LOAD_GAME_MENU:
+		case ACTION_PLAY_MUSIC:
 			return new ActionDoNothing();
 	}
 	//ferr("Unknown action command."); return 0;

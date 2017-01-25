@@ -310,3 +310,16 @@ struct GEMenuBar : public GUIElement
 		getobringfront = sm[e];
 	}
 };
+
+struct GEScrollBar : public GUIElement
+{
+	uint nElementsPerPage, nElements, firstElement;
+	void draw(int dx, int dy)
+	{
+		NoTexture(0);
+		DrawRect(dx, dy, width, height, 0xFF000000);
+
+		uint say = dy + width, sah = height - 2 * width;
+		DrawRect(dx, say, width, sah, 0xFFFFFFFF);
+	}
+};

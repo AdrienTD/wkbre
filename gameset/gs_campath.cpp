@@ -63,6 +63,8 @@ void SetCameraPath(CCameraPath *c, GameObject *o)
 		s->camerapos = po.pos;
 		s->cameraori = po.ori;
 		s->cammode = 0;
+		if(c->postPlaySeq)
+			c->postPlaySeq->run(&env);
 		return;
 	}
 
@@ -153,7 +155,7 @@ void UpdateCameraPath(ClientState *s)
 	s->cameraori = pa.ori + Vector3(dx, dy, 0) * l;
 }
 
-void StopCameraPath(ClientState *s)
+void StopCameraPath(ClientState *s, boolean skipActions)
 {
 	if(s->cammode != 1) return;
 	CCameraPath *cp = s->camPathInProgress;
@@ -161,7 +163,7 @@ void StopCameraPath(ClientState *s)
 	if(s->curcpnodepos) delete [] s->curcpnodepos;
 	if(s->curcpnodetime) delete [] s->curcpnodetime;
 	s->curcpnodepos = 0; s->curcpnodetime = 0;
-	if(cp->postPlaySeq)
+	if(cp->postPlaySeq && !skipActions)
 	{
 		SequenceEnv env; env.self = s->obj;
 		cp->postPlaySeq->run(&env);

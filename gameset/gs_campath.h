@@ -31,4 +31,4 @@ struct CCameraPath
 void ReadCCameraPath(char **pntfp, char **fstline);
 void SetCameraPath(CCameraPath *c, GameObject *o);
 void UpdateCameraPath(ClientState *s);
-void StopCameraPath(ClientState *s);
+void StopCameraPath(ClientState *s, boolean skipActions = 0);

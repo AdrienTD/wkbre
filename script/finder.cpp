@@ -1162,12 +1162,15 @@ CFinder *ReadFinder(char ***wpnt)
 		case FINDER_CONTROLLER:
 			*wpnt += 1; return new FinderController();
 		case FINDER_RESULTS:
-			// Hack for FINDER_RESULTS without argument in "Celestial Level 3 - Triggers.cpp". (facepalm)
+			{// Hack for FINDER_RESULTS without argument in "Celestial Level 3 - Triggers.cpp". (facepalm)
 			if(!word[1])
 				{printf("WARNING: FINDER_RESULTS without argument!\n");
 				*wpnt += 1; return new FinderNothing();}
 			*wpnt += 2;
-			return new FinderResults(strFinderDef.find(word[1]));
+			// There's even a FINDER_RESULTS with an obj. finder def. that does not exist! (quadruple facepalm)
+			int sfd = strFinderDef.find(word[1]);
+			if(sfd == -1) return new FinderNothing();
+			return new FinderResults(sfd);}
 		case FINDER_CREATOR:
 			*wpnt += 1; return new FinderCreator();
 		case FINDER_CANDIDATE:
