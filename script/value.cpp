@@ -727,6 +727,17 @@ struct ValueNumOrders : public CValue
 	}
 };
 
+struct ValueCanTraverseNeighbouringTile : public CValue
+{
+	CFinder *f, *g;
+	ValueCanTraverseNeighbouringTile (CFinder *a, CFinder *b) : f(a), g(b) {}
+	valuetype get(SequenceEnv *env)
+	{
+		// TODO
+		return 1;
+	}
+};
+
 // DEFINED_VALUE will use ValueConstant.
 
 CValue *ReadValue(char ***wpnt)
@@ -909,6 +920,9 @@ CValue *ReadValue(char ***wpnt)
 			return new ValueCouldReach(od, a, ReadCPosition(wpnt));}
 		case VALUE_NUM_ORDERS:
 			*wpnt += 1; return new ValueNumOrders(ReadFinder(wpnt));
+		case VALUE_CAN_TRAVERSE_NEIGHBOURING_TILE:
+			{*wpnt += 1; CFinder *a = ReadFinder(wpnt);
+			return new ValueCanTraverseNeighbouringTile(a, ReadFinder(wpnt));}
 
 		// These values are in fact ENODEs (operands) with 0 subnodes, as such
 		// why not make them work as normal value determinators?

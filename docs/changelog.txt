@@ -11,6 +11,12 @@ wkbre changelog:
 - Better compatibility with WKO (the first Warrior Kings).
   - Ignore a missing equation in WK 1.4.
   - INDIVIDUAL_ITEM now supported as a synonym of DECLARE_ITEM.
+  - Other script errors tolerance (warnings are printed though).
+- Camera position displayed when time/obj info enabled.
+- "On Idle" and "On Busy" events now sent.
+- Some script actions/finders/positions/values are now supported.
+- Cancelling/terminating orders should be done correctly.
+- Bug fixes.
 - ...
 
 [0.0.5] 03/12/2016

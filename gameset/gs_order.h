@@ -37,7 +37,8 @@ struct CTask
 	CPlayAnimation *playAnim;
 	boolean playAnimOnce;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
-		*terminateSeq, *proxSatisfiedSeq, *proxDissatisfiedSeq;
+		*terminateSeq, *proxSatisfiedSeq, *proxDissatisfiedSeq,
+		*movStartedSeq, *movCompletedSeq;
 };
 
 struct COrder

@@ -172,11 +172,16 @@ void ProcessCurrentTask(GameObject *o)
 					if(!(t->flags & FSTASK_PROXIMITY_SATISFIED))
 					{
 						t->flags |= FSTASK_PROXIMITY_SATISFIED;
+						SequenceEnv env; env.self = o;
 						if(c->proxSatisfiedSeq)
 						{
-							SequenceEnv env;
-							env.self = o;
 							c->proxSatisfiedSeq->run(&env);
+							if(!g.valid()) return;
+							if(!IsCurOrderID(o, sid)) return;
+						}
+						else if(c->movCompletedSeq)
+						{
+							c->movCompletedSeq->run(&env);
 							if(!g.valid()) return;
 							if(!IsCurOrderID(o, sid)) return;
 						}
@@ -622,15 +627,25 @@ void CancelOrder(GameObject *o)
 		s->type->cancelSeq->run(&env);
 	}
 
-	if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
-rmord:	o->ordercfg.order.remove(o->ordercfg.order.first);
-	CheckIfObjIdle(o);
+	//if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
+rmord:	//o->ordercfg.order.remove(o->ordercfg.order.first);
+	//CheckIfObjIdle(o);
+	;
 }
 
 void CancelAllOrders(GameObject *o)
 {
+/*
 	while(o->ordercfg.order.first)
 		CancelOrder(o);
+*/
+	goref gr = o;
+	while(o->ordercfg.order.first)
+	{
+		CancelOrder(o);
+		if(!gr.valid()) return;
+		o->ordercfg.order.remove(o->ordercfg.order.first);
+	}
 }
 
 void TerminateOrder(GameObject *o)
@@ -649,7 +664,8 @@ void TerminateOrder(GameObject *o)
 		s->type->terminateSeq->run(&env);
 	}
 
-	if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
-rmord:	o->ordercfg.order.remove(o->ordercfg.order.first);
-	CheckIfObjIdle(o);
+	//if(!gr.valid()) return; if(!IsCurOrderID(o, sid)) return;
+rmord:	//o->ordercfg.order.remove(o->ordercfg.order.first);
+	//CheckIfObjIdle(o);
+	;
 }

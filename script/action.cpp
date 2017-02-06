@@ -407,7 +407,7 @@ struct ActionTrace : public CAction
 	ActionTrace(char *a) : s(a) {}
 	void run(SequenceEnv *env)
 	{
-		printf("TRACE \"%s\"\n", s);
+		if(scriptTraceOn) printf("TRACE \"%s\"\n", s);
 	}
 };
 
@@ -446,10 +446,22 @@ struct ActionTransferControl : public CAction
 		GameObject *o, *p = b->getfirst(env), *nx;
 		if(!p) return;
 		a->begin(env);
+/*
 		nx = a->getnext();
 		while(o = nx)
 		{
 			nx = a->getnext();
+			SetObjectParent(o, p);
+			SendGameEvent(env, o, PDEVENT_ON_CONTROL_TRANSFERRED);
+		}
+*/
+		GrowList<goref> l;
+		while(o = a->getnext()) l.addp()->set(o);
+		for(int i = 0; i < l.len; i++)
+		{
+			goref *g = l.getpnt(i);
+			if(!g->valid()) continue;
+			o = g->get();
 			SetObjectParent(o, p);
 			SendGameEvent(env, o, PDEVENT_ON_CONTROL_TRANSFERRED);
 		}
