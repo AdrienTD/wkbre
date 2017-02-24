@@ -438,6 +438,9 @@ void LoadGameSet(char *filename)
 	// Put engine-declared game events (like "On Stampdown")
 	for(uint i = 0; i < PDEVENT_NUM; i++)
 		strGameEvent.add(PDEVENT_tab0[i]);
+	// and items
+	for(uint i = 0; i < PDITEM_NUM; i++)
+		strItems.add(PDITEM_tab0[i]);
 
 	BeginLooking();
 	loadinginfo("Gameset pass 0\n"); LookAtFile(filename, 0);

@@ -431,8 +431,12 @@ void TerminateTask(GameObject *o)
 
 	SetObjectAnimation(o, 0, 1);
 
+	// If a spawn task is terminated, create the unit.
 	if(t->type->type == ORDTSKTYPE_SPAWN)
 	{
+		// The original engine does not check whether the HP of the object
+		// being spawned is full or not.
+		o->setItem(PDITEM_HP_OF_OBJ_BEING_SPAWNED, 0);
 		GameObject *n = CreateObject(t->spawnBlueprint, o->player);
 		n->position = o->position;
 		GOPosChanged(o);
@@ -568,6 +572,7 @@ void AssignOrder(GameObject *go, COrder *ord, uint mode, GameObject *tg)
 			so = &go->ordercfg.order.first->value;
 			break;
 		case ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE:
+		default:
 			CancelAllOrders(go);
 		case ORDERASSIGNMODE_DO_LAST:
 			go->ordercfg.order.add();

@@ -430,34 +430,39 @@ else
 				mapbatch->next(4, 6, &bv, &bi, &fi);
 				int a = c->rot, f = ((c->zflip&1)?1:0) ^ ((c->xflip&1)?3:0);
 
-				bv[0].x = c->x;			bv[0].z = c->z;
-				bv[1].x = c->x + 1;		bv[1].z = c->z;
-				bv[2].x = c->x + 1;		bv[2].z = c->z + 1;
-				bv[3].x = c->x;			bv[3].z = c->z + 1;
+				float tu[4], tv[4];
 
+				tu[((0^f)+a)&3] = (t->x+0.5f) / 256.f;		tv[((0^f)+a)&3] = (t->y+0.5f) / 256.f;
+				tu[((1^f)+a)&3] = (t->x+t->w-0.5f) / 256.f;	tv[((1^f)+a)&3] = (t->y+0.5f) / 256.f;
+				tu[((2^f)+a)&3] = (t->x+t->w-0.5f) / 256.f;	tv[((2^f)+a)&3] = (t->y+t->h-0.5f) / 256.f;
+				tu[((3^f)+a)&3] = (t->x+0.5f) / 256.f;		tv[((3^f)+a)&3] = (t->y+t->h-0.5f) / 256.f;
+
+				bv[0].x = c->x;
 				bv[0].y = himap[(c->z+0)*(mapwidth+1)+c->x+0];
-				bv[1].y = himap[(c->z+0)*(mapwidth+1)+c->x+1];
-				bv[2].y = himap[(c->z+1)*(mapwidth+1)+c->x+1];
-				bv[3].y = himap[(c->z+1)*(mapwidth+1)+c->x+0];
-/*
-				bv[((0^f)+a)&3].u = t->x / 256.f;		bv[((0^f)+a)&3].v = t->y / 256.f;
-				bv[((1^f)+a)&3].u = (t->x+t->w) / 256.f;	bv[((1^f)+a)&3].v = t->y / 256.f;
-				bv[((2^f)+a)&3].u = (t->x+t->w) / 256.f;	bv[((2^f)+a)&3].v = (t->y+t->h) / 256.f;
-				bv[((3^f)+a)&3].u = t->x / 256.f;		bv[((3^f)+a)&3].v = (t->y+t->h) / 256.f;
-*/
-				bv[((0^f)+a)&3].u = (t->x+0.5f) / 256.f;		bv[((0^f)+a)&3].v = (t->y+0.5f) / 256.f;
-				bv[((1^f)+a)&3].u = (t->x+t->w-0.5f) / 256.f;		bv[((1^f)+a)&3].v = (t->y+0.5f) / 256.f;
-				bv[((2^f)+a)&3].u = (t->x+t->w-0.5f) / 256.f;		bv[((2^f)+a)&3].v = (t->y+t->h-0.5f) / 256.f;
-				bv[((3^f)+a)&3].u = (t->x+0.5f) / 256.f;		bv[((3^f)+a)&3].v = (t->y+t->h-0.5f) / 256.f;
+				bv[0].z = c->z;
+				bv[0].color = -1;
+				bv[0].u = tu[0]; bv[0].v = tv[0];
 
-				for(int j = 0; j < 4; j++)
-					{/*bv[j].y = 0;*/ bv[j].color = -1;
-					}//bv[j].x -= 0.5f; bv[j].y -= 0.5f;}
-					 // L-> this will drop FPS because it rereads the locked buffer!
-				//bi[0] = fi+0; bi[1] = fi+1; bi[2] = fi+3;
+				bv[1].x = c->x + 1;
+				bv[1].y = himap[(c->z+0)*(mapwidth+1)+c->x+1];
+				bv[1].z = c->z;
+				bv[1].color = -1;
+				bv[1].u = tu[1]; bv[1].v = tv[1];
+
+				bv[2].x = c->x + 1;
+				bv[2].y = himap[(c->z+1)*(mapwidth+1)+c->x+1];
+				bv[2].z = c->z + 1;
+				bv[2].color = -1;
+				bv[2].u = tu[2]; bv[2].v = tv[2];
+
+				bv[3].x = c->x;
+				bv[3].y = himap[(c->z+1)*(mapwidth+1)+c->x+0];
+				bv[3].z = c->z + 1;
+				bv[3].color = -1;
+				bv[3].u = tu[3]; bv[3].v = tv[3];
+
 				bi[0] = fi+0; bi[1] = fi+3; bi[2] = fi+1;
 				bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;
-				//bi[3] = fi+1; bi[4] = fi+2; bi[5] = fi+3;
 		}
 	} mapbatch->flush();}
 }

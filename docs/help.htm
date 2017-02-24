@@ -1,5 +1,5 @@
 <html>
-<head><title>wkbre v0.0.5.0 Help file</title></head>
+<head><title>wkbre v0.0.6.0 Help file</title></head>
 <body>
 <style>
 table, th, td {
@@ -14,23 +14,25 @@ th {
   background-color: #80a0ff;
 }
 </style>
-<h1>wkbre v0.0.5.0 Help file</h1>
+<h1>wkbre v0.0.6.0 Help file</h1>
 <h2>Introduction</h2>
-<p>wkbre is a engine reimplementation of the game Warrior Kings (Battles) in which you can load, edit, play and save saved games of the game. It loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
+<p><b><i>wkbre</i></b> is a engine reimplementation of the game <b>Warrior Kings (Battles)</b> (developed by Black Cactus) in which you can load, edit, play and save saved games of the game. It loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
 <p>The program is open source and is licensed under the GNU GPL 3. The source code and the latest build are available here: <a href="https://github.com/AdrienTD/wkbre">https://github.com/AdrienTD/wkbre</a></p>
 <h2>Start</h2>
-<p>If wkbre doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
-<p>First you need to configure the "settings.txt" file. Ensure that the GAME_DIR value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
-<p>After setting the GAME_DIR value you can start the executable (wkbre.exe). You will be asked which saved game you want to load. Select a file in the list then click OK or double-click on the file to open it.</p>
-<p>Use the arrow, ‘E’ and ‘D’ keys to move the camera.</p>
-<p>Click an object to select it. Press the Control key and the arrow keys at the same time to move the selected object. You can also press the Insert key to duplicate the selected object, the Delete key to delete it, and the * or / key to change the size. Look at the menu bar in the program or the Keys section of this document for a list of available commands.</p>
-<p>Once you have finished doing some modifications in the level, press F3 and type the name of the new savegame. The name should end with “.sav”, otherwise the game won’t display it in its list.</p>
+<p>First you need to configure the "settings.txt" file. Ensure that the <b>GAME_DIR</b> value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
+<p>Now you can start the executable (wkbre.exe). If it doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
+<p>You will be asked which saved game you want to load. Select a file in the list then click OK or double-click on the file to open it.</p>
+<p>Use the <b>arrow</b>, <b>‘E’</b> and <b>‘D’</b> keys to move the camera. Hold the <b>NumPad 0</b> key and move the mouse to rotate the camera.</p>
+<p><b>Click</b> an object to select it. Press the <b>Control</b> key and the <b>arrow</b> keys at the same time to move the selected object. You can also press the <b>Insert</b> key to duplicate the selected object, the <b>Delete</b> key to delete it, and the <b>*</b> or <b>/</b> key to change the size. Look at the menu bar in the program or the Keys section of this document for a list of available commands.</p>
+<p>Once you have finished doing some modifications in the level, press <b>F3</b> and type the name of the new savegame. The name should end with <b>“.sav”</b>, otherwise the game won’t display it in its list.</p>
 <h2>Playing games in wkbre</h2>
 <p>wkbre is also able to let you play the game. This is done by interpreting the game set script which can be found in the game data (data.bcp).</p>
-<p>When you press 'P', the game will be unpaused. You can see your units moving, peasants doing their work, units attacking, etc...</p>
-<p>When you have selected an unit you can also give it an order by right-clicking a target, or press 'A' to execute button commands.</p>
+<p>When you press <b>'P'</b>, the game will be unpaused. You can see your units moving, peasants doing their work, units attacking, etc...</p>
+<p>When you have selected an unit you can also give it an order by <b>right-clicking</b> a target, or press <b>'A'</b> to execute button commands.</p>
 <p>Please note that savegames with AI players might not work because some game set script features related to AI are not supported yet.</p>
-<p>If you have opened a lvl file, you can press 'S' to start the level (for example in a tutorial this will show the first message).</p>
+<p>If you have opened a lvl file, you can press <b>'S'</b> to start the level (for example in a tutorial this will show the first message).</p>
+<p>You can also take control of the camera of a player/client with <b>'F'</b>.</p>
+<p>Finally, press <b>'Enter'</b> to switch into a "Game" interface.</p>
 <p>See the Keys section and the "Game" submenu in the menu bar for a list of available commands.</p>
 <p>Also please keep in mind that the ability to play games in wkbre is "experimental", this means some features are missing and bugs can be encountered.</p>
 <h2>Keys</h2>
@@ -77,8 +79,8 @@ th {
 <tr><td>O</td><td>Select object per ID.</td></tr>
 <tr class="subhead"><td colspan="2"><b>Gaming</b></td></tr>
 <tr><td>P</td><td>Pause/unpause game.</td></tr>
-<tr><td>+</td><td>Accelerate game speed.</td></tr>
-<tr><td>-</td><td>Decelerate game speed.</td></tr>
+<tr><td>+</td><td>Increase game speed.</td></tr>
+<tr><td>-</td><td>Decrease game speed.</td></tr>
 <tr><td>X</td><td>Execute action sequence</td></tr>
 <tr><td>C</td><td>Create a mapped type object via the selected object</td></tr>
 <tr><td>V</td><td>Create object, put it in the same position of the selected object and send the "On Stampdown" event to it.</td></tr>
@@ -100,6 +102,7 @@ th {
 <tr><td>M</td><td>Display/hide landscape</td></tr>
 <tr><td>L</td><td>Display/hide time and object information</td></tr>
 <tr><td>Backspace</td><td>Display/hide menu bar.</td></tr>
+<tr><td>Enter</td><td>Switch between level and game view.</td></tr>
 </tbody>
 </table>
 <p>There are also more commands which can only be accessed from the menu bar.</p>
@@ -129,6 +132,7 @@ th {
 <tr><td>PRELOAD_ALL_MODELS</td><td>0 = load models only when needed, 1 = preload all models when loading the game</td></tr>
 <tr><td>ENABLE_GAMEPLAY_SHORTCUTS</td><td>Keyboard shortcuts for gameplay and ordering by right-clicking: 0 = disabled, 1 = enabled<br>Can be changed in runtime via the menubar.</td></tr>
 <tr><td>SHOW_TIME_OBJ_INFO</td><td>Display the current time and values for the selected object: 0 = disabled, 1 = enabled<br>Can be changed in runtime via the menubar.</td></tr>
+<tr><td>ENABLE_GAMESET_TRACING</td><td>Allow the gameset script to print trace information into the console (stdout). 1 = yes, 0 = no</td></tr>
 </tbody>
 </table>
 <h2>Known issues</h2>
@@ -136,17 +140,23 @@ th {
 <li><b>Texture compression is disabled even with TEXTURE_COMPRESSION 1 in settings.txt</b>
 <br>The texture loading in version 0.0.3 has been rewritten, and the new code doesn’t support texture compression for various reasons.</li>
 <li><b>wkbre is frozen / stops drawing.</b>
-<br>Minimize and restore the window.</li>
+<br>Minimize and restore the window. If it still does not draw, close it. Don't forget the task manager!</li>
 <li><b>When I load a savegame made with wkbre in the original engine, there are some issues. The AI doesn’t work well, the formations move poorly, …</b>
 <br>This is going to be fixed in a next release.</li>
 <li><b>I don’t find my savegame in WKB.</b>
 <br>Look at every tab (skirmish, campaign, multiplayer).</li>
-<li><b>Firing units like light infantry and light cavalry don't spawn missiles, and thus are useless.</b>
-<br>wkbre doesn't support missile movement at the moment.</li>
-<li><b>With WKBattles data, starting the level when the level has already been started will cause an infinite loop.</b>
+<li><b>Firing units like light infantry and light cavalry spawn missiles that don't hurt the enemies!</b>
+<br>wkbre's support for missiles is poor at the moment.</li>
+<li><b>With WKBattles or WK 1.4 data, starting the level when the level has already been started will cause an infinite loop.</b>
 <br>This bug seems to occur in the original engine too.</li>
 <li><b>There are bugs!</b>
 <br>Leave these poor living spirits alone! Anyway they will be squashed in the near or distant future.</li>
+</ul>
+<h2>Bro tips</h2>
+<ul>
+<li>After loading a lvl file, press <b>'S'</b>, <b>'F'</b>, <b>'Enter'</b>, then <b>'P'</b> to directly play it.</li>
+<li>In WKB, if you want to quickly create trees, select an object, press <b>'V'</b>, and choose <b>MARKER AutoTree...</b>.</li>
+<li>In WKB, if you want an AI-controlled sapper, scout, succubus or arch druid, use the <b>'V'</b> command.
 </ul>
 <h2>Contact</h2>
 <p>If you have a questions, you have found a bug or simply have a suggestion, please contact me:</p>

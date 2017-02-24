@@ -1,6 +1,6 @@
 wkbre changelog:
 
-[0.0.6] ??/??/2017
+[0.0.6] 24/02/2017
 - "On Share Tile" events are sent (units reacting to enemies approaching them,
   abaddons cutting trees, ...).
 - Added command buttons in game view (press ENTER).
@@ -16,6 +16,16 @@ wkbre changelog:
 - "On Idle" and "On Busy" events now sent.
 - Some script actions/finders/positions/values are now supported.
 - Cancelling/terminating orders should be done correctly.
+- Added a dialog box for "Change WK version".
+- Changed the terrain rendering a bit such that it writes to the locked
+  buffer "sequentially". This seems to be recommended but I haven't noticed
+  any FPS change.
+- Added FPS and objects count at top-right of screen (if time/obj info
+  enabled), so you can read them in fullscreen!
+- Fixed the "Move to player's manor" command.
+- Using the "Move to..." commands should now also work when controlling
+  a client's camera.
+- When a unit is spawned, "Hit Points Of Object Being Spawned" is reset to 0.
 - Bug fixes.
 - ...
 

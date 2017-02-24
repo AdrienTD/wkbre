@@ -1291,6 +1291,27 @@ struct ActionSkipCameraPathPlayback : public CAction
 	}
 };
 
+struct ActionInterpolateCameraToStoredPosition : public CAction
+{
+	CValue *v; CFinder *f;
+	ActionInterpolateCameraToStoredPosition(CValue *a, CFinder *b) : v(a), f(b) {}
+	void run(SequenceEnv *env)
+	{
+		float b = v->get(env);
+		GameObject *o; f->begin(env);
+		while(o = f->getnext())
+		{
+			if(!o->client) continue;
+			StopCameraPath(o->client);
+			o->client->cammode = 2;
+			o->client->camInterpolPos = o->client->storedpos;
+			o->client->camInterpolOri = o->client->storedori;
+			o->client->camInterpolDur = b;
+			o->client->camInterpolTime = 0;
+		}
+	}
+};
+
 void ReadUponCond(char **pntfp, ActionSeq **a, ActionSeq **b);
 GrowList<ASwitchCase> *ReadSwitchCases(char **pntfp);
 
@@ -1584,6 +1605,10 @@ CAction *ReadAction(char **pntfp, char **word)
 			boolean sa = 0;
 			if(*w) sa = !strcmp(*w, "SKIP_ACTIONS");
 			return new ActionSkipCameraPathPlayback(f, sa);}
+		case ACTION_INTERPOLATE_CAMERA_TO_STORED_POSITION:
+			{w += 2;
+			CValue *a = ReadValue(&w);
+			return new ActionInterpolateCameraToStoredPosition(a, ReadFinder(&w));}
 
 		// The following actions do nothing at the moment (but at least
 		// the program won't crash when these actions are executed).
@@ -1601,7 +1626,6 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_SHOW_BLINKING_DOT_ON_MINIMAP:
 		case ACTION_ENABLE_GAME_INTERFACE:
 		case ACTION_DISABLE_GAME_INTERFACE:
-		//case ACTION_INTERPOLATE_CAMERA_TO_POSITION:
 		case ACTION_SET_ACTIVE_MISSION_OBJECTIVES:
 		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY:
 		case ACTION_SHOW_MISSION_OBJECTIVES_ENTRY_INACTIVE:

@@ -20,7 +20,7 @@
 extern char appName[];
 extern HWND hWindow;
 extern bool keypressed[256];
-extern int drawframes, objsdrawn;
+extern int drawfps, drawframes, objsdrawn;
 extern int HWVPenabled, VSYNCenabled, numBackBuffers, reqRender;
 extern IDirect3DDevice9 *ddev;
 extern int scrw, scrh;

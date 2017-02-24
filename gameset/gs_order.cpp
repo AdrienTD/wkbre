@@ -178,6 +178,7 @@ void ReadCOrderAssignment(char **pntfp, char **fstline)
 		{
 			case CORDERASSIGN_ORDER_ASSIGNMENT_MODE:
 				co->mode = stfind_cs(ORDERASSIGNMODE_str, ORDERASSIGNMODE_NUM, word[1]);
+				if(co->mode == -1) printf("WARNING: Unknown order assignment mode: %s\n", word[1]);
 				break;
 			case CORDERASSIGN_ORDER_TO_ASSIGN:
 				co->order = &(gsorder[strOrder.find(word[1])]); break;

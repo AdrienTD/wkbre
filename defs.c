@@ -230,7 +230,7 @@ char *POSITION_str[17] = {
 "DESTINATION_OF",
 "MATCHING_OFFSET",
 };
-char *ACTION_str[117] = {
+char *ACTION_str[118] = {
 "REMOVE",
 "CREATE_OBJECT",
 "EXECUTE_SEQUENCE",
@@ -310,6 +310,7 @@ char *ACTION_str[117] = {
 "STOP_CAMERA_PATH_PLAYBACK",
 "INTERPOLATE_CAMERA_TO_POSITION",
 "SKIP_CAMERA_PATH_PLAYBACK",
+"INTERPOLATE_CAMERA_TO_STORED_POSITION",
 "STOP_SOUND",
 "PLAY_SOUND",
 "PLAY_SOUND_AT_POSITION",
@@ -645,4 +646,22 @@ char *BUILDINGTYPE_str[12] = {
 "TOWER",
 "TOWER_CORNER_IN",
 "TOWER_CORNER_OUT",
+};
+char *PDITEM_str[7] = {
+"FOOD",
+"WOOD",
+"GOLD",
+"STONE",
+"HP",
+"HPC",
+"HP_OF_OBJ_BEING_SPAWNED",
+};
+char* PDITEM_tab0[7] = {
+"Food",
+"Wood",
+"Gold",
+"Stone",
+"Hit Points",
+"Hit Point Capacity",
+"Hit Points Of Object Being Spawned",
 };

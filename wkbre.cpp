@@ -144,12 +144,44 @@ void RotateCurCamera(float x, float y)
 		{campitch += x; camyaw += y;}
 }
 
-void GetCurCamera(float *x, float *y)
+void GetCurCameraRot(float *x, float *y)
 {
 	if(curclient)
 		{*x = curclient->cameraori.x; *y = curclient->cameraori.y;}
 	else
 		{*x = campitch; *y = camyaw;}
+}
+
+void SetCurCameraRot(float x, float y)
+{
+	if(curclient)
+		{curclient->cameraori.x = x; curclient->cameraori.y = y;}
+	else
+		{campitch = x; camyaw = y;}
+}
+
+void SetCurCameraPos(Vector3 v)
+{
+	if(curclient)
+		curclient->camerapos = v;
+	else
+		camerapos = v;
+}
+
+void SetCurCameraPosXZ(float x, float z)
+{
+	if(curclient)
+		{curclient->camerapos.x = x; curclient->camerapos.z = z;}
+	else
+		{camerapos.x = x; camerapos.z = z;}
+}
+
+void SetCurCameraPosXYZ(float x, float y, float z)
+{
+	if(curclient)
+		curclient->camerapos = Vector3(x, y, z);
+	else
+		camerapos = Vector3(x, y, z);
 }
 
 void PresentObject(int igo)
@@ -196,7 +228,6 @@ void ReplaceObjsType(GameObject *o, CObjectDefinition *a, CObjectDefinition *b)
 
 void SetObjsCtrl(GameObject *o, CObjectDefinition *d, GameObject *p)
 {
-	//__asm int 3
 	if(o == p) //levelobj->children.getEntry(1)->value
 		return;
 	DynListEntry<GameObject> *nx;
@@ -232,21 +263,6 @@ GameObject *AskPlayer(char *head = 0)
 	for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
 	{
 		if(e->value.objdef->type != CLASS_PLAYER) break; // TODO: Something better.
-/*
-		strcpy(ts, "?: ");
-		//strcat(ts, (&e->value)->objdef->name);
-		if(e->value.name)
-		{
-			int n = wcslen(e->value.name);
-			char *w = new char[n+1];
-			for(int i = 0; i < n; i++)
-				w[i] = e->value.name[i];
-			w[n] = 0;
-			strcat(ts, w?w:"(null)");
-			delete [] w;
-		}
-		ts[0] = '0' + (x++);
-*/
 		sprintf(ts, "%u: %S (obj. id %u)", x++, e->value.name ? e->value.name : L"(null)", e->value.id);
 		l.add(ts);
 	}
@@ -520,6 +536,7 @@ void CallCommand(int cmd)
 			RandomizeObjAppear(levelobj); break;
 		case CMD_CAMMANOR:
 		{
+			boolean fnd = 0;
 			GameObject *a = AskPlayer("Set camera position to the manor of player:");
 			if(a)
 			{
@@ -528,24 +545,23 @@ void CallCommand(int cmd)
 				   for(DynListEntry<GOAssociation> *e = a->association.first; e; e = e->next)
 					if(e->value.category == c)
 					   if(e->value.associates.len)
-						{camerapos = e->value.associates.first->value.o->position; break;}
+						{SetCurCameraPos(e->value.associates.first->value.o->position); fnd = 1; break;}
+				if(fnd) break;
 				c = strItems.find("Palace Building");
 				if(c != -1)
-				{   for(int i = 0; i < MAX_GAMEOBJECTS; i++)
+				   for(int i = 0; i < MAX_GAMEOBJECTS; i++)
 					if(gameobj[i])
 					   if(gameobj[i]->getItem(c) != 0.0f)
 						if(gameobj[i]->player == a)
-						   {camerapos = gameobj[i]->position; break;}
-				} else MessageBox(hWindow, "Cannot get player's manor.", appName, 16);
+						   {SetCurCameraPos(gameobj[i]->position); fnd = 1; break;}
+				if(!fnd) MessageBox(hWindow, "The player's manor was not found.", appName, 16);
 			}
 		} break;
 		case CMD_CAMPOS:
 		{
 			float x, z;
 			if(PositionDlgBox(&x, &z, "Where would you like to go?"))
-			{
-				camerapos.x = x; camerapos.z = z;
-			}
+				SetCurCameraPosXZ(x, z);
 		} break;
 		case CMD_ABOUT:
 		{
@@ -554,13 +570,13 @@ void CallCommand(int cmd)
 		case CMD_RESETOBJPOS:
 			ResetPosition(levelobj); break;
 		case CMD_CAMDOWNLEFT:
-			camerapos = Vector3(0, 0, 0); break;
+			SetCurCameraPosXYZ(0, 0, 0); break;
 		case CMD_CAMDOWNRIGHT:
-			camerapos = Vector3((mapwidth-mapedge*2)*5, 0, 0); break;
+			SetCurCameraPosXYZ((mapwidth-mapedge*2)*5, 0, 0); break;
 		case CMD_CAMUPLEFT:
-			camerapos = Vector3(0, 0, (mapheight-mapedge*2)*5); break;
+			SetCurCameraPosXYZ(0, 0, (mapheight-mapedge*2)*5); break;
 		case CMD_CAMUPRIGHT:
-			camerapos = Vector3((mapwidth-mapedge*2)*5, 0, (mapheight-mapedge*2)*5); break;
+			SetCurCameraPosXYZ((mapwidth-mapedge*2)*5, 0, (mapheight-mapedge*2)*5); break;
 		case CMD_BCMHIMAPRIGHT:
 			LoadMap(lastmap, ++bo); break;
 		case CMD_BCMHIMAPLEFT:
@@ -590,7 +606,7 @@ void CallCommand(int cmd)
 			if(c) RemoveObjOfClass(levelobj, c);
 		} break;
 		case CMD_CAMRESETORI:
-			camyaw = campitch = 0.0f; break;
+			SetCurCameraRot(0.0f, 0.0f); break;
 		case CMD_SELOBJSCALEBIGGER:
 			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 			if(e->value.valid())
@@ -639,13 +655,12 @@ void CallCommand(int cmd)
 		{
 			GrowStringList sl;
 			AddClientsToGSL(&sl);
-			int r = ListDlgBox(&sl, "Copy camera position from whose client?", 0);
+			int r = ListDlgBox(&sl, "Copy camera position and rotation from whose client?", 0);
 			if(r != -1)
 			{
 				ClientState *c = clistates.getpnt(r);
-				camerapos = c->camerapos;
-				camyaw = -c->cameraori.y;
-				campitch = -c->cameraori.x;
+				SetCurCameraPos(c->camerapos);
+				SetCurCameraRot(c->cameraori.x, c->cameraori.y);
 			}
 		} break;
 		case CMD_PAUSE:
@@ -671,8 +686,13 @@ void CallCommand(int cmd)
 			}
 		} break;
 		case CMD_CHANGE_SG_WKVER:
-			wkver = (wkver==WKVER_ORIGINAL) ? WKVER_BATTLES : WKVER_ORIGINAL;
-			break;
+		{
+			GrowStringList sl;
+			sl.add("Warrior Kings"); sl.add("Warrior Kings - Battles");
+			int r = ListDlgBox(&sl, "Make next saves compatible with:", (wkver==WKVER_BATTLES)?1:0);
+			if(r != -1)
+				wkver = r ? WKVER_BATTLES : WKVER_ORIGINAL;
+		} break;
 		case CMD_CONTROL_CLIENT:
 		{
 			GrowStringList sl;
@@ -1051,21 +1071,16 @@ void Test7()
 			if(selobjects.len)
 			if(selobjects.first->value.valid())
 			{
-				int xhp = strItems.find("Hit Points"), xhc = strItems.find("Hit Point Capacity"), xf = strItems.find("Food"), xw = strItems.find("Wood"), xg = strItems.find("Gold"), xs = strItems.find("Stone");
-				if((xf != -1) && (xw != -1) && (xg != -1) &&
-					(xs != -1) && (xhp != -1) && (xhc != -1))
-				{
-					sprintf(st, "--- Selected object ---\nHP: %f/%f\nFood: %f\nWood: %f\nGold: %f\nStone: %f",
-						selobjects.first->value->getItem(xhp),
-						selobjects.first->value->getItem(xhc),
-						selobjects.first->value->getItem(xf),
-						selobjects.first->value->getItem(xw),
-						selobjects.first->value->getItem(xg),
-						selobjects.first->value->getItem(xs));
-					NoTexture(0);
-					DrawRect(0, 100, 280, 6*20, 0xC0000080);
-					DrawFont(0, 100, st);
-				}
+				sprintf(st, "--- Selected object ---\nHP: %f/%f\nFood: %f\nWood: %f\nGold: %f\nStone: %f",
+					selobjects.first->value->getItem(PDITEM_HP),
+					selobjects.first->value->getItem(PDITEM_HPC),
+					selobjects.first->value->getItem(PDITEM_FOOD),
+					selobjects.first->value->getItem(PDITEM_WOOD),
+					selobjects.first->value->getItem(PDITEM_GOLD),
+					selobjects.first->value->getItem(PDITEM_STONE));
+				NoTexture(0);
+				DrawRect(0, 100, 280, 6*20, 0xC0000080);
+				DrawFont(0, 100, st);
 			}
 		}
 
@@ -1085,6 +1100,13 @@ void Test7()
 				DrawFont(0, scrh-20, statustext);
 			}
 			if(enableObjTooltips) DrawTooltip();
+
+			if(showTimeObjInfo)
+			{
+				char st[64];
+				sprintf(st, "FPS: %i - ODPF: %i", drawfps, objsdrawn);
+				DrawFont(scrw - 188, 0, st);
+			}
 
 			SetTargetCursor();
 			DrawCursor();
@@ -1248,29 +1270,12 @@ void Test7()
 			{
 				float rx = (mouseX-msrotx)/200.0f;
 				float ry = (mouseY-msroty)/200.0f;
-				//float ox, oy; GetCurCamera(&ox, &oy);
-				//if(abs(ox + rx) < M_PI/2)
-				//if(abs(oy + ry) < M_PI/2)
-					RotateCurCamera(-ry, -rx);
-				//campitch -= ry; camyaw -= rx;
-				//if(campitch >= M_PI/2) campitch = M_PI/2 - 0.0001;
-				//if(campitch <= -M_PI/2) campitch = -M_PI/2 + 0.0001;
-				//printf("pitch = %f; yaw = %f\n", campitch, camyaw);
+				RotateCurCamera(-ry, -rx);
 				msrotx = mouseX; msroty = mouseY;
 			}
 		}
 		else mouseRot = 0;
-/*
-		if(lmbPressed)
-		{
-			if(!multiSel)
-			{
-				multiSel = 1;
-				mselx = mouseX; msely = mouseY;
-			}
-		}
-		else multiSel = 0;
-*/
+
 		if(!lmbPressed)
 		if(multiSel)
 		{
@@ -1379,7 +1384,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int showMod
 #endif
 {
 	srand(time(NULL));
-	hInstance = GetModuleHandle(NULL); ReadSettingsFile(); //SetGameDir();
+	hInstance = GetModuleHandle(NULL); ReadSettingsFile();
 	//if(argc >= 2) farg = argv[1];
 	//InitD3DXDLL();
 #ifndef WKBRE_RELEASE
