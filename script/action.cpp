@@ -1398,7 +1398,11 @@ CAction *ReadAction(char **pntfp, char **word)
 			return new ActionExecuteOneAtRandom(ReadActSeq(pntfp));
 		case ACTION_TRACE_VALUE:
 			w += 3;
-			return new ActionTraceValue(strdup(word[2]), ReadValue(&w));
+			if(!word[2])
+				{printf("WARNING: TRACE_VALUE action without arguments.\n");
+				return new ActionDoNothing();}
+			else
+				return new ActionTraceValue(strdup(word[2]), ReadValue(&w));
 		case ACTION_TRACE_FINDER_RESULTS:
 			w += 3;
 			return new ActionTraceFinderResults(strdup(word[2]), ReadFinder(&w));

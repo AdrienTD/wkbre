@@ -32,3 +32,5 @@
 *.pdb
 *.res
 *.ilk
+build*/
+Win32/

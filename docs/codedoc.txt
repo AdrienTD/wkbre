@@ -1,5 +1,9 @@
 //*** How to compile ***//
 
+Use CMake.
+
+---- or ----
+
 Using the Microsoft (Visual) C/C++ compiler:
 	- Open a Windows SDK or Visual C++ command prompt (32 bits). You can
 	  find it in the Start menu/screen.
@@ -20,8 +24,12 @@ user-friendly, for example debugging features and incomplete features.
 
 //*** Code structure ***//
 
+anim.cpp		Anim3 files
+anim.h			"
 bitmap.cpp		Bitmap loading and conversion
 bitmap.h		"
+cursor.cpp		Mouse cursor
+cursor.h		"
 defs.c			Contains strings for every definition in defs.h
 defs.h			Contains definitions
 defs.txt		File used to generate defs.c and defs.h
@@ -46,17 +54,21 @@ lzrw_headers.h		Header for using LZRW3 code
 lzrw3.c			Code for LZRW3 (de)compression
 map.cpp			Loads and renders the landscape/terrain.
 map.h			"
-menu.cpp		Menu bar
-menu.h			"
+maptexdb.cpp		Reads the map texture database (Maps\Map_Textures\All_Textures.dat)
+maptexdb.h		"
 mesh.cpp		Loads and renders meshes in Mesh3 format.
 mesh.h			"
 minimap.cpp		Draws a minimap and also contains code for the Position dialog box.
 minimap.h		"
+renderer.h		Contains the 3D graphics renderer abstraction structure
+renderer_d3d9.cpp	Direct3D 9 renderer
+renderer_ogl1.cpp	OpenGL 1.1 renderer
 resource.h		Executable resource definitions
 scene.cpp		Scene drawing and picking (landscape + objects)
 scene.h			"
 settings.cpp		Loads the settings.txt file
 settings.h		"
+test.cpp		Contains code that tests certain parts of the program
 texture.cpp		Makes from a bitmap a texture that can be used for rendering
 texture.h		"
 util.cpp		Contains useful routines.
@@ -69,9 +81,19 @@ wkbre.cpp		Main code. Test7 is run by default.
 wkbre.rc		Resource script
 
 gameset\
+	dyntext.cpp		Reads formatted text from the gameset
+	dyntext.h		"
 	gameset.h		Definitions related to game set loading
+	gs_3dclip.cpp		Game set 3D_CLIP (WKO map cinematics)
+	gs_3dclip.h		"
+	gs_animation.cpp	Game set animation conditions (including MOVEMENT_BAND, ...)
+	gs_animation.h		"
+	gs_campath.cpp		Game set CAMERA_PATH (for in-game cinematics)
+	gs_campath.h
 	gs_command.cpp		Game set COMMAND
 	gs_command.h		"
+	gs_gametextwindow.cpp	Game set Game text windows
+	gs_gametextwindow.h	"
 	gs_order.cpp		Game set ORDER, TASK and ORDER_ASSIGNMENT
 	gs_order.h		"
 	loadgameset.cpp		Main code for game set loading
@@ -79,6 +101,8 @@ gameset\
 	objdef.h		"
 	savegame.cpp		Main code for savegame loading
 	savegame.h		"
+	sg_ai.cpp		Reads/writes AI_CONTROLLER in savegame
+	sg_ai.h			"
 	sg_clientstate.cpp	CLIENT_STATE in savegame
 	sg_clientstate.h	"
 	sg_diplostat.cpp	Implements diplomatic relations.
@@ -101,6 +125,8 @@ script\
 	finder.h		"
 	objCreation.cpp		Implements the OBJECT_CREATION blueprint.
 	objCreation.h		"
+	package.cpp		Implements the PACKAGE blueprint.
+	package.h		"
 	position.cpp		Implements certain types of POSITION determinators.
 	position.h		"
 	script.h		Global header for scripting.

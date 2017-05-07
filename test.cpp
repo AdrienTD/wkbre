@@ -382,7 +382,7 @@ void Test17()
 	while(1)
 	{
 		printf("\nEquation number: ");
-		int x = atoi(gets(inbuf))-1;
+		int x = atoi(fgets(inbuf, 255, stdin))-1;
 		if(x == -1) break;
 		if((uint)x >= strEquation.len)
 			printf("Eq. number does not exist.\n");
@@ -409,7 +409,7 @@ void Test18()
 	while(1)
 	{
 		printf("\nFinder def. number: ");
-		int x = atoi(gets(inbuf))-1;
+		int x = atoi(fgets(inbuf, 255, stdin))-1;
 		if(x == -1) break;
 		if((uint)x >= strFinderDef.len)
 			printf("OFD number does not exist.\n");
@@ -465,7 +465,7 @@ void Test22()
 	int curgrp = 0; char tb[512];
 
 	printf("Use LTTT? ");
-	int uselt = atoi(gets(tb));
+	int uselt = atoi(fgets(tb, 511, stdin));
 
 	LoadBCP("data.bcp");
 	InitWindow();
@@ -713,7 +713,7 @@ void RunTest()
 	printf("Enter test number (from 1 to %i): ", NUMTESTS);
 	char s[64];
 	uint n = 0;
-	n = atoi(gets(s));
+	n = atoi(fgets(s, 63, stdin));
 	if((n > NUMTESTS) || !n) n = 7;
 	tt[n-1]();
 }

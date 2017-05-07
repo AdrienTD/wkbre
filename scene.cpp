@@ -280,15 +280,16 @@ void DrawObj(GameObject *o)
 			{
 				for(int i = 0; i < msh->ngrp; i++)
 				{
+					OOBMTex *ot;
 					int f = msh->lstmatflags[i]&1;
 					int t = msh->lstmattid[i];
 					for(int j = 0; j < oobm[f].len; j++)
 					{
-						OOBMTex *ot = oobm[f].getpnt(j);
+						ot = oobm[f].getpnt(j);
 						if(ot->tid == t)
 							{ot->objs->add(o); goto nextgrp;}
 					}
-					OOBMTex *ot = oobm[f].addp();
+					ot = oobm[f].addp();
 					ot->tid = t;
 					ot->objs = new GrowList<GameObject*>;
 					ot->objs->add(o);

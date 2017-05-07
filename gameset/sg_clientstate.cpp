@@ -100,9 +100,9 @@ void WriteClientStates(FILE *f)
 		if(c->cammode == 1)
 			fprintf(f, "CAMERA_PATH_IN_PROGRESS \"%s\" %u GAME_TIME\n", c->camPathInProgress->name, c->camPathTime);
 		else if(c->cammode == 2)
-			fprintf(f, "CAMERA_INTERPOLATION_IN_PROGRESS %f %f %f %f %f %f %u GAME_TIME\n", 
+			fprintf(f, "CAMERA_INTERPOLATION_IN_PROGRESS %f %f %f %f %f %f %i GAME_TIME\n", 
 				c->camInterpolPos.x, c->camInterpolPos.y, c->camInterpolPos.z,
-				c->camInterpolOri.x, c->camInterpolOri.y, c->camInterpolDur, c->camInterpolTime*1000);
+				c->camInterpolOri.x, c->camInterpolOri.y, c->camInterpolDur, (int)(c->camInterpolTime*1000));
 		if(c->winDiplomacy) fprintf(f, "DIPLOMACY_WINDOW_ENABLED\n");
 		if(c->winReport) fprintf(f, "DIPLOMATIC_REPORT_WINDOW_ENABLED\n");
 		if(c->winTributes) fprintf(f, "TRIBUTES_WINDOW_ENABLED\n");

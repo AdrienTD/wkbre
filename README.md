@@ -16,7 +16,12 @@ You can watch a trailer of wkbre on [YouTube](https://www.youtube.com/watch?v=8a
 There's also a video of an older version of wkbre on [YouTube](https://www.youtube.com/watch?v=K2LLjLelEJA).
 
 ## Compilation
-__Note:__ It is recommended to build a 32-bit executable, otherwise if you make a 64-bit executable it might not find all your savegames (if the game is in the "Program Files" directory and you often run the game without administrator rights).
+
+I have only tested with Visual C++ 2008/2010/2017 and MinGW.
+
+You can use [CMake](https://cmake.org) to generate a Makefile or a project file (for example a Visual Studio solution).
+
+Or, you can also build the program with the included batch files:
 * Open a Windows SDK/Visual Studio/MinGW-32 command prompt.
 * cd to wkbre's source code directory.
 * cd to bzip2
@@ -28,14 +33,12 @@ __Note:__ It is recommended to build a 32-bit executable, otherwise if you make 
   * `vc_compall` if you use Microsoft Visual C++ compiler
   * `mg_compall` if you use MinGW
 
-(I know, I prefer batch files over Makefiles and project files. But later I may create some Makefiles.)
-
 For more information see [docs/codedoc.txt](docs/codedoc.txt).
 
 ## Execution
 To run wkbre, you must first open settings.txt and change the GAME_DIR value to the path of WK's game data (the directory with data.bcp and saved directory).
 
-When you start wkbre, you might be asked to enter a test number. Simply press ENTER to run the default main code.
+If you start a development version of wkbre, you will be asked to enter a test number. Simply press ENTER to run the default main code.
 
 For more information see [docs/help.htm](docs/help.htm).
 
@@ -43,3 +46,7 @@ For more information see [docs/help.htm](docs/help.htm).
 I hope you find wkbre and its source code interesting and useful. Comments/suggestions/bug reports are really appreciated.
 
 I also made a __"WK Modding kit"__ with some programs for viewing and editing game files. You can download it [here](https://github.com/AdrienTD/wktools).
+
+## Links
+[Warrior Kings Community Steam group](http://steamcommunity.com/groups/WARKC)
+[Warrior Kings modding information site](https://sites.google.com/site/wkmodding/)

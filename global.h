@@ -14,19 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#define _USE_MATH_DEFINES
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <conio.h>
 #include <io.h>
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <ctype.h>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <mmsystem.h>
-#define D3D_DEBUG_INFO
+//#define D3D_DEBUG_INFO
 #include <d3d9.h>
 #include <gl/gl.h>
 #include <gl/glu.h>
