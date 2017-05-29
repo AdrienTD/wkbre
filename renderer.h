@@ -37,6 +37,22 @@ struct RBatch
 	virtual void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi) = 0;
 };
 
+struct RVertexBuffer
+{
+	int size;
+	virtual ~RVertexBuffer() {}
+	virtual batchVertex *lock() = 0;
+	virtual void unlock() = 0;
+};
+
+struct RIndexBuffer
+{
+	int size;
+	virtual ~RIndexBuffer() {}
+	virtual ushort *lock() = 0;
+	virtual void unlock() = 0;
+};
+
 struct IRenderer
 {
 	// Initialisation
@@ -62,6 +78,9 @@ struct IRenderer
 	virtual void EnableColorBlend() = 0;
 	virtual void DisableColorBlend() = 0;
 	virtual void SetBlendColor(int c) = 0;
+	virtual void EnableScissor() = 0;
+	virtual void DisableScissor() = 0;
+	virtual void SetScissorRect(int x, int y, int w, int h) = 0;
 
 	// 2D Rectangles drawing
 	virtual void InitRectDrawing() = 0;
@@ -83,6 +102,16 @@ struct IRenderer
 	// Batch drawing
 	virtual RBatch *CreateBatch(int mv, int mi) = 0;
 	virtual void BeginBatchDrawing() = 0;
+
+	// Buffer drawing
+	virtual RVertexBuffer *CreateVertexBuffer(int nv) = 0;
+	virtual RIndexBuffer *CreateIndexBuffer(int ni) = 0;
+	virtual void SetVertexBuffer(RVertexBuffer *_rv) = 0;
+	virtual void SetIndexBuffer(RIndexBuffer *_ri) = 0;
+	virtual void DrawBuffer(int first, int count) = 0;
+
+	// ImGui
+	virtual void InitImGuiDrawing() = 0;
 };
 
 IRenderer *CreateD3D9Renderer();

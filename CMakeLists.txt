@@ -20,8 +20,10 @@ file(GLOB WKBRE_SRC_C ${WKBRE_SOURCE_DIR}/*.c)
 file(GLOB WKBRE_SRC_GAMESET ${WKBRE_SOURCE_DIR}/gameset/*.cpp)
 file(GLOB WKBRE_SRC_PLAY ${WKBRE_SOURCE_DIR}/play/*.cpp)
 file(GLOB WKBRE_SRC_SCRIPT ${WKBRE_SOURCE_DIR}/script/*.cpp)
+file(GLOB WKBRE_SRC_IMGUI ${WKBRE_SOURCE_DIR}/imgui/*.cpp)
 set ( WKBRE_SRC ${WKBRE_SRC_CPP} ${WKBRE_SRC_C} ${WKBRE_SRC_GAMESET}
- ${WKBRE_SRC_PLAY} ${WKBRE_SRC_SCRIPT} ${WKBRE_SOURCE_DIR}/wkbre.rc)
+ ${WKBRE_SRC_PLAY} ${WKBRE_SRC_SCRIPT} ${WKBRE_SRC_IMGUI}
+ ${WKBRE_SOURCE_DIR}/wkbre.rc)
 
 add_executable(wkbre ${WKBRE_SRC})
-target_link_libraries (wkbre bzip2 winmm d3d9 opengl32 glu32)
+target_link_libraries (wkbre bzip2 winmm d3d9 opengl32 glu32 imm32)

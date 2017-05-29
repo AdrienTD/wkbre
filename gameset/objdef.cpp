@@ -337,6 +337,12 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				{char **wp = word + 1;
 				objdef[x].missileSpeed = ReadValue(&wp);
 				break;}
+			case CBLUEPRINT_DISPLAYS_ITEM:
+				{int d = strItems.find(word[1]);
+				if(d != -1)
+					if(!objdef[x].itemsDisplayed.has(d))
+						objdef[x].itemsDisplayed.add(d);
+				break;}
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

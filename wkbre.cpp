@@ -17,6 +17,8 @@
 #include "global.h"
 #include <time.h>
 #include <process.h>
+#include <mbstring.h>
+#include "imgui/imgui.h"
 
 HINSTANCE hInstance;
 GEContainer *actualpage = 0;
@@ -990,9 +992,271 @@ void UpdateCommandButtons()
 	}	
 }
 
+int advancedSpatial = 0;
+int itemsToDisplay = 0;
+int selectedReaction = -1;
+ImGuiTextFilter itemFilter;
+
+void IGMainMenu()
+{
+	if(ImGui::BeginMainMenuBar())
+	{
+		MenuEntry *e = menucmds;
+		for(int i = 0; i < 5; i++)
+		{
+			if(ImGui::BeginMenu(menubarstr[i]))
+			{
+				while(e->str)
+				{
+					if(ImGui::MenuItem(e->str))
+						CallCommand(e->cmd);
+					e++;
+				}
+				ImGui::EndMenu();
+			}
+			else
+				while(e->str) e++;
+			e++;
+		}
+		ImGui::EndMainMenuBar();
+	}
+}
+
+void IGDisplayItem(GameObject *o, int item)
+{
+	if(!itemFilter.PassFilter(strItems.getdp(item)))
+		return;
+	ImGui::PushID(item);
+	float n = o->getItem(item);
+	ImGui::Text(strItems.getdp(item));
+	ImGui::NextColumn();
+	ImGui::PushItemWidth(-1);
+	if(ImGui::InputFloat("", &n))
+		o->setItem(item, n);
+	ImGui::PopItemWidth();
+	ImGui::NextColumn();
+	ImGui::PopID();
+}
+
+void IGSelectedObject()
+{
+	char tb[512];
+	ImGui::Begin("Selected object");
+	if(selobjects.first)
+	{if(selobjects.first->value.valid())
+	{
+		GameObject *o = selobjects.first->value.get();
+		//ImGui::Text(":)");
+		ImGui::Value("Object id", o->id);
+		ImGui::Text("Object type: %s \"%s\"", CLASS_str[o->objdef->type], o->objdef->name);
+		//ImGui::ColorButton(ImVec4(1, 1, 1, 1));
+		if(o->objdef->type == CLASS_LEVEL || o->objdef->type == CLASS_PLAYER ||
+			o->objdef->type == CLASS_TERRAIN_ZONE)
+		{
+			char mb[512]; wchar_t wb[512];
+			if(o->name) wcstombs(mb, o->name, 511);
+			else mb[0] = 0;
+			ImGui::PushID((void*)o->id);
+			if(ImGui::InputText("Name", mb, 511))
+			{
+				mbstowcs(wb, mb, 511);
+				delete [] o->name;
+				o->name = new wchar_t[wcslen(wb)+1];
+				wcscpy(o->name, wb);
+			}
+			ImGui::PopID();
+		}
+		if(ImGui::CollapsingHeader("Spatial"))
+		{
+			ImGui::RadioButton("Basic##Spatial", &advancedSpatial, 0);
+			ImGui::SameLine();
+			ImGui::RadioButton("Advanced##Spatial", &advancedSpatial, 1);
+			//ImGui::Text("Position: %f %f %f", o->position.x, o->position.y, o->position.z);
+			if(!advancedSpatial)
+			{
+				ImVec2 v(o->position.x, o->position.z);
+				if(ImGui::DragFloat2("Position##Basic", &v.x, 0.1f))
+				{
+					o->position.x = v.x; o->position.z = v.y;
+					o->position.y = GetHeight(v.x, v.y);
+					GOPosChanged(o, 0);
+				}
+				ImGui::SliderAngle("Orientation##Basic", &o->orientation.y, 0);
+				if(ImGui::DragFloat("Scale##Basic", &o->scale.x, 0.1f))
+					o->scale.y = o->scale.z = o->scale.x;
+			}
+			else
+			{
+				if(ImGui::DragFloat3("Position##Advanced", &o->position.x, 0.1f))
+					GOPosChanged(o, 0);
+				ImGui::DragFloat2("Orientation##Advanced", &o->orientation.x, 0.1f);
+				ImGui::DragFloat3("Scale##Advanced", &o->scale.x, 0.1f);
+			}
+		}
+		if(ImGui::CollapsingHeader("Items"))
+		{
+			ImGui::RadioButton("Displayed##Items", &itemsToDisplay, 0);
+			ImGui::SameLine();
+			ImGui::RadioButton("Modified##Items", &itemsToDisplay, 1);
+			ImGui::SameLine();
+			ImGui::RadioButton("All##Items", &itemsToDisplay, 2);
+			itemFilter.Draw();
+			ImGui::Columns(2, "ItemColumns");
+			ImGui::Separator();
+			ImGui::Text("Item"); ImGui::NextColumn();
+			ImGui::Text("Value"); ImGui::NextColumn();
+			ImGui::Separator();
+			ImGui::PushID("ItemNodes");
+			switch(itemsToDisplay)
+			{
+				case 0:
+					for(int i = 0; i < o->objdef->itemsDisplayed.len; i++)
+						IGDisplayItem(o, o->objdef->itemsDisplayed[i]);
+					break;
+				case 1:
+					for(DynListEntry<GOItem> *e = o->item.first; e; e = e->next)
+						IGDisplayItem(o, e->value.num);
+					break;
+				case 2:
+					for(int i = 0; i < strItems.len; i++)
+						IGDisplayItem(o, i);
+					break;
+			}
+			ImGui::PopID();
+			ImGui::Columns(1);
+			ImGui::Separator();
+		}
+		if(ImGui::CollapsingHeader("Flags"))
+		{
+			ImGui::Text("Disable count:");
+			ImGui::SameLine();
+			ImGui::PushItemWidth(-1);
+			if(ImGui::InputInt("##Disable count", (int*)&o->disableCount))
+				if((int)o->disableCount < 0)
+					o->disableCount = 0;
+			ImGui::PopItemWidth();
+			ImGui::CheckboxFlags("Renderable", (uint*)&o->flags, FGO_RENDERABLE);
+			ImGui::CheckboxFlags("Selectable", (uint*)&o->flags, FGO_SELECTABLE);
+			ImGui::CheckboxFlags("Targetable", (uint*)&o->flags, FGO_TARGETABLE);
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,1,0,1));
+			ImGui::CheckboxFlags("Terminated", (uint*)&o->flags, FGO_TERMINATED);
+			if(o->objdef->type == CLASS_PLAYER)
+			{
+				ImGui::CheckboxFlags("Player terminated", (uint*)&o->flags, FGO_PLAYER_TERMINATED);
+				ImGui::CheckboxFlags("Reconnaissance", (uint*)&o->flags, FGO_RECONNAISSANCE);
+				ImGui::CheckboxFlags("Fog of war", (uint*)&o->flags, FGO_FOG_OF_WAR);
+			}
+			ImGui::PopStyleColor();
+		}
+		if(ImGui::CollapsingHeader("Order configuration"))
+		{
+			ImGui::PushID((void*)o->id);
+			for(DynListEntry<SOrder> *e = o->ordercfg.order.first; e; e = e->next)
+			{
+				if(ImGui::TreeNode((void*)e->value.orderID, "%i: ORDER \"%s\"", e->value.orderID, e->value.type->name))
+				{
+					for(DynListEntry<STask> *f = e->value.task.first; f; f = f->next)
+						if(ImGui::TreeNodeEx((void*)f->value.taskID, ImGuiTreeNodeFlags_Leaf | ((f->value.taskID == e->value.currentTask) ? ImGuiTreeNodeFlags_Selected : 0), "%i: TASK \"%s\"", f->value.taskID, f->value.type->name))
+							ImGui::TreePop();
+					ImGui::TreePop();
+				}
+			}
+			ImGui::PopID();
+		}
+		if(ImGui::CollapsingHeader("Individual reactions"))
+		{
+			if(ImGui::Button("Add"))
+				ImGui::OpenPopup("AddReactionMenu");
+			if(ImGui::BeginPopup("AddReactionMenu"))
+			{
+				for(int i = 0; i < strReaction.len; i++)
+					if(ImGui::Selectable(strReaction.getdp(i)))
+						AddReaction(o, i);
+				ImGui::EndPopup();
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("Remove"))
+				for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
+					if(e->value == selectedReaction)
+						{o->iReaction.remove(e); break;}
+			for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
+				if(ImGui::Selectable(strReaction.getdp(e->value), e->value == selectedReaction))
+					selectedReaction = e->value;
+		}
+	}else	ImGui::Text("The first selection is invalid!");
+	}else	ImGui::Text("No object selected!");
+	ImGui::End();
+}
+
+void IGLevelTreeNode(GameObject *o)
+{
+	boolean n = ImGui::TreeNodeEx((void*)o->id,
+			// ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow |
+			((o->flags & FGO_SELECTED) ? ImGuiTreeNodeFlags_Selected : 0) |
+			((o->children.len > 0) ? 0 : ImGuiTreeNodeFlags_Leaf),
+			"%u: %s \"%s\"", o->id, CLASS_str[o->objdef->type], o->objdef->name);
+	if(ImGui::IsItemClicked(1))
+	{
+		if(!keypressed[VK_CONTROL])
+			DeselectAll();
+		if(o->flags & FGO_SELECTED)
+			DeselectObject(o);
+		else	SelectObject(o);
+	}
+	if(n)
+	{
+		for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+			IGLevelTreeNode(&e->value);
+		ImGui::TreePop();
+	}
+}
+
+void IGLevelTree()
+{
+	ImGui::Begin("Level tree");
+	ImGui::PushID("LevelTreeNodes");
+	IGLevelTreeNode(levelobj);
+	ImGui::PopID();
+	ImGui::End();
+}
+
+extern char sggameset[384];
+extern uint game_type;
+void IGLevelInfo()
+{
+	ImGui::Begin("Level information");
+	if(ImGui::CollapsingHeader("General"))
+	{
+		ImGui::TextWrapped("Changes on these values only take effect after saving and reopening the savegame!");
+		ImGui::PushItemWidth(-1);
+		ImGui::Text("Game set:");
+		ImGui::InputText("##Game set", sggameset, 383);
+		ImGui::Text("Map:");
+		ImGui::InputText("##Map", lastmap, 255);
+		ImGui::Text("Game type:");
+		ImGui::InputInt("##Game type", (int*)&game_type);
+		ImGui::PopItemWidth();
+	}
+	if(ImGui::CollapsingHeader("Time"))
+	{
+		ImGui::Value("Current time", current_time);
+		ImGui::Value("Previous time", previous_time);
+		ImGui::Value("Elapsed time", elapsed_time);
+		ImGui::Text("Lock count:");
+		ImGui::SameLine();
+		ImGui::PushItemWidth(-1);
+		if(ImGui::InputInt("##Lock count", (int*)&lock_count))
+			if((int)lock_count < 0)
+				lock_count = 0;
+		ImGui::PopItemWidth();
+	}
+	ImGui::End();
+}
+
 void Test7()
 {
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
+	ImGuiImpl_Init();
 	memset(gameobj, 0, MAX_GAMEOBJECTS * sizeof(GameObject*));
 	//ddev->SetDialogBoxMode(TRUE);
 
@@ -1020,10 +1284,12 @@ void Test7()
 	actualpage = editInterface;
 	editInterface->buttonClick = T7ClickWindow;
 	editInterface->buttonRightClick = T7RightClick;
+/*
 	GEMenuBar *menubar = new GEMenuBar(menubarstr, menucmds, 5, editInterface);
 	editInterface->add(menubar);
 	menubar->setRect(0, 0, 32767, 20);
 	menubar->bgColor = 0xC0000080;
+*/
 	InitGTWs(); // :S
 	CreateCommandButtons();
 
@@ -1101,6 +1367,19 @@ void Test7()
 			}
 			if(enableObjTooltips) DrawTooltip();
 
+			ImGuiImpl_NewFrame();
+			ImGui::Text("Yes!");
+			ImGui::DragFloat("Game speed", &game_speed);
+
+			IGMainMenu();
+			IGSelectedObject();
+			IGLevelTree();
+			IGLevelInfo();
+
+			renderer->InitImGuiDrawing();
+			ImGui::Render();
+
+			InitRectDrawing();
 			if(showTimeObjInfo)
 			{
 				char st[64];
@@ -1240,7 +1519,7 @@ void Test7()
 
 		if(keypressed[VK_BACK])
 			{keypressed[VK_BACK] = 0; menuVisible = !menuVisible;
-			menubar->enabled = menuVisible;}
+			}//menubar->enabled = menuVisible;}
 
 		if(keypressed['7']) {keypressed['7'] = 0; CallCommand(CMD_CAMRESETORI);}
 

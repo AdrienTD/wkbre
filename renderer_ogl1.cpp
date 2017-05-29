@@ -69,10 +69,32 @@ struct RBatchOGL1 : public RBatch
 		glDrawElements(GL_TRIANGLES, curindis, GL_UNSIGNED_SHORT, ibuf);
 		curverts = curindis = 0;
 	}
-};	
+};
+
+struct RVertexBufferOGL1 : public RVertexBuffer
+{
+	batchVertex *m;
+	~RVertexBufferOGL1() {delete [] m;}
+	batchVertex *lock() {return m;}
+	void unlock()
+	{
+		for(int i = 0; i < size; i++)
+			m[i].color = BGRA_TO_RGBA(m[i].color);
+	}
+};
+
+struct RIndexBufferOGL1 : public RIndexBuffer
+{
+	ushort *m;
+	~RIndexBufferOGL1() {delete [] m;}
+	ushort *lock() {return m;}
+	void unlock() {}
+};
 
 struct OGL1Renderer : public IRenderer
 {
+
+batchVertex *curvtxmem; ushort *curidxmem;
 
 void InitGL()
 {
@@ -428,6 +450,71 @@ void BeginBatchDrawing()
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 	//glColor4ub(255, 255, 255, 255);
+}
+
+RVertexBuffer *CreateVertexBuffer(int nv)
+{
+	RVertexBufferOGL1 *r = new RVertexBufferOGL1;
+	r->size = nv;
+	r->m = new batchVertex[nv];
+	return r;
+}
+
+RIndexBuffer *CreateIndexBuffer(int ni)
+{
+	RIndexBufferOGL1 *r = new RIndexBufferOGL1;
+	r->size = ni;
+	r->m = new ushort[ni];
+	return r;
+}
+
+void SetVertexBuffer(RVertexBuffer *_rv)
+{
+	curvtxmem = ((RVertexBufferOGL1*)_rv)->m;
+}
+
+void SetIndexBuffer(RIndexBuffer *_ri)
+{
+	curidxmem = ((RIndexBufferOGL1*)_ri)->m;
+}
+
+void DrawBuffer(int first, int count)
+{
+	glVertexPointer(3, GL_FLOAT, sizeof(batchVertex), &curvtxmem->x);
+	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(batchVertex), &curvtxmem->color);
+	glTexCoordPointer(2, GL_FLOAT, sizeof(batchVertex), &curvtxmem->u);
+	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, curidxmem + first);
+}
+
+void EnableScissor()
+{
+	glEnable(GL_SCISSOR_TEST);
+}
+
+void DisableScissor()
+{
+	glDisable(GL_SCISSOR_TEST);
+}
+
+void SetScissorRect(int x, int y, int w, int h)
+{
+	glScissor(x, scrh-1-(y+h), w, h);
+}
+
+void InitImGuiDrawing()
+{
+	glDisable(GL_ALPHA_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	Matrix m; CreateZeroMatrix(&m);
+	m._11 = 2.0f / scrw;
+	m._22 = -2.0f / scrh;
+	m._41 = -1;
+	m._42 = 1;
+	m._44 = 1;
+	glLoadMatrixf(m.v);
 }
 
 };

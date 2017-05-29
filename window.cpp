@@ -53,10 +53,18 @@ void GUIMouseMove()
 		movingguielement->posx = mouseX + movge_rx;
 		movingguielement->posy = mouseY + movge_ry;
 	}
+
+	ImGuiIO &io = ImGui::GetIO();
+	io.MousePos.x = mouseX; io.MousePos.y = mouseY;
 }
 
 void GUIMouseClick()
 {
+	ImGuiIO &io = ImGui::GetIO();
+	io.MouseDown[0] = true;
+	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
+	if(io.WantCaptureMouse) return;
+
 	lmbPressed = 1;
 	if(actsubmenu)
 		if(!IsPointInRect(actsubmenu->posx, actsubmenu->posy, actsubmenu->width, actsubmenu->height, mouseX, mouseY))
@@ -67,6 +75,11 @@ void GUIMouseClick()
 
 void GUIMouseRightClick()
 {
+	ImGuiIO &io = ImGui::GetIO();
+	io.MouseDown[1] = true;
+	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
+	if(io.WantCaptureMouse) return;
+
 	if(actsubmenu)
 		if(!IsPointInRect(actsubmenu->posx, actsubmenu->posy, actsubmenu->width, actsubmenu->height, mouseX, mouseY))
 			actsubmenu->enabled = 0;
@@ -76,9 +89,54 @@ void GUIMouseRightClick()
 
 void GUIMouseRelease()
 {
+	ImGuiIO &io = ImGui::GetIO();
+	io.MouseDown[0] = false;
+	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
+	if(io.WantCaptureMouse) return;
+
 	lmbPressed = 0;
 	if(actualpage)
 		actualpage->onMouseRelease(mouseX, mouseY);
+}
+
+void GUIMouseRightRelease()
+{
+	ImGuiIO &io = ImGui::GetIO();
+	io.MouseDown[1] = false;
+	////if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
+	//if(io.WantCaptureMouse) return;
+}
+
+void GUIKeyDown(int key)
+{
+	ImGuiIO &io = ImGui::GetIO();
+	if(io.WantCaptureKeyboard)
+		io.KeysDown[key] = 1;
+	else
+		keypressed[key] = 1;
+}
+
+void GUIKeyUp(int key)
+{
+	ImGuiIO &io = ImGui::GetIO();
+	//if(io.WantCaptureKeyboard)
+		io.KeysDown[key] = 0;
+	//else
+		keypressed[key] = 0;
+}
+
+void GUICharTyped(int c)
+{
+	if(c & 0xFFFF0000) return;
+	ImGuiIO &io = ImGui::GetIO();
+	if(!io.WantCaptureKeyboard) return;
+	io.AddInputCharacter((ushort)c);
+}
+
+void GUIMouseWheel(int w)
+{
+	ImGuiIO &io = ImGui::GetIO();
+	io.MouseWheel += w / 120;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -101,12 +159,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
 			GUIMouseRightClick();
 			break;
+		case WM_RBUTTONUP:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseRightRelease();
+			break;
 		case WM_KEYDOWN:
 			if(wParam & 0xFFFFFF00) break;
-			keypressed[wParam] = 1; break;
+			GUIKeyDown(wParam);
+			break;
 		case WM_KEYUP:
 			if(wParam & 0xFFFFFF00) break;
-			keypressed[wParam] = 0; break;
+			GUIKeyUp(wParam);
+			break;
+		case WM_CHAR:
+			GUICharTyped(wParam); break;
 		case WM_SIZE:
 			if(wParam == SIZE_MINIMIZED) {winMinimized = 1; break;}
 			else if(wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED) winMinimized = 0;
@@ -122,6 +188,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ValidateRect(hwnd, 0); break;
 		case WM_ERASEBKGND:
 			return 1;
+		case WM_SYSCOMMAND:
+			if((wParam & 0xFFF0) == SC_KEYMENU)
+				return 0;
+			else	return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		case WM_MOUSEWHEEL:
+			GUIMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam)); break;
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}

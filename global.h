@@ -148,6 +148,7 @@ extern "C" {
 #include "play/otproc.h"
 #include "renderer.h"
 #include "maptexdb.h"
+#include "imguiimpl.h"
 
 extern GEContainer *actualpage;
 extern int appexit;

@@ -34,3 +34,5 @@
 *.ilk
 build*/
 Win32/
+wkbre.dir/
+imgui.ini

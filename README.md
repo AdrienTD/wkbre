@@ -42,11 +42,22 @@ If you start a development version of wkbre, you will be asked to enter a test n
 
 For more information see [docs/help.htm](docs/help.htm).
 
+## Third-party libraries used
+* [LZRW3 compression/decompression library](http://www.ross.net/compression/lzrw3.html) (public domain)
+* [bzip2 compression/decompression library](http://www.bzip.org) (bzip2 license)
+* [dear imgui GUI library](https://github.com/ocornut/imgui) (MIT license)
+
+These libraries are already included in wkbre's source repository, so you don't have to download them separately.
+
+Their licenses files can be found in their respective directories.
+
 ## Conclusion
 I hope you find wkbre and its source code interesting and useful. Comments/suggestions/bug reports are really appreciated.
 
 I also made a __"WK Modding kit"__ with some programs for viewing and editing game files. You can download it [here](https://github.com/AdrienTD/wktools).
 
 ## Links
-[Warrior Kings Community Steam group](http://steamcommunity.com/groups/WARKC)
-[Warrior Kings modding information site](https://sites.google.com/site/wkmodding/)
+* [Warrior Kings Community Steam group](http://steamcommunity.com/groups/WARKC)
+* [Warrior Kings Forum](http://wkforums.de.to)
+* [Warrior Kings modding information site](https://sites.google.com/site/wkmodding/)
+* [WK Modding Kit](https://github.com/AdrienTD/wktools)

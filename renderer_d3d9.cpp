@@ -73,6 +73,38 @@ void ReleaseDevice()
 	if(ddev) ddev->Release();
 }
 
+struct RVertexBufferD3D9 : public RVertexBuffer
+{
+	IDirect3DVertexBuffer9 *b;
+	~RVertexBufferD3D9() {b->Release();}
+	batchVertex *lock()
+	{
+		batchVertex *r;
+		b->Lock(0, 0, (void**)&r, 0);
+		return r;
+	}
+	void unlock()
+	{
+		b->Unlock();
+	}
+};
+
+struct RIndexBufferD3D9 : public RIndexBuffer
+{
+	IDirect3DIndexBuffer9 *b;
+	~RIndexBufferD3D9() {b->Release();}
+	ushort *lock()
+	{
+		ushort *r;
+		b->Lock(0, 0, (void**)&r, 0);
+		return r;
+	}
+	void unlock()
+	{
+		b->Unlock();
+	}
+};
+
 struct RBatchD3D9 : public RBatch
 {
 	IDirect3DVertexBuffer9 *vbuf;
@@ -134,6 +166,8 @@ struct RBatchD3D9 : public RBatch
 
 struct D3D9Renderer : public IRenderer
 {
+
+	int maxvbi;
 
 void Init()
 {
@@ -511,6 +545,86 @@ RBatch *CreateBatch(int mv, int mi)
 void BeginBatchDrawing()
 {
 	ddev->SetVertexDeclaration(dvdbatch);
+}
+
+RVertexBuffer *CreateVertexBuffer(int nv)
+{
+	RVertexBufferD3D9 *r = new RVertexBufferD3D9;
+	r->size = nv;
+	ddev->CreateVertexBuffer(nv*sizeof(batchVertex), D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &r->b, NULL);
+	return r;
+}
+
+RIndexBuffer *CreateIndexBuffer(int ni)
+{
+	RIndexBufferD3D9 *r = new RIndexBufferD3D9;
+	r->size = ni;
+	ddev->CreateIndexBuffer(ni*sizeof(ushort), D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &r->b, NULL);
+	return r;
+}
+
+void SetVertexBuffer(RVertexBuffer *_rv)
+{
+	maxvbi = ((RVertexBufferD3D9*)_rv)->size;
+	ddev->SetStreamSource(0, ((RVertexBufferD3D9*)_rv)->b, 0, sizeof(batchVertex));
+}
+
+void SetIndexBuffer(RIndexBuffer *_ri)
+{
+	ddev->SetIndices(((RIndexBufferD3D9*)_ri)->b);
+}
+
+void DrawBuffer(int first, int count)
+{
+	ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, maxvbi, first, count/3);
+}
+
+void EnableScissor()
+{
+	ddev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
+}
+
+void DisableScissor()
+{
+	ddev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+}
+
+void SetScissorRect(int x, int y, int w, int h)
+{
+	RECT r = {x, y, x+w, y+h};
+	ddev->SetScissorRect(&r);
+}
+
+void InitImGuiDrawing()
+{
+	ddev->SetVertexDeclaration(dvdbatch);
+
+	ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	ddev->SetRenderState(D3DRS_LIGHTING, FALSE);
+	ddev->SetRenderState(D3DRS_ZENABLE, FALSE);
+	ddev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+	ddev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+	ddev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+	ddev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	ddev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+	//ddev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+
+	ddev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+	ddev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	ddev->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+	ddev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+	ddev->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+	ddev->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+
+	Matrix m; CreateZeroMatrix(&m);
+	m._11 = 2.0f / scrw;
+	m._22 = -2.0f / scrh;
+	m._41 = -1 - 1.f/scrw;
+	m._42 = 1 + 1.f/scrh;
+	m._44 = 1;
+	SetTransformMatrix(&m);
 }
 
 };

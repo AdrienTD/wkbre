@@ -19,10 +19,13 @@ struct texture
 	union {
 		IDirect3DTexture9 *dd;
 		GLuint gl;
+		void *v;
 	};
-	texture() : dd(0) {}
+	texture() : v(0) {}
+	texture(void* a) : v(a) {}
 	boolean valid() {return dd?1:0;}
 	boolean operator==(texture &a) {return dd == a.dd;}
+	operator void*() {return v;}
 };
 
 extern int TXCenabled;

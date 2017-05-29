@@ -17,6 +17,7 @@
 #ifndef WKBRE_RELEASE
 
 #include "global.h"
+#include "imgui/imgui.h"
 
 void OnTestButtonClick(void *param)
 {
@@ -703,10 +704,34 @@ void Test25()
 	}
 }
 
-#define NUMTESTS 25
+void Test26()
+{
+	LoadBCP("data.bcp"); InitWindow();
+	ImGuiImpl_Init();
+
+	float angle, vec[3];
+	const char *lbs[] = {"Red", "Green", "Blue"};
+	int lbc = 0;
+
+	while(!appexit)
+	{
+		ImGuiImpl_NewFrame();
+		ImGui::Text("Hello, world!");
+		ImGui::InputFloat3("Vector3", vec);
+		ImGui::SliderAngle("Angle", &angle);
+		ImGui::ListBox("List box", &lbc, lbs, 3, -1);
+		BeginDrawing();
+		renderer->InitImGuiDrawing();
+		ImGui::Render();
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+#define NUMTESTS 26
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25};
+ Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25, Test26};
 
 void RunTest()
 {
