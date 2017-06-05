@@ -313,6 +313,9 @@ void DisableFog()
 	renderer->DisableFog();
 }
 
+extern CObjectDefinition *objtypeToStampdown;
+extern goref playerToGiveStampdownObj;
+
 void DrawScene()
 {
 	BeginMeshDrawing();
@@ -339,6 +342,7 @@ if(experimentalKeys) {
 	{
 		if(stdownvalid)
 		{
+			renderer->BeginMeshDrawing();
 			SetMatrices(onevector, nullvector, stdownpos);
 			SetTransformMatrix(&matrix);
 			objdef[od].subtypes[0].appear[0].def->draw(0);
@@ -350,6 +354,21 @@ if(experimentalKeys) {
 		//statustext = statustextbuf;
 	}
 */
+	if(objtypeToStampdown)
+	if(stdownvalid)
+	if(playerToGiveStampdownObj.valid())
+	{
+		renderer->BeginMeshDrawing();
+		SetMatrices(objtypeToStampdown->scale, nullvector, stdownpos);
+		SetTransformMatrix(&matrix);
+		Model *m = 0;
+		int s = (objtypeToStampdown->numsubtypes >= 2) ? 1 : 0;
+		if(objtypeToStampdown->subtypes[s].appear[0].def)
+			m = objtypeToStampdown->subtypes[s].appear[0].def;
+		else if(objtypeToStampdown->representation)
+			m = objtypeToStampdown->representation;
+		if(m) m->draw(playerToGiveStampdownObj->color);
+	}
 }
 
 	if(enableMap)

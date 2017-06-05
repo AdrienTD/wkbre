@@ -34,6 +34,7 @@ Cursor *defcursor;
 boolean mouseRot = 0; int msrotx, msroty;
 boolean multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
+bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -52,7 +53,7 @@ GUIElement *getobringfront = 0; GESubmenu *actsubmenu = 0;
 GUIElement *movingguielement = 0; int movge_rx, movge_ry;
 
 // Menu
-char *menubarstr[] = {"File", "Object", "Game", "View", "Help"};
+char *menubarstr[] = {"File", "Object", "Game", "View", "Window", "Help"};
 MenuEntry menucmds[] = {
 {"Save as...", CMD_SAVE},
 {"Change WK version", CMD_CHANGE_SG_WKVER},
@@ -107,12 +108,21 @@ MenuEntry menucmds[] = {
 //{"BCM himap bit left", CMD_BCMHIMAPLEFT},
 //{"BCM himap bit right", CMD_BCMHIMAPRIGHT},
 {0,0},
+{"Selected object information", CMD_SWSELOBJ},
+{"Level information", CMD_SWLEVINFO},
+{"Level tree", CMD_SWLEVTREE},
+{"Object creation", CMD_SWOBJCREA},
+{0,0},
 {"About...", CMD_ABOUT},
 {0,0},
 };
 
 int orderButtX[6] = {	6,	37,	69,	93, 	100,	90	};
 int orderButtY[6] = {	364,	354,	361,	384,	416,	448	};
+
+CObjectDefinition *objtypeToStampdown = 0;
+bool eventAfterStampdown = 0;
+goref playerToGiveStampdownObj;
 
 void DrawTooltip()
 {
@@ -812,6 +822,14 @@ void CallCommand(int cmd)
 			break;}
 		case CMD_TOGGLE_TIMEOBJINFO:
 			showTimeObjInfo = !showTimeObjInfo; break;
+		case CMD_SWSELOBJ:
+			swSelObj = !swSelObj; break;
+		case CMD_SWLEVINFO:
+			swLevInfo = !swLevInfo; break;
+		case CMD_SWLEVTREE:
+			swLevTree = !swLevTree; break;
+		case CMD_SWOBJCREA:
+			swObjCrea = !swObjCrea; break;
 	}
 }
 
@@ -875,6 +893,8 @@ void SetTargetCursor()
 
 void T7ClickWindow(void *param)
 {
+	if(objtypeToStampdown) objtypeToStampdown = 0;
+
 	if(!multiSel)
 	{
 		multiSel = 1;
@@ -893,6 +913,21 @@ void T7ClickWindow(void *param)
 
 void T7RightClick(void *param)
 {
+	if(objtypeToStampdown)
+	if(playerToGiveStampdownObj.valid())
+	{
+		GameObject *o = CreateObject(objtypeToStampdown, playerToGiveStampdownObj.get());
+		o->position = stdownpos;
+		GOPosChanged(o, 0);
+		if(eventAfterStampdown)
+		{
+			SequenceEnv ctx;
+			SendGameEvent(&ctx, o, PDEVENT_ON_STAMPDOWN);
+		}
+		if(!keypressed[VK_SHIFT]) objtypeToStampdown = 0;
+		return;
+	}
+
 	if(!experimentalKeys) return;
 	//if(!currentSelection.valid()) return;
 	if(!targetcmd) return;
@@ -995,14 +1030,37 @@ void UpdateCommandButtons()
 int advancedSpatial = 0;
 int itemsToDisplay = 0;
 int selectedReaction = -1;
-ImGuiTextFilter itemFilter;
+ImGuiTextFilter itemFilter, odFilter, objcreaFilter;
+ImVec4 ivcolortable[8] = {
+ ImVec4(0.5f, 0.25f, 0.25f, 1), ImVec4(0, 0, 1, 1), ImVec4(1, 1, 0, 1), ImVec4(1, 0, 0, 1),
+ ImVec4(0, 1, 0, 1), ImVec4(1, 0, 1, 1), ImVec4(1, 0.5f, 0, 1), ImVec4(0, 1, 1, 1)};
+GrowStringList odcList;
+
+void IGInit()
+{
+	char t[512];
+	for(int i = 0; i < strObjDef.len; i++)
+	{
+		CObjectDefinition *od = &(objdef[i]);
+		_snprintf(t, 511, "%s \"%s\"", CLASS_str[od->type], od->name);
+		odcList.add(t);
+	}
+}
+
+bool IGGSLItemsGetter(void *data, int idx, const char **out)
+{
+	GrowStringList *sl = (GrowStringList*)data;
+	if(idx >= sl->len) return false;
+	*out = sl->getdp(idx);
+	return true;
+}
 
 void IGMainMenu()
 {
 	if(ImGui::BeginMainMenuBar())
 	{
 		MenuEntry *e = menucmds;
-		for(int i = 0; i < 5; i++)
+		for(int i = 0; i < 6; i++)
 		{
 			if(ImGui::BeginMenu(menubarstr[i]))
 			{
@@ -1038,26 +1096,75 @@ void IGDisplayItem(GameObject *o, int item)
 	ImGui::PopID();
 }
 
+bool IGObjectSelectable(GameObject *o)
+{
+	char t[256]; bool r;
+	_snprintf(t, 255, "%u: %s \"%s\"###", o->id, CLASS_str[o->objdef->type], o->objdef->name);
+	ImGui::PushID(o->id);
+	r = ImGui::Selectable(t, o->flags & FGO_SELECTED);
+	if(ImGui::IsItemClicked(1))
+	{
+		if(!keypressed[VK_SHIFT])
+			DeselectAll();
+		if(o->flags & FGO_SELECTED)
+			DeselectObject(o);
+		else	SelectObject(o);
+	}
+	ImGui::PopID();
+	return r;
+}
+
+int igcurod = 0;
+int igliCurrentAssoCat = -1;
+
 void IGSelectedObject()
 {
 	char tb[512];
-	ImGui::Begin("Selected object");
+	if(!swSelObj) return;
+	ImGui::Begin("Selected object", &swSelObj);
 	if(selobjects.first)
 	{if(selobjects.first->value.valid())
 	{
 		GameObject *o = selobjects.first->value.get();
-		//ImGui::Text(":)");
 		ImGui::Value("Object id", o->id);
 		ImGui::Text("Object type: %s \"%s\"", CLASS_str[o->objdef->type], o->objdef->name);
-		//ImGui::ColorButton(ImVec4(1, 1, 1, 1));
+		ImGui::SameLine();
+		if(ImGui::Button("Change##ObjType"))
+			ImGui::OpenPopup("ObjType");
+		if(ImGui::BeginPopup("ObjType"))
+		{
+			odFilter.Draw();
+			//ImGui::ListBox("##ObjTypeListBox", &igcurod, IGGSLItemsGetter, &odcList, odcList.len);
+			ImGui::PushItemWidth(-1);
+			ImGui::ListBoxHeader("##ObjTypeListBox");
+			char t[512];
+			for(int i = 0; i < strObjDef.len; i++)
+			{
+				CObjectDefinition *od = &(objdef[i]);
+				_snprintf(t, 511, "%s \"%s\"", CLASS_str[od->type], od->name);
+				if(odFilter.PassFilter(t))
+				{
+					ImGui::PushID(i);
+					if(ImGui::Selectable(t))
+						ImGui::CloseCurrentPopup();
+					ImGui::PopID();
+				}
+			}
+			ImGui::ListBoxFooter();
+			ImGui::PopItemWidth();
+			ImGui::EndPopup();
+		}
+		ImGui::PushItemWidth(-1);
 		if(o->objdef->type == CLASS_LEVEL || o->objdef->type == CLASS_PLAYER ||
 			o->objdef->type == CLASS_TERRAIN_ZONE)
 		{
 			char mb[512]; wchar_t wb[512];
 			if(o->name) wcstombs(mb, o->name, 511);
 			else mb[0] = 0;
+			ImGui::Text("Name:");
+			ImGui::SameLine();
 			ImGui::PushID((void*)o->id);
-			if(ImGui::InputText("Name", mb, 511))
+			if(ImGui::InputText("##Name", mb, 511))
 			{
 				mbstowcs(wb, mb, 511);
 				delete [] o->name;
@@ -1066,6 +1173,31 @@ void IGSelectedObject()
 			}
 			ImGui::PopID();
 		}
+		if(o->objdef->type == CLASS_PLAYER)
+		{
+			ImGui::Text("Color:");
+			ImGui::SameLine();
+			if(ImGui::ColorButton(ivcolortable[o->color]))
+				ImGui::OpenPopup("PlayerColor");
+			if(ImGui::BeginPopup("PlayerColor"))
+			{
+				for(int y = 0; y < 4; y++)
+					for(int x = 0; x < 2; x++)
+					{
+						int c = y*2 + x;
+						if(x != 0) ImGui::SameLine();
+						ImGui::PushID(c);
+						if(ImGui::ColorButton(ivcolortable[c]))
+						{
+							o->color = c;
+							UpdateParentDependantValues(o);
+						}
+						ImGui::PopID();
+					}
+				ImGui::EndPopup();
+			}
+		}
+		ImGui::PopItemWidth();
 		if(ImGui::CollapsingHeader("Spatial"))
 		{
 			ImGui::RadioButton("Basic##Spatial", &advancedSpatial, 0);
@@ -1092,6 +1224,30 @@ void IGSelectedObject()
 				ImGui::DragFloat2("Orientation##Advanced", &o->orientation.x, 0.1f);
 				ImGui::DragFloat3("Scale##Advanced", &o->scale.x, 0.1f);
 			}
+		}
+		if(ImGui::CollapsingHeader("Appearance"))
+		{
+			char **stlist = new char*[o->objdef->numsubtypes];
+			for(int i = 0; i < o->objdef->numsubtypes; i++)
+				stlist[i] = o->objdef->subtypes[i].name;
+			ImGui::Combo("Subtype", &o->subtype, (const char**)stlist, o->objdef->numsubtypes);
+			delete [] stlist;
+
+			PhysicalSubtype *ps = &o->objdef->subtypes[o->subtype];
+			char **aplist = new char*[strAppearTag.len];
+			char **app = aplist;
+			int *alnum = new int[strAppearTag.len];
+			int *alp = alnum;
+			int e, j = 0;
+			for(int i = 0; i < strAppearTag.len; i++)
+				if(ps->appear[i].def)
+					{*(app++) = strAppearTag.getdp(i);
+					*(alp++) = i;
+					if(i == o->appearance) e = j;
+					j++;}
+			if(ImGui::Combo("Appearance", &e, (const char**)aplist, j))
+				o->appearance = alnum[e];
+			delete [] aplist; delete [] alnum;
 		}
 		if(ImGui::CollapsingHeader("Items"))
 		{
@@ -1183,6 +1339,40 @@ void IGSelectedObject()
 				if(ImGui::Selectable(strReaction.getdp(e->value), e->value == selectedReaction))
 					selectedReaction = e->value;
 		}
+		if(ImGui::CollapsingHeader("Association"))
+		{
+			ImGui::Text("Category:"); ImGui::SameLine();
+			ImGui::PushItemWidth(-1);
+			ImGui::Combo("##AssoCat", &igliCurrentAssoCat, IGGSLItemsGetter, &strAssociateCat, strAssociateCat.len);
+			ImGui::PopItemWidth();
+
+		if(igliCurrentAssoCat != -1)
+		{
+			GOAssociation *goa = 0;
+			for(DynListEntry<GOAssociation> *e = o->association.first; e; e = e->next)
+				if(e->value.category == igliCurrentAssoCat)
+					goa = &e->value;
+
+			ImGui::Text("Associates:");
+			ImGui::PushItemWidth(-1);
+			ImGui::ListBoxHeader("##AssociatesList");
+			if(goa)
+				for(DynListEntry<GameObjAndListEntry> *e = goa->associates.first; e; e = e->next)
+					IGObjectSelectable(e->value.o);
+			ImGui::ListBoxFooter();
+			ImGui::PopItemWidth();
+
+			ImGui::Text("Associators:");
+			ImGui::PushItemWidth(-1);
+			ImGui::ListBoxHeader("##AssociatorsList");
+			if(goa)
+				for(DynListEntry<GameObjAndListEntry> *e = goa->associators.first; e; e = e->next)
+					IGObjectSelectable(e->value.o);
+			ImGui::ListBoxFooter();
+			ImGui::PopItemWidth();
+		}
+		else	ImGui::TextWrapped("Select an association category in the combobox above.");
+		}
 	}else	ImGui::Text("The first selection is invalid!");
 	}else	ImGui::Text("No object selected!");
 	ImGui::End();
@@ -1197,7 +1387,7 @@ void IGLevelTreeNode(GameObject *o)
 			"%u: %s \"%s\"", o->id, CLASS_str[o->objdef->type], o->objdef->name);
 	if(ImGui::IsItemClicked(1))
 	{
-		if(!keypressed[VK_CONTROL])
+		if(!keypressed[VK_SHIFT])
 			DeselectAll();
 		if(o->flags & FGO_SELECTED)
 			DeselectObject(o);
@@ -1213,7 +1403,8 @@ void IGLevelTreeNode(GameObject *o)
 
 void IGLevelTree()
 {
-	ImGui::Begin("Level tree");
+	if(!swLevTree) return;
+	ImGui::Begin("Level tree", &swLevTree);
 	ImGui::PushID("LevelTreeNodes");
 	IGLevelTreeNode(levelobj);
 	ImGui::PopID();
@@ -1222,9 +1413,11 @@ void IGLevelTree()
 
 extern char sggameset[384];
 extern uint game_type;
+int igliCurrentAlias = -1;
 void IGLevelInfo()
 {
-	ImGui::Begin("Level information");
+	if(!swLevInfo) return;
+	ImGui::Begin("Level information", &swLevInfo);
 	if(ImGui::CollapsingHeader("General"))
 	{
 		ImGui::TextWrapped("Changes on these values only take effect after saving and reopening the savegame!");
@@ -1250,6 +1443,108 @@ void IGLevelInfo()
 				lock_count = 0;
 		ImGui::PopItemWidth();
 	}
+	if(ImGui::CollapsingHeader("Alias"))
+	{
+		ImGui::Text("Category:"); ImGui::SameLine();
+		ImGui::PushItemWidth(-1);
+		ImGui::Combo("##Alias", &igliCurrentAlias, IGGSLItemsGetter, &strAlias, strAlias.len);
+		ImGui::PopItemWidth();
+
+	if(igliCurrentAlias != -1)
+	{
+		DynList<goref> *d = &(alias[igliCurrentAlias]);
+
+		if(ImGui::Button("Add sel.##Alias"))
+			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+				if(e->value.valid())
+					AliasObj(e->value.get(), igliCurrentAlias);
+		ImGui::SameLine();
+		if(ImGui::Button("Remove sel.##Alias"))
+			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+				if(e->value.valid())
+					UnaliasObj(e->value.get(), igliCurrentAlias);
+		ImGui::SameLine();
+		if(ImGui::Button("Clear##Alias"))
+			ClearAlias(igliCurrentAlias);
+		ImGui::SameLine();
+		if(ImGui::Button("Select all##Alias"))
+			for(DynListEntry<goref> *e = d->first; e; e = e->next)
+				if(e->value.valid())
+					SelectObject(e->value.get());
+
+		ImGui::PushItemWidth(-1);
+		ImGui::ListBoxHeader("##AliasList");
+
+		for(DynListEntry<goref> *e = d->first; e; e = e->next)
+			if(e->value.valid())
+				IGObjectSelectable(e->value.get());
+		ImGui::ListBoxFooter();
+		ImGui::PopItemWidth();
+	}
+	else	ImGui::TextWrapped("Select an alias category in the combobox above.");
+	}
+	ImGui::End();
+}
+
+void IGObjectCreation()
+{
+	if(!swObjCrea) return;
+	ImGui::Begin("Object creation", &swObjCrea);
+
+	ImGui::Text("Give to:");
+	ImGui::SameLine();
+	if(ImGui::Selectable("##PlayerSelButton", false, 0, ImVec2(0, ImGui::GetItemsLineHeightWithSpacing())))
+		ImGui::OpenPopup("PlayerSelection");
+	if(ImGui::BeginPopup("PlayerSelection"))
+	{
+		for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
+		  if(e->value.objdef->type == CLASS_PLAYER)
+		{
+			ImGui::PushID(e->value.id);
+			if(ImGui::Selectable("##PlayerSelectable", false, 0, ImVec2(0, ImGui::GetItemsLineHeightWithSpacing())))
+				playerToGiveStampdownObj = &e->value;
+			ImGui::SameLine();
+			ImGui::ColorButton(ivcolortable[e->value.color]);
+			ImGui::SameLine();
+			ImGui::Text("%S (%u)", e->value.name, e->value.id);
+			ImGui::PopID();
+		}
+		ImGui::EndPopup();
+	}
+	ImGui::SameLine();
+	if(!playerToGiveStampdownObj.valid())
+	{
+		ImGui::ColorButton(ImVec4(1,1,1,1));
+		ImGui::SameLine();
+		ImGui::Text("Click to select a player.");
+	} else {
+		GameObject *o = playerToGiveStampdownObj.get();
+		ImGui::ColorButton(ivcolortable[o->color]);
+		ImGui::SameLine();
+		ImGui::Text("%S (%u)", o->name, o->id);
+	}
+
+	ImGui::Checkbox("Send \"On Stampdown\" event", &eventAfterStampdown);
+	objcreaFilter.Draw();
+	ImGui::PushItemWidth(-1);
+	//ImGui::ListBoxHeader("##ObjTypeListBox");
+	ImGui::BeginChild("ObjCreaObjTypeListBox", ImVec2(0,0), true);
+	char t[512];
+	for(int i = 0; i < strObjDef.len; i++)
+	{
+		CObjectDefinition *od = &(objdef[i]);
+		_snprintf(t, 511, "%s \"%s\"", CLASS_str[od->type], od->name);
+		if(objcreaFilter.PassFilter(t))
+		{
+			ImGui::PushID(i);
+			if(ImGui::Selectable(t, od == objtypeToStampdown))
+				objtypeToStampdown = od;
+			ImGui::PopID();
+		}
+	}	
+	//ImGui::ListBoxFooter();
+	ImGui::EndChild();
+	ImGui::PopItemWidth();
 	ImGui::End();
 }
 
@@ -1297,7 +1592,11 @@ void Test7()
 	InitHUD();
 
 	ChangeCursor(defcursor = LoadCursor("Interface\\C_DEFAULT.TGA"));
+	Cursor *buildcursor = LoadCursor("Interface\\C_Repair.tga");
+
 	InitOOBMList();
+
+	IGInit();
 
 	while(!appexit)
 	{
@@ -1368,13 +1667,15 @@ void Test7()
 			if(enableObjTooltips) DrawTooltip();
 
 			ImGuiImpl_NewFrame();
+/*
 			ImGui::Text("Yes!");
 			ImGui::DragFloat("Game speed", &game_speed);
-
+*/
 			IGMainMenu();
 			IGSelectedObject();
 			IGLevelTree();
 			IGLevelInfo();
+			IGObjectCreation();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
@@ -1387,7 +1688,8 @@ void Test7()
 				DrawFont(scrw - 188, 0, st);
 			}
 
-			SetTargetCursor();
+			if(objtypeToStampdown && playerToGiveStampdownObj.valid()) ChangeCursor(buildcursor);
+			else SetTargetCursor();
 			DrawCursor();
 			EndDrawing();
 		}

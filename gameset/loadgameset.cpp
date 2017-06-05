@@ -206,7 +206,9 @@ switch(ipass)
 				break;*/
 			case CLASS_DECLARE_ITEM:
 			case CLASS_INDIVIDUAL_ITEM:
-				strItems.add(word[1]); break;
+				if(!strItems.has(word[1]))
+					strItems.add(word[1]);
+				break;
 			case CLASS_DEFINE_VALUE:
 				strDefValue.add(word[1]);
 				defvalue.add(atov(word[2])); break;
