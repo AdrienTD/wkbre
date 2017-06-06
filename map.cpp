@@ -25,6 +25,7 @@ texture grass; RBatch *mapbatch;
 char lastmap[256];
 boolean usemaptexdb = 1;
 MapTile *maptiles;
+boolean showMapGrid = 0;
 
 GrowList<MapPart> mparts;
 uint mappartw = 32, mapparth = 32;
@@ -389,7 +390,6 @@ void CheckAndDrawPart(int px, int py)
 void DrawMap()
 {
 	renderer->BeginMapDrawing();
-	SetTexture(0, grass);
 
 	int cx = (int)camerapos.x / 5 + mapedge, cy = mapheight-2*mapedge-((int)camerapos.z / 5) + mapedge;
 
@@ -400,6 +400,7 @@ void DrawMap()
 
 if(!usemaptexdb)
 {
+	SetTexture(0, grass);
 	for(int dy = -sh; dy <= sh; dy++)
 	for(int dx = -sw; dx <= sw; dx++)
 		CheckAndDrawPart(px + dx, py + dy);
@@ -407,6 +408,7 @@ if(!usemaptexdb)
 else
 {
 	renderer->BeginBatchDrawing();
+	if(showMapGrid) SetTexture(0, grass);
 
 	for(int i = 0; i < maptexfilenames.len; i++)
 	{int tns = 1;
@@ -424,7 +426,12 @@ else
 				MapTile *c = e->value;
 				if(!IsTileInScreen(c)) continue;
 				MapTexture *t = c->mt;
-				if(tns) {SetTexture(0, t->t); tns = 0;}
+				if(tns)
+				{
+					if(!showMapGrid)
+						SetTexture(0, t->t);
+					tns = 0;
+				}
 
 				batchVertex *bv; ushort *bi; uint fi;
 				mapbatch->next(4, 6, &bv, &bi, &fi);
@@ -441,25 +448,29 @@ else
 				bv[0].y = himap[(c->z+0)*(mapwidth+1)+c->x+0];
 				bv[0].z = c->z;
 				bv[0].color = -1;
-				bv[0].u = tu[0]; bv[0].v = tv[0];
+				if(showMapGrid) {bv[0].u = 0; bv[0].v = 0;}
+				else {bv[0].u = tu[0]; bv[0].v = tv[0];}
 
 				bv[1].x = c->x + 1;
 				bv[1].y = himap[(c->z+0)*(mapwidth+1)+c->x+1];
 				bv[1].z = c->z;
 				bv[1].color = -1;
-				bv[1].u = tu[1]; bv[1].v = tv[1];
+				if(showMapGrid) {bv[1].u = 1; bv[1].v = 0;}
+				else {bv[1].u = tu[1]; bv[1].v = tv[1];}
 
 				bv[2].x = c->x + 1;
 				bv[2].y = himap[(c->z+1)*(mapwidth+1)+c->x+1];
 				bv[2].z = c->z + 1;
 				bv[2].color = -1;
-				bv[2].u = tu[2]; bv[2].v = tv[2];
+				if(showMapGrid) {bv[2].u = 1; bv[2].v = 1;}
+				else {bv[2].u = tu[2]; bv[2].v = tv[2];}
 
 				bv[3].x = c->x;
 				bv[3].y = himap[(c->z+1)*(mapwidth+1)+c->x+0];
 				bv[3].z = c->z + 1;
 				bv[3].color = -1;
-				bv[3].u = tu[3]; bv[3].v = tv[3];
+				if(showMapGrid) {bv[3].u = 0; bv[3].v = 1;}
+				else {bv[3].u = tu[3]; bv[3].v = tv[3];}
 
 				bi[0] = fi+0; bi[1] = fi+3; bi[2] = fi+1;
 				bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;

@@ -21,17 +21,23 @@
 int gline = 0;
 
 #ifdef WKBRE_RELEASE
-void fc_ferr(char *s)
+void fc_ferr(char *s, ...)
 {
-	MessageBox(hWindow, s, "Fatal Error", 16);
+	char t[512]; va_list v;
+	va_start(v, s);
+	_vsnprintf(t, 511, s, v); t[511] = 0;
+	MessageBox(hWindow, t, "Fatal Error", 16);
 	fflush(stdout); exit(-2);
 }
 #else
-void fc_ferr(char *s, char *f, int l)
+void fc_ferr(char *f, int l, char *s, ...)
 {
 	//printf("Error: %s\n", s);
 	//printf("gline = %i\n", gline);
-	printf("Error: %s\nLook at: %s, Line %i\n", s, f, l);
+	char t[512]; va_list v;
+	va_start(v, s);
+	_vsnprintf(t, 511, s, v); t[511] = 0;
+	printf("Error: %s\nLook at: %s, Line %i\n", t, f, l);
 	fflush(stdout); brkpnt(); exit(-2);
 }
 #endif

@@ -34,11 +34,11 @@
 #endif
 
 #ifdef WKBRE_RELEASE
-#define ferr(s) {fc_ferr(s);}
-void fc_ferr(char *s);
+#define ferr(s, ...) {fc_ferr(s, __VA_ARGS__);}
+void fc_ferr(char *s, ...);
 #else
-#define ferr(s) {fc_ferr(s, __FILE__, __LINE__);}
-void fc_ferr(char *s, char *f, int l);
+#define ferr(s, ...) {fc_ferr(__FILE__, __LINE__, s, __VA_ARGS__);}
+void fc_ferr(char *f, int l, char *s, ...);
 #endif
 
 typedef void (*vfwa)(void*);

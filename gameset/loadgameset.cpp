@@ -47,6 +47,8 @@ GrowStringList strCommission;
 GrowStringList strPlan;
 GrowStringList strCondition; CCondition *gscondition;
 GrowStringList strAnimationTag;
+GrowStringList strSubtype;
+GrowStringList strFootprint; CFootprint *gsfootprint;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -95,6 +97,8 @@ char *LookObjDefP0(char *fp, char **fline, int type)
 		}
 		if(!strcmp(word[0], "PHYSICAL_SUBTYPE"))
 		{
+			if(!strSubtype.has(word[1]))
+				strSubtype.add(word[1]);
 			if(gl == &glone)
 			{
 				if(strcmp(word[1], "Default"))
@@ -310,6 +314,8 @@ switch(ipass)
 				fp = SkipClass(fp, "END_CONDITION"); break;
 			case CLASS_ANIMATION_TAG:
 				strAnimationTag.add(word[1]); break;
+			case CLASS_FOOTPRINT:
+				strFootprint.add(word[1]); break;
 		} break;
 
 /*******************************************************************/
@@ -402,6 +408,8 @@ switch(ipass)
 				ReadCCameraPath(&fp, word); break;
 			case CLASS_CONDITION:
 				ReadCCondition(&fp, word); break;
+			case CLASS_FOOTPRINT:
+				ReadCFootprint(&fp, word); break;
 		} break;
 
 /*******************************************************************/
@@ -436,6 +444,7 @@ void LoadGameSet(char *filename)
 	strAppearTag.add("Default");
 	strAnimationTag.add("Default"); strAnimationTag.add("Idle");
 	glone.add("Default");
+	strSubtype.add("Default");
 
 	// Put engine-declared game events (like "On Stampdown")
 	for(uint i = 0; i < PDEVENT_NUM; i++)
@@ -489,6 +498,7 @@ void LoadGameSet(char *filename)
 	gs3dclip = new C3DClip[str3DClip.len];
 	gscamerapath = new CCameraPath[strCameraPath.len];
 	gscondition = new CCondition[strCondition.len];
+	gsfootprint = new CFootprint[strFootprint.len];
 
 	BeginLooking();
 	loadinginfo("Gameset pass 1\n"); LookAtFile(filename, 1);

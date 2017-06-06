@@ -71,3 +71,15 @@ Top priority (this time I'm not lying):
   -> Requires dialog boxes porting
 
 - Source code documentation (Doxygen)
+
+Months later:
+Oops!
+Focus was first WK compatibility.
+
+--- 0.0.7 ---
+
+- New GUI
+
+--- 0.1.0 ---
+
+What I promised for 0.0.6

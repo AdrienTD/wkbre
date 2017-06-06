@@ -1,4 +1,4 @@
-char *CLASS_str[65] = {
+char *CLASS_str[66] = {
 "DECLARE_ITEM",
 "DEFINE_VALUE",
 "APPEARANCE_TAG",
@@ -64,6 +64,7 @@ char *CLASS_str[65] = {
 "PLAN",
 "CONDITION",
 "INDIVIDUAL_ITEM",
+"FOOTPRINT",
 };
 char *CCOMMAND_str[5] = {
 "BUTTON_ENABLED",
@@ -72,7 +73,7 @@ char *CCOMMAND_str[5] = {
 "BLUEPRINT_TOOLTIP",
 "START_SEQUENCE",
 };
-char *CBLUEPRINT_str[20] = {
+char *CBLUEPRINT_str[21] = {
 "ITEM",
 "STARTS_WITH_ITEM",
 "BLUEPRINT_TOOLTIP",
@@ -93,6 +94,7 @@ char *CBLUEPRINT_str[20] = {
 "MOVEMENT_SPEED_EQUATION",
 "MISSILE_SPEED",
 "DISPLAYS_ITEM",
+"USE_FOOTPRINT",
 };
 char *VALUE_str[47] = {
 "CONSTANT",
@@ -438,7 +440,7 @@ char *OBJTYPE_str[14] = {
 "ARMY",
 "TERRAIN_ZONE",
 };
-char *SETTING_str[22] = {
+char *SETTING_str[23] = {
 "GAME_DIR",
 "FAR_Z_VALUE",
 "HARDWARE_VERTEX_PROCESSING",
@@ -461,6 +463,7 @@ char *SETTING_str[22] = {
 "ENABLE_GAMEPLAY_SHORTCUTS",
 "SHOW_TIME_OBJ_INFO",
 "ENABLE_GAMESET_TRACING",
+"DATA_DIRECTORY",
 };
 char *STASK_str[17] = {
 "TRIGGER",

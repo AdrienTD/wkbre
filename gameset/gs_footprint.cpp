@@ -1,5 +1,5 @@
 // wkbre - WK (Battles) recreated game engine
-// Copyright (C) 2015-2016 Adrien Geets
+// Copyright (C) 2015-2017 AdrienTD
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,13 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-extern char gamedir[384];
-extern boolean allowBCPPatches, allowDataDirectory;
+#include "../global.h"
 
-void LoadBCP(char *fn);
-void LoadFile(char *fn, char **out, int *outsize, int extraBytes = 0);
-//void TestBCP();
-int FileExists(char *fn);
-GrowStringList *ListFiles(char *dn);
-GrowStringList *ListDirectories(char *dn);
-//void SetGameDir();
+void ReadCFootprint(char **pntfp, char **fstline)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	CFootprint *c = &(gsfootprint[strFootprint.find(fstline[1])]);
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if( *((uint*)(word[0])) == '_DNE' )
+			return;
+		if(!stricmp(word[0], "ORIGIN"))
+		{
+			c->origin_x = atof(word[1]);
+			c->origin_z = atof(word[2]);
+		}
+	}
+}

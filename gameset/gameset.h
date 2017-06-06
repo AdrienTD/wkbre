@@ -51,6 +51,7 @@ public:
 #include "gs_campath.h"
 #include "sg_ai.h"
 #include "gs_animation.h"
+#include "gs_footprint.h"
 
 // From loadgameset.cpp
 
@@ -85,6 +86,8 @@ extern GrowStringList strCommission;
 extern GrowStringList strPlan;
 extern GrowStringList strCondition; extern CCondition *gscondition;
 extern GrowStringList strAnimationTag;
+extern GrowStringList strSubtype;
+extern GrowStringList strFootprint; extern CFootprint *gsfootprint;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

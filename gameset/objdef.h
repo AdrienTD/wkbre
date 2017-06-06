@@ -39,7 +39,7 @@ struct PhysicalSubtype
 {
 	//char *path;
 	ODAppearance *appear;
-	char *name;
+	char *name; int id;
 	uint nUsedAppears;
 };
 
@@ -47,6 +47,7 @@ struct CReaction;
 struct CValue;
 struct CCommand;
 struct CMovementBand;
+struct CFootprint;
 
 // NOTE: This is an "object type declaration". All ingame objects of the same type
 //       (ex: CHARACTER "Peasant") share some information in this structure.
@@ -73,6 +74,7 @@ struct CObjectDefinition
 	GrowList<CMovementBand*> movBands;
 	CValue *missileSpeed;
 	GrowList<int> itemsDisplayed;
+	CFootprint *footprint;
 
 	void *operator new(size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}
 	void *operator new[](size_t s) {void *p = malloc(s); if(p) memset(p, 0, s); return p;}

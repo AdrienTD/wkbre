@@ -1091,9 +1091,16 @@ GameObject *DuplicateObject(GameObject *a)
 
 void ConvertObject(GameObject *o, CObjectDefinition *d)
 {
+	int os = o->objdef->subtypes[o->subtype].id;
 	o->objdef = d;
 	//o->appearance = 0;
 	SetRandomSubtypeAndAppearance(o);
+
+	// If the new objtype has a similar subtype, then keep it.
+	for(int i = 0; i < d->numsubtypes; i++)
+		if(d->subtypes[i].id == os)
+			{o->subtype = i; break;}
+
 	SetObjectAnimationIfNotPlayed(o, 0, 1);
 }
 

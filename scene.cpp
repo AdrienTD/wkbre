@@ -358,16 +358,33 @@ if(experimentalKeys) {
 	if(stdownvalid)
 	if(playerToGiveStampdownObj.valid())
 	{
-		renderer->BeginMeshDrawing();
-		SetMatrices(objtypeToStampdown->scale, nullvector, stdownpos);
-		SetTransformMatrix(&matrix);
+		// Align buildings in the grid.
+		if(objtypeToStampdown->type == CLASS_BUILDING)
+		{
+			stdownpos.x = (int)(stdownpos.x / 5) * 5.0f + 2.5f;
+			stdownpos.z = (int)(stdownpos.z / 5) * 5.0f + 2.5f;
+			if(objtypeToStampdown->footprint)
+			{
+				// Add or sub?
+				stdownpos.x += objtypeToStampdown->footprint->origin_x;
+				stdownpos.z += objtypeToStampdown->footprint->origin_z;
+			}
+			stdownpos.y = GetHeight(stdownpos.x, stdownpos.z);
+		}
 		Model *m = 0;
 		int s = (objtypeToStampdown->numsubtypes >= 2) ? 1 : 0;
-		if(objtypeToStampdown->subtypes[s].appear[0].def)
-			m = objtypeToStampdown->subtypes[s].appear[0].def;
-		else if(objtypeToStampdown->representation)
+		for(int i = 0; i < strAppearTag.len; i++)
+			if(objtypeToStampdown->subtypes[s].appear[i].def)
+				{m = objtypeToStampdown->subtypes[s].appear[i].def; break;}
+		if(!m) if(objtypeToStampdown->representation)
 			m = objtypeToStampdown->representation;
-		if(m) m->draw(playerToGiveStampdownObj->color);
+		if(m)
+		{
+			renderer->BeginMeshDrawing();
+			SetMatrices(objtypeToStampdown->scale, nullvector, stdownpos);
+			SetTransformMatrix(&matrix);
+			m->draw(playerToGiveStampdownObj->color);
+		}
 	}
 }
 

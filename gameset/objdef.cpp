@@ -209,6 +209,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		{
 			objdef[x].subtypes[i].appear = (ODAppearance*)calloc(strAppearTag.len, sizeof(ODAppearance));
 			objdef[x].subtypes[i].name = pstObjDef[x]->getdp(i);
+			objdef[x].subtypes[i].id = strSubtype.find(objdef[x].subtypes[i].name);
 			objdef[x].subtypes[i].nUsedAppears = 0;
 		}
 		if((objdef[x].type == CLASS_BUILDING) || (objdef[x].type == CLASS_CHARACTER) ||
@@ -225,6 +226,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		objdef[x].representation = 0;
 		objdef[x].buildingType = -1;
 		objdef[x].movSpeedEq = -1;
+		objdef[x].footprint = 0;
 	}
 
 	while(*fp)
@@ -343,6 +345,11 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 					if(!objdef[x].itemsDisplayed.has(d))
 						objdef[x].itemsDisplayed.add(d);
 				break;}
+			case CBLUEPRINT_USE_FOOTPRINT:
+				int d = strFootprint.find(word[1]);
+				if(d != -1)
+					objdef[x].footprint = &(gsfootprint[d]);
+				break;
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

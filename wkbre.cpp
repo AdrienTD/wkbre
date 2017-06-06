@@ -101,13 +101,16 @@ MenuEntry menucmds[] = {
 {"Move to player's manor...", CMD_CAMMANOR},
 {"Move to client's position...", CMD_CAMCLISTATE},
 {"Reset orientation", CMD_CAMRESETORI},
-{"Show/hide landscape", CMD_SHOWHIDELANDSCAPE},
+{"Show/hide terrain", CMD_SHOWHIDELANDSCAPE},
 {"Show/hide representations", CMD_TOGGLEREPRENSATIONS},
 {"Show/hide object tooltips", CMD_TOGGLEOBJTOOLTIPS},
 {"Show/hide time & object information", CMD_TOGGLE_TIMEOBJINFO},
+{"Show/hide grid", CMD_TOGGLEGRID},
 //{"BCM himap bit left", CMD_BCMHIMAPLEFT},
 //{"BCM himap bit right", CMD_BCMHIMAPRIGHT},
 {0,0},
+{"Open all", CMD_SWOPENALL},
+{"Close all", CMD_SWCLOSEALL},
 {"Selected object information", CMD_SWSELOBJ},
 {"Level information", CMD_SWLEVINFO},
 {"Level tree", CMD_SWLEVTREE},
@@ -577,7 +580,7 @@ void CallCommand(int cmd)
 		} break;
 		case CMD_ABOUT:
 		{
-			MessageBox(hWindow, "wkbre - WK (Battles) Recreated Engine\nVersion " WKBRE_VERSION "\n(C) 2015-2016 Adrien Geets\nThis program is released under the GNU GPL Version 3 license. For more information see the \"LICENSE\" file.\nRead the \"docs/help.htm\" file for help and more information.", appName, 64);
+			MessageBox(hWindow, "wkbre - WK (Battles) Recreated Engine\nVersion " WKBRE_VERSION "\n(C) 2015-2017 AdrienTD\nThis program is released under the GNU GPL Version 3 license. For more information see the \"LICENSE\" file.\nRead the \"docs/help.htm\" file for help and more information.", appName, 64);
 		} break;
 		case CMD_RESETOBJPOS:
 			ResetPosition(levelobj); break;
@@ -830,6 +833,12 @@ void CallCommand(int cmd)
 			swLevTree = !swLevTree; break;
 		case CMD_SWOBJCREA:
 			swObjCrea = !swObjCrea; break;
+		case CMD_SWOPENALL:
+			swSelObj = swLevInfo = swLevTree = swObjCrea = 1; break;
+		case CMD_SWCLOSEALL:
+			swSelObj = swLevInfo = swLevTree = swObjCrea = 0; break;
+		case CMD_TOGGLEGRID:
+			showMapGrid = !showMapGrid; break;
 	}
 }
 
@@ -1030,7 +1039,7 @@ void UpdateCommandButtons()
 int advancedSpatial = 0;
 int itemsToDisplay = 0;
 int selectedReaction = -1;
-ImGuiTextFilter itemFilter, odFilter, objcreaFilter;
+ImGuiTextFilter itemFilter, odFilter, objcreaFilter, ireaFilter;
 ImVec4 ivcolortable[8] = {
  ImVec4(0.5f, 0.25f, 0.25f, 1), ImVec4(0, 0, 1, 1), ImVec4(1, 1, 0, 1), ImVec4(1, 0, 0, 1),
  ImVec4(0, 1, 0, 1), ImVec4(1, 0, 1, 1), ImVec4(1, 0.5f, 0, 1), ImVec4(0, 1, 1, 1)};
@@ -1129,7 +1138,7 @@ void IGSelectedObject()
 		ImGui::Value("Object id", o->id);
 		ImGui::Text("Object type: %s \"%s\"", CLASS_str[o->objdef->type], o->objdef->name);
 		ImGui::SameLine();
-		if(ImGui::Button("Change##ObjType"))
+		if(ImGui::SmallButton("Change##ObjType"))
 			ImGui::OpenPopup("ObjType");
 		if(ImGui::BeginPopup("ObjType"))
 		{
@@ -1146,7 +1155,10 @@ void IGSelectedObject()
 				{
 					ImGui::PushID(i);
 					if(ImGui::Selectable(t))
+					{
+						ConvertObject(o, od);
 						ImGui::CloseCurrentPopup();
+					}
 					ImGui::PopID();
 				}
 			}
@@ -1198,7 +1210,7 @@ void IGSelectedObject()
 			}
 		}
 		ImGui::PopItemWidth();
-		if(ImGui::CollapsingHeader("Spatial"))
+		if(ImGui::CollapsingHeader("Location"))
 		{
 			ImGui::RadioButton("Basic##Spatial", &advancedSpatial, 0);
 			ImGui::SameLine();
@@ -1306,6 +1318,9 @@ void IGSelectedObject()
 		}
 		if(ImGui::CollapsingHeader("Order configuration"))
 		{
+		if(!o->ordercfg.order.len)
+			ImGui::Text("No orders");
+		else {
 			ImGui::PushID((void*)o->id);
 			for(DynListEntry<SOrder> *e = o->ordercfg.order.first; e; e = e->next)
 			{
@@ -1318,6 +1333,7 @@ void IGSelectedObject()
 				}
 			}
 			ImGui::PopID();
+		     }
 		}
 		if(ImGui::CollapsingHeader("Individual reactions"))
 		{
@@ -1325,9 +1341,18 @@ void IGSelectedObject()
 				ImGui::OpenPopup("AddReactionMenu");
 			if(ImGui::BeginPopup("AddReactionMenu"))
 			{
+				ireaFilter.Draw();
+				ImGui::PushItemWidth(-1);
+				ImGui::ListBoxHeader("##NewIndividualReactionListBox");
 				for(int i = 0; i < strReaction.len; i++)
-					if(ImGui::Selectable(strReaction.getdp(i)))
-						AddReaction(o, i);
+					if(ireaFilter.PassFilter(strReaction.getdp(i)))
+						if(ImGui::Selectable(strReaction.getdp(i)))
+						{
+							AddReaction(o, i);
+							ImGui::CloseCurrentPopup();
+						}
+				ImGui::ListBoxFooter();
+				ImGui::PopItemWidth();
 				ImGui::EndPopup();
 			}
 			ImGui::SameLine();
@@ -1335,9 +1360,13 @@ void IGSelectedObject()
 				for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
 					if(e->value == selectedReaction)
 						{o->iReaction.remove(e); break;}
+			ImGui::PushItemWidth(-1);
+			ImGui::ListBoxHeader("##IndividualReactionListBox");
 			for(DynListEntry<uint> *e = o->iReaction.first; e; e = e->next)
 				if(ImGui::Selectable(strReaction.getdp(e->value), e->value == selectedReaction))
 					selectedReaction = e->value;
+			ImGui::ListBoxFooter();
+			ImGui::PopItemWidth();
 		}
 		if(ImGui::CollapsingHeader("Association"))
 		{
@@ -1418,7 +1447,7 @@ void IGLevelInfo()
 {
 	if(!swLevInfo) return;
 	ImGui::Begin("Level information", &swLevInfo);
-	if(ImGui::CollapsingHeader("General"))
+	if(ImGui::CollapsingHeader("Properties"))
 	{
 		ImGui::TextWrapped("Changes on these values only take effect after saving and reopening the savegame!");
 		ImGui::PushItemWidth(-1);
@@ -1493,7 +1522,7 @@ void IGObjectCreation()
 
 	ImGui::Text("Give to:");
 	ImGui::SameLine();
-	if(ImGui::Selectable("##PlayerSelButton", false, 0, ImVec2(0, ImGui::GetItemsLineHeightWithSpacing())))
+	if(ImGui::Selectable("##PlayerSelButton", false, 0, ImVec2(0, 0/*ImGui::GetItemsLineHeightWithSpacing()*/)))
 		ImGui::OpenPopup("PlayerSelection");
 	if(ImGui::BeginPopup("PlayerSelection"))
 	{
@@ -1501,10 +1530,10 @@ void IGObjectCreation()
 		  if(e->value.objdef->type == CLASS_PLAYER)
 		{
 			ImGui::PushID(e->value.id);
-			if(ImGui::Selectable("##PlayerSelectable", false, 0, ImVec2(0, ImGui::GetItemsLineHeightWithSpacing())))
+			if(ImGui::Selectable("##PlayerSelectable", false, 0, ImVec2(0, 0/*ImGui::GetItemsLineHeightWithSpacing()*/)))
 				playerToGiveStampdownObj = &e->value;
 			ImGui::SameLine();
-			ImGui::ColorButton(ivcolortable[e->value.color]);
+			ImGui::ColorButton(ivcolortable[e->value.color], true);
 			ImGui::SameLine();
 			ImGui::Text("%S (%u)", e->value.name, e->value.id);
 			ImGui::PopID();
@@ -1514,12 +1543,12 @@ void IGObjectCreation()
 	ImGui::SameLine();
 	if(!playerToGiveStampdownObj.valid())
 	{
-		ImGui::ColorButton(ImVec4(1,1,1,1));
+		ImGui::ColorButton(ImVec4(1,1,1,1), true);
 		ImGui::SameLine();
-		ImGui::Text("Click to select a player.");
+		ImGui::Text("Click me to select a player.");
 	} else {
 		GameObject *o = playerToGiveStampdownObj.get();
-		ImGui::ColorButton(ivcolortable[o->color]);
+		ImGui::ColorButton(ivcolortable[o->color], true);
 		ImGui::SameLine();
 		ImGui::Text("%S (%u)", o->name, o->id);
 	}
@@ -1671,7 +1700,7 @@ void Test7()
 			ImGui::Text("Yes!");
 			ImGui::DragFloat("Game speed", &game_speed);
 */
-			IGMainMenu();
+			if(menuVisible) IGMainMenu();
 			IGSelectedObject();
 			IGLevelTree();
 			IGLevelInfo();

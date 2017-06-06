@@ -66,7 +66,7 @@ struct BCPack
 };
 
 char gamedir[384] = ".";
-boolean allowBCPPatches = 1;
+boolean allowBCPPatches = 1, allowDataDirectory = 0;
 GrowList<BCPack*> bcpacks;
 
 char *BCPack::BCPReadString()
@@ -379,20 +379,31 @@ void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
 	BCPack *bp = GetBCPWithMostRecentFile(fn);
 	if(bp) if(bp->loadFile(fn, out, outsize, extraBytes)) return;
 
-	// File not found in the BCPs. Find it in the "saved" and "redata" folder.
-	char sn[384];
-	strcpy(sn, gamedir);
-	strcat(sn, "\\saved\\");
-	strcat(sn, fn);
-	FILE *sf = fopen(sn, "rb");
+	// File not found in the BCPs. Find it in the "data", "saved" and "redata" directories.
+	char sn[384]; FILE *sf = 0;
+	if(allowDataDirectory)
+	{
+		strcpy(sn, gamedir);
+		strcat(sn, "\\data\\");
+		strcat(sn, fn);
+		sf = fopen(sn, "rb");
+	}
+	if(!sf)
+	{
+		strcpy(sn, gamedir);
+		strcat(sn, "\\saved\\");
+		strcat(sn, fn);
+		sf = fopen(sn, "rb");
+	}
 	if(!sf)
 	{
 		strcpy(sn, "redata\\");
 		strcat(sn, fn);
 		sf = fopen(sn, "rb");
-		if(!sf)
-			ferr("File cannot be found in data.bcp, in the \"saved\" folder and the \"redata\" directory.");
 	}
+	if(!sf)
+		ferr("The file \"%s\" could not be found in the game directories/archives (data.bcp, saved, redata, data, ...).", fn);
+		//ferr("File cannot be found in data.bcp, in the \"saved\" folder and the \"redata\" directory.");
 	fseek(sf, 0, SEEK_END);
 	int ss = ftell(sf);
 	fseek(sf, 0, SEEK_SET);
@@ -420,9 +431,32 @@ int FileExists(char *fn)
 	{
 		strcpy(sn, "redata\\");
 		strcat(sn, fn);
-		return _access(sn, 0) != -1;
+		if(allowDataDirectory)
+		{
+			if(_access(sn, 0) == -1)
+			{
+				strcpy(sn, gamedir);
+				strcat(sn, "\\saved\\");
+				strcat(sn, fn);
+				return _access(sn, 0) != -1;
+			}
+			return 1;
+		}
+		else return _access(sn, 0) != -1;
 	}
 	return 1;
+}
+
+void FindFiles(char *sn, GrowStringList *gsl)
+{
+	HANDLE hf; WIN32_FIND_DATA fnd;
+	hf = FindFirstFile(sn, &fnd);
+	if(hf == INVALID_HANDLE_VALUE) return;
+	do {
+		if(!(fnd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			if(!gsl->has(fnd.cFileName))
+				gsl->add(fnd.cFileName);
+	} while(FindNextFile(hf, &fnd));
 }
 
 GrowStringList *ListFiles(char *dn)
@@ -433,18 +467,19 @@ GrowStringList *ListFiles(char *dn)
 	for(int i = 0; i < bcpacks.len; i++)
 		bcpacks[i]->listFileNames(dn, gsl);
 
-	char sn[384]; HANDLE hf; WIN32_FIND_DATA fnd;
-	strcpy(sn, gamedir);
-	strcat(sn, "\\saved\\");
-	strcat(sn, dn);
-	strcat(sn, "\\*.*");
-	hf = FindFirstFile(sn, &fnd);
-	if(hf == INVALID_HANDLE_VALUE) return gsl;
-	do {
-		if(!(fnd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-			if(!gsl->has(fnd.cFileName))
-				gsl->add(fnd.cFileName);
-	} while(FindNextFile(hf, &fnd));
+	char sn[384];
+
+	if(allowDataDirectory)
+	{
+		strcpy(sn, gamedir); strcat(sn, "\\data\\");
+		strcat(sn, dn); strcat(sn, "\\*.*");
+		FindFiles(sn, gsl);
+	}
+
+	strcpy(sn, gamedir); strcat(sn, "\\saved\\");
+	strcat(sn, dn); strcat(sn, "\\*.*");
+	FindFiles(sn, gsl);
+
 	return gsl;
 }
 
