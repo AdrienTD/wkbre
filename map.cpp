@@ -21,7 +21,7 @@
 
 int mapwidth, mapheight, mapedge, mapnverts, mapfogcolor; float maphiscale;
 float *himap = 0;
-texture grass; RBatch *mapbatch;
+texture grass, gridtex; RBatch *mapbatch;
 char lastmap[256];
 boolean usemaptexdb = 1;
 MapTile *maptiles;
@@ -54,6 +54,7 @@ int readnb(int b)
 void InitMap()
 {
 	grass = GetTexture("grass.tga");
+	gridtex = GetTexture("grid.tga");
 
 	if(usemaptexdb)
 	{
@@ -400,7 +401,7 @@ void DrawMap()
 
 if(!usemaptexdb)
 {
-	SetTexture(0, grass);
+	SetTexture(0, showMapGrid ? gridtex : grass);
 	for(int dy = -sh; dy <= sh; dy++)
 	for(int dx = -sw; dx <= sw; dx++)
 		CheckAndDrawPart(px + dx, py + dy);
@@ -408,7 +409,7 @@ if(!usemaptexdb)
 else
 {
 	renderer->BeginBatchDrawing();
-	if(showMapGrid) SetTexture(0, grass);
+	if(showMapGrid) SetTexture(0, gridtex);
 
 	for(int i = 0; i < maptexfilenames.len; i++)
 	{int tns = 1;

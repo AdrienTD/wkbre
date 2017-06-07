@@ -1,22 +1,25 @@
 wkbre changelog:
 
-[0.0.7]  ??/06/2017
+[0.0.7]  08/06/2017
 - New GUI and new windows for more possibilities (using the ImGui library):
   - Selected object window shows information on selected object such as
     position, orientation, scale, appearance, subtype, items, flags, order
     configuration, individual reactions, associations, ... Some of them can
     also be edited right in this window.
   - Level information window to show/edit properties of the level, the time,
-    and the aliases.
+    aliases, as well as diplomatic relationships.
   - Level tree which allows you to explore the object nodes. Right-click
     an object node to select it.
   - Object creation to create objects by stamping them down with the
     mouse right-click!
+  - New "About wkbre" window.
 - If a file is not found, its file name is displayed.
 - The "data" directory can now be used after being enabled in settings.txt
   (data_directory 1).
 - Objects keep the same subtype if possible after conversion.
-- You can display a grid on the terrain.
+- You can display a grid on the terrain (K key or menu).
+- Building construction animation now synchronised to SI (in an odd way).
+- Character spawning time is now respected.
 
 [0.0.6] 24/02/2017
 - "On Share Tile" events are sent (units reacting to enemies approaching them,

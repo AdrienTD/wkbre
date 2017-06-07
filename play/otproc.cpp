@@ -337,6 +337,7 @@ void InitTask(GameObject *o)
 	t->flags |= FSTASK_FIRST_EXECUTION;
 	// TODO: FSTASK_LAST_DESTINATION_VALID ???
 	RemoveObjReference(o);
+	t->lastsatf = 0.0f;
 
 	SequenceEnv env; env.self = o;
 	if(t->type->initSeq)
@@ -380,6 +381,12 @@ void InitTask(GameObject *o)
 				//t->initialVelocity.y = (t->target->position.y - o->position.y - (-halfgravit)*tm*tm) / tm;
 			}
 			else	t->initialVelocity = Vector3(0,0,0);
+		}
+
+		if(t->type->type == ORDTSKTYPE_SPAWN)
+		{
+			o->setItem(PDITEM_HP_OF_OBJ_BEING_SPAWNED, 0.0f);
+			o->setItem(PDITEM_HPC_OF_OBJ_BEING_SPAWNED, t->spawnBlueprint->startItems[PDITEM_HPC]);
 		}
 	}
 }

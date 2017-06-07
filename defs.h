@@ -647,6 +647,7 @@ extern char *BUILDINGTYPE_str[12];
 #define PDITEM_HP 4
 #define PDITEM_HPC 5
 #define PDITEM_HP_OF_OBJ_BEING_SPAWNED 6
-#define PDITEM_NUM 7
-extern char *PDITEM_str[7];
-extern char* PDITEM_tab0[7];
+#define PDITEM_HPC_OF_OBJ_BEING_SPAWNED 7
+#define PDITEM_NUM 8
+extern char *PDITEM_str[8];
+extern char* PDITEM_tab0[8];

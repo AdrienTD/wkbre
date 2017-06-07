@@ -34,7 +34,7 @@ Cursor *defcursor;
 boolean mouseRot = 0; int msrotx, msroty;
 boolean multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
-bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0;
+bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -580,7 +580,8 @@ void CallCommand(int cmd)
 		} break;
 		case CMD_ABOUT:
 		{
-			MessageBox(hWindow, "wkbre - WK (Battles) Recreated Engine\nVersion " WKBRE_VERSION "\n(C) 2015-2017 AdrienTD\nThis program is released under the GNU GPL Version 3 license. For more information see the \"LICENSE\" file.\nRead the \"docs/help.htm\" file for help and more information.", appName, 64);
+			swAbout = !swAbout;
+			//MessageBox(hWindow, "wkbre - WK (Battles) Recreated Engine\nVersion " WKBRE_VERSION "\n(C) 2015-2017 AdrienTD\nThis program is released under the GNU GPL Version 3 license. For more information see the \"LICENSE\" file.\nRead the \"docs/help.htm\" file for help and more information.", appName, 64);
 		} break;
 		case CMD_RESETOBJPOS:
 			ResetPosition(levelobj); break;
@@ -1130,6 +1131,8 @@ void IGSelectedObject()
 {
 	char tb[512];
 	if(!swSelObj) return;
+	ImGui::SetNextWindowPos(ImVec2(373, 21), ImGuiSetCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(263, 456), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Selected object", &swSelObj);
 	if(selobjects.first)
 	{if(selobjects.first->value.valid())
@@ -1236,6 +1239,16 @@ void IGSelectedObject()
 				ImGui::DragFloat2("Orientation##Advanced", &o->orientation.x, 0.1f);
 				ImGui::DragFloat3("Scale##Advanced", &o->scale.x, 0.1f);
 			}
+			ImGui::Text("Copy to all sel. objects:");
+			if(ImGui::Button("Orientation##CopyButton"))
+				for(DynListEntry<goref> *e = selobjects.first->next; e; e = e->next)
+					if(e->value.valid())
+						e->value->orientation = o->orientation;
+			ImGui::SameLine();
+			if(ImGui::Button("Scale##CopyButton"))
+				for(DynListEntry<goref> *e = selobjects.first->next; e; e = e->next)
+					if(e->value.valid())
+						e->value->scale = o->scale;
 		}
 		if(ImGui::CollapsingHeader("Appearance"))
 		{
@@ -1433,6 +1446,8 @@ void IGLevelTreeNode(GameObject *o)
 void IGLevelTree()
 {
 	if(!swLevTree) return;
+	ImGui::SetNextWindowPos(ImVec2(130, 103), ImGuiSetCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(375, 243), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Level tree", &swLevTree);
 	ImGui::PushID("LevelTreeNodes");
 	IGLevelTreeNode(levelobj);
@@ -1440,12 +1455,54 @@ void IGLevelTree()
 	ImGui::End();
 }
 
+bool IGPlayerChooser(char *popupid, goref *p)
+{
+	bool r = 0;
+	if(ImGui::Selectable("##PlayerSelButton"))
+		ImGui::OpenPopup(popupid);
+	if(ImGui::BeginPopup(popupid))
+	{
+		for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
+		  if(e->value.objdef->type == CLASS_PLAYER)
+		{
+			ImGui::PushID(e->value.id);
+			if(ImGui::Selectable("##PlayerSelectable"))
+			{
+				*p = &e->value;
+				r = 1;
+			}
+			ImGui::SameLine();
+			ImGui::ColorButton(ivcolortable[e->value.color], true);
+			ImGui::SameLine();
+			ImGui::Text("%S (%u)", e->value.name, e->value.id);
+			ImGui::PopID();
+		}
+		ImGui::EndPopup();
+	}
+	ImGui::SameLine();
+	if(!p->valid())
+	{
+		ImGui::ColorButton(ImVec4(1,1,1,1), true);
+		ImGui::SameLine();
+		ImGui::Text("Click me to select a player.");
+	} else {
+		GameObject *o = p->get();
+		ImGui::ColorButton(ivcolortable[o->color], true);
+		ImGui::SameLine();
+		ImGui::Text("%S (%u)", o->name, o->id);
+	}
+	return r;
+}
+
 extern char sggameset[384];
 extern uint game_type;
 int igliCurrentAlias = -1;
+goref drPlayer;
 void IGLevelInfo()
 {
 	if(!swLevInfo) return;
+	ImGui::SetNextWindowPos(ImVec2(183, 219), ImGuiSetCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(265, 185), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Level information", &swLevInfo);
 	if(ImGui::CollapsingHeader("Properties"))
 	{
@@ -1512,46 +1569,57 @@ void IGLevelInfo()
 	}
 	else	ImGui::TextWrapped("Select an alias category in the combobox above.");
 	}
+	if(ImGui::CollapsingHeader("Diplomatic relationships"))
+	{
+		ImGui::Text("Player A:");
+		ImGui::SameLine();
+		IGPlayerChooser("DiploPlayer", &drPlayer);
+		ImGui::Columns(2);
+		ImGui::Separator();
+		ImGui::Text("Player B");
+		ImGui::NextColumn();
+		ImGui::Text("Relation A<->B");
+		ImGui::NextColumn();
+		ImGui::Separator();
+
+		GameObject *p = drPlayer.get();
+		for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
+		 if(e->value.objdef->type == CLASS_PLAYER)
+		{
+			GameObject *o = &e->value;
+			ImGui::PushID(o->id);
+			ImGui::ColorButton(ivcolortable[o->color]/*, true*/);
+			ImGui::SameLine();
+			ImGui::Text("%S (%u)", o->name, o->id);
+			ImGui::NextColumn();
+			if(drPlayer.valid()) if(&e->value != p)
+			{
+				ImGui::PushItemWidth(-1);
+				int rel = GetDiplomaticStatus(p, o);
+				if(ImGui::Combo("##Relation", &rel, IGGSLItemsGetter, (void*)&strDiplomaticStatus, strDiplomaticStatus.len))
+					SetDiplomaticStatus(p, o, rel);
+				ImGui::PopItemWidth();
+			}
+			ImGui::NextColumn();
+			ImGui::PopID();
+		}
+
+		ImGui::Columns(1);
+		ImGui::Separator();
+	}
 	ImGui::End();
 }
 
 void IGObjectCreation()
 {
 	if(!swObjCrea) return;
+	ImGui::SetNextWindowPos(ImVec2(2, 22), ImGuiSetCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(265, 456), ImGuiSetCond_FirstUseEver);
 	ImGui::Begin("Object creation", &swObjCrea);
 
 	ImGui::Text("Give to:");
 	ImGui::SameLine();
-	if(ImGui::Selectable("##PlayerSelButton", false, 0, ImVec2(0, 0/*ImGui::GetItemsLineHeightWithSpacing()*/)))
-		ImGui::OpenPopup("PlayerSelection");
-	if(ImGui::BeginPopup("PlayerSelection"))
-	{
-		for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
-		  if(e->value.objdef->type == CLASS_PLAYER)
-		{
-			ImGui::PushID(e->value.id);
-			if(ImGui::Selectable("##PlayerSelectable", false, 0, ImVec2(0, 0/*ImGui::GetItemsLineHeightWithSpacing()*/)))
-				playerToGiveStampdownObj = &e->value;
-			ImGui::SameLine();
-			ImGui::ColorButton(ivcolortable[e->value.color], true);
-			ImGui::SameLine();
-			ImGui::Text("%S (%u)", e->value.name, e->value.id);
-			ImGui::PopID();
-		}
-		ImGui::EndPopup();
-	}
-	ImGui::SameLine();
-	if(!playerToGiveStampdownObj.valid())
-	{
-		ImGui::ColorButton(ImVec4(1,1,1,1), true);
-		ImGui::SameLine();
-		ImGui::Text("Click me to select a player.");
-	} else {
-		GameObject *o = playerToGiveStampdownObj.get();
-		ImGui::ColorButton(ivcolortable[o->color], true);
-		ImGui::SameLine();
-		ImGui::Text("%S (%u)", o->name, o->id);
-	}
+	IGPlayerChooser("PlayerToGiveCreatedObj", &playerToGiveStampdownObj);
 
 	ImGui::Checkbox("Send \"On Stampdown\" event", &eventAfterStampdown);
 	objcreaFilter.Draw();
@@ -1574,6 +1642,34 @@ void IGObjectCreation()
 	//ImGui::ListBoxFooter();
 	ImGui::EndChild();
 	ImGui::PopItemWidth();
+	ImGui::End();
+}
+
+void IGAbout()
+{
+	if(!swAbout) return;
+	ImGui::Begin("About wkbre", &swAbout);
+	ImGui::Indent();
+	ImGui::SetWindowFontScale(2.0f);
+	ImGui::TextColored(ImVec4(0.5,1,0.5,1), "wkbre");
+	ImGui::SetWindowFontScale(1.0f);
+	ImGui::Unindent();
+	ImGui::Text("Version: " WKBRE_VERSION);
+#ifdef _MSC_VER
+	ImGui::Text("Compiler: MSVC %i", _MSC_VER);
+#endif
+#ifdef __GNUC__
+	ImGui::Text("Compiler: GCC " __VERSION__);
+#endif
+	ImGui::Text("Build date: " __DATE__);
+	ImGui::Separator();
+	ImGui::Text("(C) 2015-2017 AdrienTD");
+	ImGui::Text("Licensed under the GPL3 license.\nSee LICENSE for details.");
+	ImGui::Separator();
+	ImGui::Text("Libraries used:");
+	ImGui::BulletText("LZRW3");
+	ImGui::BulletText("bzip2");
+	ImGui::BulletText("dear imgui");
 	ImGui::End();
 }
 
@@ -1705,6 +1801,7 @@ void Test7()
 			IGLevelTree();
 			IGLevelInfo();
 			IGObjectCreation();
+			IGAbout();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
@@ -1868,6 +1965,8 @@ void Test7()
 		if(keypressed[VK_TAB]) {keypressed[VK_TAB] = 0; CallCommand(CMD_CHANGE_OBJMOVALIGN);}
 
 		if(keypressed['L']) {keypressed['L'] = 0; CallCommand(CMD_TOGGLE_TIMEOBJINFO);}
+
+		if(keypressed['K']) {keypressed['K'] = 0; CallCommand(CMD_TOGGLEGRID);}
 
 		if(keypressed[VK_NUMPAD0])
 		{

@@ -651,7 +651,7 @@ char *BUILDINGTYPE_str[12] = {
 "TOWER_CORNER_IN",
 "TOWER_CORNER_OUT",
 };
-char *PDITEM_str[7] = {
+char *PDITEM_str[8] = {
 "FOOD",
 "WOOD",
 "GOLD",
@@ -659,8 +659,9 @@ char *PDITEM_str[7] = {
 "HP",
 "HPC",
 "HP_OF_OBJ_BEING_SPAWNED",
+"HPC_OF_OBJ_BEING_SPAWNED",
 };
-char* PDITEM_tab0[7] = {
+char* PDITEM_tab0[8] = {
 "Food",
 "Wood",
 "Gold",
@@ -668,4 +669,5 @@ char* PDITEM_tab0[7] = {
 "Hit Points",
 "Hit Point Capacity",
 "Hit Points Of Object Being Spawned",
+"Hit Point Capacity Of Object Being Spawned",
 };

@@ -128,6 +128,8 @@ void DrawOOBM()
 				if(showrepresentations && o->objdef->representation) md = o->objdef->representation;
 				md->prepare(); md->mesh->prepare();
 				Mesh *msh = md->mesh;
+				// If md != md->mesh, this means that md is an Anim!
+
 				for(int g = 0; g < msh->ngrp; g++)
 					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
 					{
@@ -136,6 +138,19 @@ void DrawOOBM()
 						SetMatrices(o->scale, -o->orientation, o->position);
 
 						uint tm = (int)(current_time*1000.0f) - o->animtimeref;
+						// If the current task has SYNCH_ANIMATION_TO_FRACTION, use it.
+						if(md != md->mesh) if(o->ordercfg.order.len)
+						{
+							STask *st = &o->ordercfg.order.first->value.task.first->value;
+							if(st->type->satf)
+							{
+								SequenceEnv env; env.self = o;
+								tm = st->type->satf->get(&env) * ((Anim*)md)->dur;
+								tm = st->lastsatf + (tm - st->lastsatf) * elapsed_time * 0.5f;
+								if(tm >= ((Anim*)md)->dur) tm = ((Anim*)md)->dur - 1;
+								st->lastsatf = tm;
+							}
+						}
 						if(o->animlooping) if(md != md->mesh)
 							tm %= ((Anim*)md)->dur;
 						(animsEnabled?md:md->mesh)->drawInBatch(mshbatch, g, o->color, dif, tm);

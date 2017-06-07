@@ -633,5 +633,6 @@ PDITEM_ | char* {
 	HP "Hit Points"
 	HPC "Hit Point Capacity"
 	HP_OF_OBJ_BEING_SPAWNED "Hit Points Of Object Being Spawned"
+	HPC_OF_OBJ_BEING_SPAWNED "Hit Point Capacity Of Object Being Spawned"
 }
 
