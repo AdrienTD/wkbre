@@ -18,6 +18,7 @@ wkbre changelog:
   (data_directory 1).
 - Objects keep the same subtype if possible after conversion.
 - You can display a grid on the terrain (K key or menu).
+  Useful if you want to align buildings.
 - Building construction animation now synchronised to SI (in an odd way).
 - Character spawning time is now respected.
 

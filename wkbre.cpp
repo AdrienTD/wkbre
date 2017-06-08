@@ -1138,10 +1138,9 @@ void IGSelectedObject()
 	{if(selobjects.first->value.valid())
 	{
 		GameObject *o = selobjects.first->value.get();
-		ImGui::Value("Object id", o->id);
-		ImGui::Text("Object type: %s \"%s\"", CLASS_str[o->objdef->type], o->objdef->name);
+		ImGui::Value("ID", o->id);
 		ImGui::SameLine();
-		if(ImGui::SmallButton("Change##ObjType"))
+		if(ImGui::SmallButton("Change type##ObjType"))
 			ImGui::OpenPopup("ObjType");
 		if(ImGui::BeginPopup("ObjType"))
 		{
@@ -1169,6 +1168,7 @@ void IGSelectedObject()
 			ImGui::PopItemWidth();
 			ImGui::EndPopup();
 		}
+		ImGui::Text("Type: %s \"%s\"", CLASS_str[o->objdef->type], o->objdef->name);
 		ImGui::PushItemWidth(-1);
 		if(o->objdef->type == CLASS_LEVEL || o->objdef->type == CLASS_PLAYER ||
 			o->objdef->type == CLASS_TERRAIN_ZONE)
@@ -1422,11 +1422,19 @@ void IGSelectedObject()
 
 void IGLevelTreeNode(GameObject *o)
 {
+	if(o->objdef->type == CLASS_PLAYER)
+	{
+		ImVec4 c = ivcolortable[o->color];
+		c.x += 0.3f; c.y += 0.3f; c.z += 0.3f;
+		ImGui::PushStyleColor(ImGuiCol_Text, c);
+	}
 	boolean n = ImGui::TreeNodeEx((void*)o->id,
 			// ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow |
 			((o->flags & FGO_SELECTED) ? ImGuiTreeNodeFlags_Selected : 0) |
 			((o->children.len > 0) ? 0 : ImGuiTreeNodeFlags_Leaf),
 			"%u: %s \"%s\"", o->id, CLASS_str[o->objdef->type], o->objdef->name);
+	if(o->objdef->type == CLASS_PLAYER)
+		ImGui::PopStyleColor();
 	if(ImGui::IsItemClicked(1))
 	{
 		if(!keypressed[VK_SHIFT])
@@ -1554,9 +1562,13 @@ void IGLevelInfo()
 			ClearAlias(igliCurrentAlias);
 		ImGui::SameLine();
 		if(ImGui::Button("Select all##Alias"))
+		{
+			if(!keypressed[VK_SHIFT])
+				DeselectAll();
 			for(DynListEntry<goref> *e = d->first; e; e = e->next)
 				if(e->value.valid())
 					SelectObject(e->value.get());
+		}
 
 		ImGui::PushItemWidth(-1);
 		ImGui::ListBoxHeader("##AliasList");
@@ -1668,8 +1680,8 @@ void IGAbout()
 	ImGui::Separator();
 	ImGui::Text("Libraries used:");
 	ImGui::BulletText("LZRW3");
-	ImGui::BulletText("bzip2");
-	ImGui::BulletText("dear imgui");
+	ImGui::BulletText("libbzip2");
+	ImGui::BulletText("dear imgui (MIT license)");
 	ImGui::End();
 }
 

@@ -1,7 +1,10 @@
 <html>
-<head><title>wkbre v0.0.6.0 Help file</title></head>
+<head><title>wkbre v0.0.7.0 Help file</title></head>
 <body>
 <style>
+body {
+  font-family: sans-serif;
+}
 table, th, td {
   border: 1px solid black;
   border-collapse: collapse;
@@ -14,17 +17,23 @@ th {
   background-color: #80a0ff;
 }
 </style>
-<h1>wkbre v0.0.6.0 Help file</h1>
+
+<h1>wkbre v0.0.7.0 Help file</h1>
+
 <h2>Introduction</h2>
 <p><b><i>wkbre</i></b> is a engine reimplementation of the game <b>Warrior Kings (Battles)</b> (developed by Black Cactus) in which you can load, edit, play and save saved games of the game. It loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
 <p>The program is open source and is licensed under the GNU GPL 3. The source code and the latest build are available here: <a href="https://github.com/AdrienTD/wkbre">https://github.com/AdrienTD/wkbre</a></p>
+
 <h2>Start</h2>
 <p>First you need to configure the "settings.txt" file. Ensure that the <b>GAME_DIR</b> value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
 <p>Now you can start the executable (wkbre.exe). If it doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
 <p>You will be asked which saved game you want to load. Select a file in the list then click OK or double-click on the file to open it.</p>
 <p>Use the <b>arrow</b>, <b>‘E’</b> and <b>‘D’</b> keys to move the camera. Hold the <b>NumPad 0</b> key and move the mouse to rotate the camera.</p>
 <p><b>Click</b> an object to select it. Press the <b>Control</b> key and the <b>arrow</b> keys at the same time to move the selected object. You can also press the <b>Insert</b> key to duplicate the selected object, the <b>Delete</b> key to delete it, and the <b>*</b> or <b>/</b> key to change the size. Look at the menu bar in the program or the Keys section of this document for a list of available commands.</p>
+<p>Click <b>Window > Selected object information</b> to open a window where you can view and edit properties of the selected object.</p>
+<p>To create a new object, click <b>Window > Object creation</b> and a window will open. First click the white box next to <b>"Give to:"</b> to select the player you want to give the new object, then click in the big list below the type of the new object. You can shorten the list by typing a part of the type name in the <b>"Filter"</b> text box. Then <b>right-click on the game view</b> to create the object.</p>
 <p>Once you have finished doing some modifications in the level, press <b>F3</b> and type the name of the new savegame. The name should end with <b>“.sav”</b>, otherwise the game won’t display it in its list.</p>
+
 <h2>Playing games in wkbre</h2>
 <p>wkbre is also able to let you play the game. This is done by interpreting the game set script which can be found in the game data (data.bcp).</p>
 <p>When you press <b>'P'</b>, the game will be unpaused. You can see your units moving, peasants doing their work, units attacking, etc...</p>
@@ -35,6 +44,40 @@ th {
 <p>Finally, press <b>'Enter'</b> to switch into a "Game" interface.</p>
 <p>See the Keys section and the "Game" submenu in the menu bar for a list of available commands.</p>
 <p>Also please keep in mind that the ability to play games in wkbre is "experimental", this means some features are missing and bugs can be encountered.</p>
+
+<h2>Windows</h2>
+<p>wkbre v0.0.7 now adds a few floating windows which allows you to view/edit a lot of properties the savegame and its objects. You can open them via the <b>Window</b> submenu.</p>
+<p>The windows are:</p>
+
+<h3>Selected object information</h3>
+<p>This shows information/properties of the first selected object. If no object is selected, it shows nothing.</p>
+<p>The window is divided in groups that are all closed by default. To open one, click it.</p>
+<ul>
+<li>In the <b>Location</b> group, you can edit the position, orientation and the scale of the object that you can modify by dragging a number with the mouse. If you want to modify the scale and orientation of multiple objects at the same time, click the buttons below "Copy to all sel. objects.".</li>
+<li>In <b>Appearance</b> you can change the subtype and the appearance.</li>
+<li>In <b>Items</b> you can change the values of the items (for example: Food, Gold, Hit Points, ...). The 3 radio buttons as well as the <b>Filter</b> text box allows you to search for items easily.</li>
+<li>In <b>Flags</b> you can set/unset certain flags, or even disable/enable the object. Note that unrenderable and disabled objects will still be shown in the editor, but not in the original game engine.</li>
+<li>In <b>Order configuration</b> you can see the orders and tasks the object is currently doing.</li>
+<li>In <b>Individual reactions</b> you can add and remove reactions.</li>
+<li>In <b>Association</b> you can see the associates and associators in an association category.</li>
+</ul>
+
+<h3>Level tree</h3>
+<p>Here you can view the whole tree of the objects in the level. Click a node to show its subordinates. Right-click a node to select the object (SHIFT+right-click to add to selection).</p>
+
+<h3>Level information</h3>
+<p>Like the Selected object information window, the window is divised in groups.</p>
+<ul>
+<li>In <b>Properites</b>, you can change the gameset, map and game type. Changes on these values will only take effect after the savegame is saved and reopened, and might make the savegame unopenable if they are incorrect. In this case you can always change them with a text editor and searching for GAME_SET, GAME_TYPE and MAP.</li>
+<li>In <b>Time</b>, you can see the current time and modify the lock count. For example if you lose a campaign in the first WK, the level will be locked. You can then unlock the game by setting the lock count back to 0.</li>
+<li>In <b>Alias</b>, you can see and modify the alias groups.</li>
+<li>In <b>Diplomatic relationships</b> you can see and modify the relationships between two players.</li>
+</ul>
+
+<h3>Object creation</h3>
+<p>Here you can easily create new objects. See the Start section of this document for a guide on how to use it.</p>
+<p>The <b>Send "On Stampdown" event</b> checkbox will execute some game script after the object is created. This is especially needed for some MARKER objects. For example for a MARKER "AutoTrees ..." object this will automatically generate trees around the position of the new marker. For a village building, this will also automatically generate a cart. Sometimes this feature is important as the script that will be executed will initialise the new object properly. It is recommended to enable this feature with SAV files and to disable it with non-started LVL files.</p>
+
 <h2>Keys</h2>
 <p>The number (0-9) keys in the numeric keypad (NumPad) cannot be used, except if explicitely stated.</p>
 <table>
@@ -97,15 +140,17 @@ th {
    <br>With <b>Control</b>: Do order first (current order will be suspended).
    <br>With nothing: Cancel all orders in stack then do the order.</td></tr>
 <tr class="subhead"><td colspan="2"><b>Misc.</b></td></tr>
-<tr><td>F1</td><td>Display information about the program</td></tr>
 <tr><td>Escape</td><td>Exit</td></tr>
-<tr><td>M</td><td>Display/hide landscape</td></tr>
+<tr><td>F1</td><td>Display information about the program</td></tr>
+<tr><td>M</td><td>Display/hide terrain</td></tr>
+<tr><td>K</td><td>Display/hide terrain grid</td></tr>
 <tr><td>L</td><td>Display/hide time and object information</td></tr>
 <tr><td>Backspace</td><td>Display/hide menu bar.</td></tr>
 <tr><td>Enter</td><td>Switch between level and game view.</td></tr>
 </tbody>
 </table>
 <p>There are also more commands which can only be accessed from the menu bar.</p>
+
 <h2>Settings</h2>
 <p>In “settings.txt”:</p>
 <table>
@@ -125,6 +170,7 @@ th {
 <tr><td>FULLSCREEN</td><td>0 = windowed, 1 = fullscreen (<b><u>NOTE:</u></b> Fullscreen mode buggy at the moment.)</td></tr>
 <tr><td>VERTICAL_FOV</td><td>The FOV of the game camera in degrees.</td></tr>
 <tr><td>MULTI_BCP</td><td>1 = load all BCPs found in the game directory<br>0 = load only data.bcp</td></tr>
+<tr><td>DATA_DIRECTORY</td><td>1 = enable the "data" directory<br>0 = disable it</td></tr>
 <tr><td>RENDERER</td><td>1 = Direct3D 9, 2 = OpenGL 1.1</td></tr>
 <tr><td>USE_MAP_TEXTURE_DATABASE</td><td>0 = use a single grass texture for the terrain<br>1 = use all terrain textures from the game</td></tr>
 <tr><td>MESH_BATCHING</td><td>Regroup multiples meshes in one batch, can improve graphics performance;<br>0 = disabled, 1 = enabled</td></tr>
@@ -135,6 +181,7 @@ th {
 <tr><td>ENABLE_GAMESET_TRACING</td><td>Allow the gameset script to print trace information into the console (stdout). 1 = yes, 0 = no</td></tr>
 </tbody>
 </table>
+
 <h2>Known issues</h2>
 <ul>
 <li><b>Texture compression is disabled even with TEXTURE_COMPRESSION 1 in settings.txt</b>
@@ -152,12 +199,15 @@ th {
 <li><b>There are bugs!</b>
 <br>Leave these poor living spirits alone! Anyway they will be squashed in the near or distant future.</li>
 </ul>
+
 <h2>Bro tips</h2>
 <ul>
 <li>After loading a lvl file, press <b>'S'</b>, <b>'F'</b>, <b>'Enter'</b>, then <b>'P'</b> to directly play it.</li>
 <li>In WKB, if you want to quickly create trees, select an object, press <b>'V'</b>, and choose <b>MARKER AutoTree...</b>.</li>
 <li>In WKB, if you want an AI-controlled sapper, scout, succubus or arch druid, use the <b>'V'</b> command.
 </ul>
+<p>The last two tips can also be done with the new <b>Objects creation</b> window with the <b>Send "On Stampdown" event</b> checkbox enabled.</p>
+
 <h2>Contact</h2>
 <p>If you have a questions, you have found a bug or simply have a suggestion, please contact me:</p>
 <p>Email: <a href="mailto:agpetit69@gmail.com">agpetit69@gmail.com</a></p>
