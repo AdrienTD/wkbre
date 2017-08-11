@@ -21,10 +21,14 @@
 
 int mapwidth, mapheight, mapedge, mapnverts, mapfogcolor; float maphiscale;
 float *himap = 0;
-texture grass, gridtex; RBatch *mapbatch;
-char lastmap[256];
-boolean usemaptexdb = 1;
 MapTile *maptiles;
+int mapsuncolor; Vector3 mapsunvector;
+GrowList<Vector3> maplakes;
+char mapskytexdir[256];
+
+char lastmap[256];
+texture grass, gridtex; RBatch *mapbatch;
+boolean usemaptexdb = 1;
 boolean showMapGrid = 0;
 
 GrowList<MapPart> mparts;
@@ -97,9 +101,14 @@ void LoadMapBCM(char *filename, int bitoff)
 	mapheight = *(int*)fp; fp += 4;
 	mapedge = *(int*)fp; fp += 4;
 	strs = *(ushort*)fp; fp += 2 + strs;
-	maphiscale = *(float*)fp; fp += 28;
+	maphiscale = *(float*)fp; fp += 4;
+	mapsuncolor = (*(uchar*)fp<<16) | ((*(uchar*)(fp+4))<<8) | (*(uchar*)(fp+8)); fp += 12;
+	mapsunvector.x = *(float*)fp; mapsunvector.y = *(float*)(fp+4); mapsunvector.z = *(float*)(fp+8); fp += 12;
 	mapfogcolor = (*(uchar*)fp<<16) | ((*(uchar*)(fp+4))<<8) | (*(uchar*)(fp+8)); fp += 12;
-	strs = *(ushort*)fp; fp += 2 + strs;
+	strs = *(ushort*)fp / 2; fp += 2;
+	if(strs > sizeof(mapskytexdir)) ferr("Sky texture directory path in BCM is too long.");
+	for(int i = 0; i < strs; i++)
+		{mapskytexdir[i] = *fp; fp += 2;}
 
 	mapnverts = (mapwidth+1)*(mapheight+1);
 	himap = (float*)malloc(mapnverts*sizeof(float));
@@ -110,7 +119,14 @@ void LoadMapBCM(char *filename, int bitoff)
 	// Lakes
 	int mapnlakes = readnb(6);
 	for(int i = 0; i < mapnlakes; i++)
-		{readnb(32); readnb(32); readnb(32); readnb(2);}
+	{
+		Vector3 *v = maplakes.addp(); int j;
+		j = readnb(32); v->x = *(float*)&j;
+		j = readnb(32); v->y = *(float*)&j;
+		j = readnb(32); v->z = *(float*)&j;
+		readnb(2);
+	}
+		//{readnb(32); readnb(32); readnb(32); readnb(2);}
 
 	// Group name table
 	int nnames = readnb(16);
@@ -201,6 +217,14 @@ void LoadMapSNR(char *filename)
 			mapfogcolor = (atoi(word[1]) << 16) | (atoi(word[2]) << 8) | atoi(word[3]);
 		else if(!strcmp(word[0], "SCENARIO_TERRAIN"))
 			strcpy_s(sfntrn, 255, word[1]);
+		else if(!strcmp(word[0], "SCENARIO_SUN_COLOUR"))
+			mapsuncolor = (atoi(word[1]) << 16) | (atoi(word[2]) << 8) | atoi(word[3]);
+		else if(!strcmp(word[0], "SCENARIO_SUN_VECTOR"))
+			mapsunvector = Vector3(atof(word[1]), atof(word[2]), atof(word[3]));
+		else if(!strcmp(word[0], "SCENARIO_SKY_TEXTURES_DIRECTORY"))
+			strcpy_s(mapskytexdir, 255, word[1]);
+		else if(!strcmp(word[0], "SCENARIO_LAKE"))
+			*(maplakes.addp()) = Vector3(atof(word[1]), atof(word[2]), atof(word[3]));
 	}
 	free(fcnt);
 
@@ -264,6 +288,62 @@ pcxreadend:
 	free(fcnt);
 }
 
+void SetTileWaterLevel(int sx, int sz, float wl)
+{
+	MapTile *t = &(maptiles[sz*mapwidth+sx]);
+	t->waterlev = wl;
+}
+
+boolean IsFillableWithWater(int sx, int sz, float wl)
+{
+	if((sx < 0) || (sx >= mapwidth) || (sz < 0) || (sz >= mapheight)) return 0;
+	MapTile *t = &(maptiles[sz*mapwidth+sx]);
+	if(wl <= t->waterlev)
+		return 0;
+	if(wl <= himap[sz*(mapwidth+1)+sx])
+	if(wl <= himap[sz*(mapwidth+1)+sx+1])
+	if(wl <= himap[(sz+1)*(mapwidth+1)+sx])
+	if(wl <= himap[(sz+1)*(mapwidth+1)+sx+1])
+		return 0;
+	return 1;
+}
+
+void FillLineWithWater(int sx, int sz, float wl)
+{
+	//if((sx < 0) || (sx >= mapwidth) || (sz < 0) || (sz >= mapheight)) return;
+	if(!IsFillableWithWater(sx, sz, wl)) return;
+	SetTileWaterLevel(sx, sz, wl);
+
+	// 1. Fill the line.
+	int x, xmin, xmax;
+	for(x = sx - 1; IsFillableWithWater(x, sz, wl); x--)
+		SetTileWaterLevel(x, sz, wl);
+	xmin = x + 1;
+	for(x = sx + 1; IsFillableWithWater(x, sz, wl); x++)
+		SetTileWaterLevel(x, sz, wl);
+	xmax = x - 1;
+
+	// 2. Check above and below the line to fill additional lines.
+	for(x = xmin; x <= xmax; x++)
+	{
+		FillLineWithWater(x, sz-1, wl);
+		FillLineWithWater(x, sz+1, wl);
+	}
+}
+
+void FloodfillWater()
+{
+	// Reset water height for every tile
+	for(int i = 0; i < mapwidth*mapheight; i++)
+		maptiles[i].waterlev = -1;
+
+	for(int i = 0; i < maplakes.len; i++)
+	{
+		Vector3 *lake = maplakes.getpnt(i);
+		FillLineWithWater(lake->x / 5, mapheight - lake->z / 5, lake->y);
+	}
+}
+
 void CreateMapPart(int x, int y, int w, int h)
 {
 	MapPart *p = mparts.addp();
@@ -288,6 +368,9 @@ if(usemaptexdb)
 	{
 		MapTile *t = &maptiles[(b+y)*mapwidth+a+x];
 		p->tpt[t->mt->tfid].add(t);
+
+		t->pl = p->tpt;
+		t->ple = p->tpt[t->mt->tfid].last;
 	}
 }
 	renderer->CreateMapPart(p, x, y, w, h);
@@ -335,6 +418,8 @@ void LoadMap(char *filename, int bitoff)
 		if(mrx)
 			CreateMapPart(mqx*mappartw, mqy*mapparth, mrx, mry);
 	}
+
+	FloodfillWater();
 }
 
 void DrawPart(MapPart *p)
@@ -377,6 +462,19 @@ boolean IsTileInScreen(MapTile *c)
 	v = Vector3(c->x+1, himap[(c->z+1)*(mapwidth+1)+c->x+1], c->z+1);
 	if(IsTPInScreen(v)) return 1;
 	v = Vector3(c->x, himap[(c->z+1)*(mapwidth+1)+c->x], c->z+1);
+	if(IsTPInScreen(v)) return 1;
+	return 0;
+}
+
+boolean IsWaterTileInScreen(MapTile *c)
+{
+	Vector3 v(c->x, c->waterlev, c->z);
+	if(IsTPInScreen(v)) return 1;
+	v = Vector3(c->x+1, c->waterlev, c->z);
+	if(IsTPInScreen(v)) return 1;
+	v = Vector3(c->x+1, c->waterlev, c->z+1);
+	if(IsTPInScreen(v)) return 1;
+	v = Vector3(c->x, c->waterlev, c->z+1);
 	if(IsTPInScreen(v)) return 1;
 	return 0;
 }
@@ -493,4 +591,76 @@ float GetHeight(float ipx, float ipy)
 	float h6 = h3 * (1.0f-qx) + h4 * qx;
 	float hr = h5 * (1.0f-qy) + h6 * qy;
 	return hr;
+}
+
+int lakedifcolor = 0x80FFFFFF;
+
+void DrawLakes()
+{
+	if(!usemaptexdb) return;
+
+	renderer->BeginLakeDrawing();
+
+	int cx = (int)camerapos.x / 5 + mapedge, cy = mapheight-2*mapedge-((int)camerapos.z / 5) + mapedge;
+
+	int px = cx / mappartw, py = cy / mapparth;
+
+	int sw = (farzvalue / (mappartw*5)) + 1;
+	int sh = (farzvalue / (mapparth*5)) + 1;
+
+
+	renderer->BeginBatchDrawing();
+	//SetTexture(0, gridtex);
+	NoTexture(0);
+
+	lakedifcolor = (mapfogcolor & 0xFFFFFF) | 0x80000000;
+
+	for(int dy = -sh; dy <= sh; dy++)
+	for(int dx = -sw; dx <= sw; dx++)
+	{
+		int tx = px + dx, ty = py + dy;
+		if(!((tx >= 0) && (tx < npartsw) && (ty >= 0) && (ty < npartsh)))
+			continue;
+		if(!IsPartInFrontOfCam(tx, ty))
+			continue;
+		MapPart *mp = mparts.getpnt(ty*npartsw+tx);
+		for(int i = 0; i < maptexfilenames.len; i++)
+		for(DynListEntry<MapTile*> *e = mp->tpt[i].first; e; e = e->next)
+		{
+			MapTile *c = e->value;
+			if(c->waterlev < 0) continue;
+			if(!IsWaterTileInScreen(c)) continue;
+
+			batchVertex *bv; ushort *bi; uint fi;
+			mapbatch->next(4, 6, &bv, &bi, &fi);
+
+			bv[0].x = c->x;
+			bv[0].y = c->waterlev;
+			bv[0].z = c->z;
+			bv[0].color = lakedifcolor;
+			bv[0].u = 0; bv[0].v = 0;
+
+			bv[1].x = c->x + 1;
+			bv[1].y = c->waterlev;
+			bv[1].z = c->z;
+			bv[1].color = lakedifcolor;
+			bv[1].u = 1; bv[1].v = 0;
+
+			bv[2].x = c->x + 1;
+			bv[2].y = c->waterlev;
+			bv[2].z = c->z + 1;
+			bv[2].color = lakedifcolor;
+			bv[2].u = 1; bv[2].v = 1;
+
+			bv[3].x = c->x;
+			bv[3].y = c->waterlev;
+			bv[3].z = c->z + 1;
+			bv[3].color = lakedifcolor;
+			bv[3].u = 0; bv[3].v = 1;
+
+			bi[0] = fi+0; bi[1] = fi+3; bi[2] = fi+1;
+			bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;
+		}
+	}
+	mapbatch->flush();
 }

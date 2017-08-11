@@ -34,7 +34,9 @@ Cursor *defcursor;
 boolean mouseRot = 0; int msrotx, msroty;
 boolean multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
-bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0;
+bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0;
+bool mapeditmode = 0;
+int mousetool = 0;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -115,6 +117,7 @@ MenuEntry menucmds[] = {
 {"Level information", CMD_SWLEVINFO},
 {"Level tree", CMD_SWLEVTREE},
 {"Object creation", CMD_SWOBJCREA},
+{"Map editor", CMD_SWMAPEDITOR},
 {0,0},
 {"About...", CMD_ABOUT},
 {0,0},
@@ -126,6 +129,11 @@ int orderButtY[6] = {	364,	354,	361,	384,	416,	448	};
 CObjectDefinition *objtypeToStampdown = 0;
 bool eventAfterStampdown = 0;
 goref playerToGiveStampdownObj;
+
+MapTextureGroup *curtexgrp = 0; MapTexture *curtex = 0;
+int men_rot = 0; bool men_xflip = 0, men_zflip = 0;
+boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
+int brushsize = 1; bool randommaptex = 0;
 
 void DrawTooltip()
 {
@@ -834,10 +842,12 @@ void CallCommand(int cmd)
 			swLevTree = !swLevTree; break;
 		case CMD_SWOBJCREA:
 			swObjCrea = !swObjCrea; break;
+		case CMD_SWMAPEDITOR:
+			swMapEditor = !swMapEditor; break;
 		case CMD_SWOPENALL:
-			swSelObj = swLevInfo = swLevTree = swObjCrea = 1; break;
+			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = 1; break;
 		case CMD_SWCLOSEALL:
-			swSelObj = swLevInfo = swLevTree = swObjCrea = 0; break;
+			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = 0; break;
 		case CMD_TOGGLEGRID:
 			showMapGrid = !showMapGrid; break;
 	}
@@ -901,8 +911,40 @@ void SetTargetCursor()
 	findertargetcommand = 0;
 }
 
+void ChangeTileTexture(MapTile *tile, MapTexture *newtex)
+{
+	MapTexture *oldtex = tile->mt;
+	tile->mt = newtex;
+	tile->pl[oldtex->tfid].move(tile->ple, &(tile->pl[newtex->tfid]));
+}
+
 void T7ClickWindow(void *param)
 {
+	if(mousetool)
+	{
+		mousetoolpress_l = 1;
+		switch(mousetool)
+		{
+		/*	case 1:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				printf("x=%i  z=%i\n", x, z);
+				MapTile *mt = &(maptiles[z * mapwidth + x]);
+				if(curtex) ChangeTileTexture(mt, curtex);
+				mt->rot = men_rot; mt->xflip = men_xflip; mt->zflip = men_zflip;
+				break;
+			}
+			case 2:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				himap[z * (mapwidth+1) + x] += 1.0f;
+				break;
+			}
+		*/
+		}
+		return;
+	}
+
 	if(objtypeToStampdown) objtypeToStampdown = 0;
 
 	if(!multiSel)
@@ -923,6 +965,32 @@ void T7ClickWindow(void *param)
 
 void T7RightClick(void *param)
 {
+	if(mousetool)
+	{
+		mousetoolpress_r = 1;
+		switch(mousetool)
+		{
+			case 1:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				//printf("x=%i  z=%i\n", x, z);
+				MapTile *mt = &(maptiles[z * mapwidth + x]);
+				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
+				curtexgrp = mt->mt->grp;
+				curtex = mt->mt;
+				break;
+			}
+		/*	case 2:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				himap[z * (mapwidth+1) + x] -= 1.0f;
+				break;
+			}
+		*/
+		}
+		return;
+	}
+
 	if(objtypeToStampdown)
 	if(playerToGiveStampdownObj.valid())
 	{
@@ -1685,6 +1753,99 @@ void IGAbout()
 	ImGui::End();
 }
 
+void IGMapEditor()
+{
+	if(!swMapEditor) return;
+	ImGui::Begin("Map editor", &swMapEditor);
+	ImGui::Text("Mode:"); ImGui::SameLine();
+	ImGui::RadioButton("Default##Mode", &mousetool, 0); ImGui::SameLine();
+	ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
+	ImGui::RadioButton("Vertex##Mode", &mousetool, 2);
+	ImGui::InputInt("Brush size", &brushsize);
+	if(ImGui::CollapsingHeader("General"))
+	{
+		float c[3];
+		for(int i = 0; i < 3; i++)
+			c[2-i] = ((mapsuncolor >> (8 * i)) & 255) / 255.0f;
+		if(ImGui::ColorEdit3("Sun color", c))
+		{
+			mapsuncolor = 0;
+			for(int i = 0; i < 3; i++)
+				mapsuncolor |= ((int)(c[2-i]*255) & 255) << (8 * i);
+		}
+		ImGui::InputFloat3("Sun vector", &mapsunvector.x);
+		for(int i = 0; i < 3; i++)
+			c[2-i] = ((mapfogcolor >> (8 * i)) & 255) / 255.0f;
+		if(ImGui::ColorEdit3("Fog color", c))
+		{
+			mapfogcolor = 0;
+			for(int i = 0; i < 3; i++)
+				mapfogcolor |= ((int)(c[2-i]*255) & 255) << (8 * i);
+		}
+		ImGui::InputText("Skybox", mapskytexdir, 255);
+	}
+	if(ImGui::CollapsingHeader("Texture"))
+	{
+		ImGui::PushItemWidth(-1);
+		ImGui::Text("Group:");
+		ImGui::ListBoxHeader("##Group");
+		for(int i = 0; i < maptexgroup.len; i++)
+		{
+			MapTextureGroup *g = maptexgroup.getpnt(i);
+			if(ImGui::Selectable(g->name, curtexgrp == g))
+				{curtexgrp = g; curtex = g->tex->getpnt(0);}
+		}
+		ImGui::ListBoxFooter();
+
+		ImGui::BeginChild("Texture", ImVec2(0,96), true, ImGuiWindowFlags_HorizontalScrollbar);
+		MapTextureGroup *g = curtexgrp;
+		if(g)
+		for(int i = 0; i < g->tex->len; i++)
+		{
+			MapTexture *t = g->tex->getpnt(i);
+			boolean ss = curtex == t;
+			ImGui::PushID(i);
+			if(ss)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1,0,0,1));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1,0.3f,0.3f,1));
+			}
+			if(ImGui::ImageButton((ImTextureID)t->t, ImVec2(64, 64), ImVec2(t->x/256.f, t->y/256.f), ImVec2((t->x+t->w)/256.f, (t->y+t->h)/256.f)))
+				curtex = t;
+			if(ImGui::IsItemHovered())
+				ImGui::SetTooltip("ID: %i", t->id);
+			if(ss) ImGui::PopStyleColor(2);
+			ImGui::PopID();
+			ImGui::SameLine();
+		}
+		ImGui::NewLine();
+		ImGui::EndChild();
+		ImGui::Text("Rotation:"); ImGui::SameLine();
+		ImGui::RadioButton("0°##rot", &men_rot, 0); ImGui::SameLine();
+		ImGui::RadioButton("90°##rot", &men_rot, 1); ImGui::SameLine();
+		ImGui::RadioButton("180°##rot", &men_rot, 2); ImGui::SameLine();
+		ImGui::RadioButton("270°##rot", &men_rot, 3);
+		ImGui::Text("Flip:"); ImGui::SameLine();
+		ImGui::Checkbox("X", &men_xflip); ImGui::SameLine();
+		ImGui::Checkbox("Z", &men_zflip);
+		ImGui::Checkbox("Randomize textures", &randommaptex);
+		ImGui::PopItemWidth();
+	}
+	if(ImGui::CollapsingHeader("Lakes"))
+	{
+		ImGui::PushItemWidth(-1);
+		//ImGui::ListBoxHeader("##LakesListBox");
+		for(int i = 0; i < maplakes.len; i++)
+		{
+			Vector3 *l = maplakes.getpnt(i);
+			ImGui::BulletText("%f %f %f", l->x, l->y, l->z);
+		}
+		//ImGui::ListBoxFooter();
+		ImGui::PopItemWidth();
+	}
+	ImGui::End();
+}
+
 void Test7()
 {
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
@@ -1814,6 +1975,7 @@ void Test7()
 			IGLevelInfo();
 			IGObjectCreation();
 			IGAbout();
+			IGMapEditor();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
@@ -1826,7 +1988,8 @@ void Test7()
 				DrawFont(scrw - 188, 0, st);
 			}
 
-			if(objtypeToStampdown && playerToGiveStampdownObj.valid()) ChangeCursor(buildcursor);
+			if(mousetool) ChangeCursor(defcursor);
+			else if(objtypeToStampdown && playerToGiveStampdownObj.valid()) ChangeCursor(buildcursor);
 			else SetTargetCursor();
 			DrawCursor();
 			EndDrawing();
@@ -2005,6 +2168,74 @@ void Test7()
 				SelectObject(msellist[i]);
 		}
 		msellist.clear();
+
+		if(!lmbPressed) mousetoolpress_l = 0;
+		if(!rmbPressed) mousetoolpress_r = 0;
+
+		if(mousetoolpress_l) switch(mousetool)
+		{
+			case 1:
+			{
+				int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
+				if(!curtex) break;
+				int m = brushsize/2;
+
+				for(int z = cz-m; z < cz-m+brushsize; z++)
+				if((z >= 0) && (z < mapheight))
+				for(int x = cx-m; x < cx-m+brushsize; x++)
+				if((x >= 0) && (x < mapwidth))
+				{
+					MapTile *mt = &(maptiles[z * mapwidth + x]);
+					ChangeTileTexture(mt, curtex);
+					mt->rot = men_rot;
+					mt->xflip = men_xflip; mt->zflip = men_zflip;
+					if(randommaptex)
+						curtex = curtexgrp->tex->getpnt(rand() % curtexgrp->tex->len);
+				}
+
+				break;
+			}
+			case 2:
+			{
+				int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
+				int m = brushsize/2;
+
+				for(int z = cz-m; z < cz-m+brushsize; z++)
+				if((z >= 0) && (z < mapheight+1))
+				for(int x = cx-m; x < cx-m+brushsize; x++)
+				if((x >= 0) && (x < mapwidth+1))
+					himap[z * (mapwidth+1) + x] += 1.0f;
+
+				break;
+			}
+		}
+
+		if(mousetoolpress_r) switch(mousetool)
+		{
+			case 1:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				//printf("x=%i  z=%i\n", x, z);
+				MapTile *mt = &(maptiles[z * mapwidth + x]);
+				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
+				curtexgrp = mt->mt->grp;
+				curtex = mt->mt;
+				break;
+			}
+			case 2:
+			{
+				int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
+				int m = brushsize/2;
+
+				for(int z = cz-m; z < cz-m+brushsize; z++)
+				if((z >= 0) && (z < mapheight+1))
+				for(int x = cx-m; x < cx-m+brushsize; x++)
+				if((x >= 0) && (x < mapwidth+1))
+					himap[z * (mapwidth+1) + x] -= 1.0f;
+
+				break;
+			}
+		}
 
 	if(experimentalKeys)
 	{

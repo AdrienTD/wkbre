@@ -93,6 +93,7 @@ struct IRenderer
 	virtual void FreeMapPart(MapPart *p) = 0;
 	virtual void BeginMapDrawing() = 0;
 	virtual void DrawPart(MapPart *p) = 0;
+	virtual void BeginLakeDrawing() = 0;
 
 	// 3D Mesh drawing
 	virtual void CreateMesh(Mesh *m) = 0;

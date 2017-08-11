@@ -23,7 +23,7 @@ bool keypressed[256];
 
 int scrw = 640, scrh = 480;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
-int mouseX = 0, mouseY = 0; boolean lmbPressed = 0;
+int mouseX = 0, mouseY = 0; boolean lmbPressed = 0, rmbPressed = 0, mmbPressed = 0;
 int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 1, reqRender = 1;
 voidfunc onClickWindow = 0;
 int winMinimized = 0;
@@ -80,6 +80,7 @@ void GUIMouseRightClick()
 	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
 	if(io.WantCaptureMouse) return;
 
+	rmbPressed = 1;
 	if(actsubmenu)
 		if(!IsPointInRect(actsubmenu->posx, actsubmenu->posy, actsubmenu->width, actsubmenu->height, mouseX, mouseY))
 			actsubmenu->enabled = 0;
@@ -104,7 +105,9 @@ void GUIMouseRightRelease()
 	ImGuiIO &io = ImGui::GetIO();
 	io.MouseDown[1] = false;
 	////if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
-	//if(io.WantCaptureMouse) return;
+	if(io.WantCaptureMouse) return;
+
+	rmbPressed = 0;
 }
 
 void GUIKeyDown(int key)

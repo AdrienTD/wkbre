@@ -627,6 +627,13 @@ void InitImGuiDrawing()
 	SetTransformMatrix(&m);
 }
 
+void BeginLakeDrawing()
+{
+	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+	ddev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+	ddev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+}
+
 };
 
 IRenderer *CreateD3D9Renderer() {return new D3D9Renderer;}

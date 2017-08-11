@@ -25,7 +25,7 @@ extern int drawfps, drawframes, objsdrawn;
 extern int HWVPenabled, VSYNCenabled, numBackBuffers, reqRender;
 extern IDirect3DDevice9 *ddev;
 extern int scrw, scrh;
-extern int mouseX, mouseY; extern boolean lmbPressed;
+extern int mouseX, mouseY; extern boolean lmbPressed, rmbPressed;
 extern voidfunc onClickWindow;
 extern int winMinimized;
 extern int fullscreen;

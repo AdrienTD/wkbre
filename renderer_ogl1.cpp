@@ -517,6 +517,12 @@ void InitImGuiDrawing()
 	glLoadMatrixf(m.v);
 }
 
+void BeginLakeDrawing()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
 };
 
 IRenderer *CreateOGL1Renderer() {return new OGL1Renderer;}

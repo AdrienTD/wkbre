@@ -171,5 +171,16 @@ void LoadMapTextures()
 			ReadMapTextureGroup(&fp, word);
 	}
 
+	// Set the MapTexture::grp element.
+	for(int i = 0; i < maptexgroup.len; i++)
+	{
+		MapTextureGroup *g = maptexgroup.getpnt(i);
+		for(int j = 0; j < g->tex->len; j++)
+		{
+			MapTexture *t = g->tex->getpnt(j);
+			t->grp = g;
+		}
+	}
+
 	free(file);
 }

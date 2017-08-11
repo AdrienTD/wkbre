@@ -1,9 +1,12 @@
+struct MapTextureGroup;
+
 struct MapTexture
 {
 	int id;
 	int x, y, w, h;
 	texture t;
 	int tfid;
+	MapTextureGroup *grp;
 };
 
 struct MapTextureGroup

@@ -408,6 +408,7 @@ if(experimentalKeys) {
 		SetMatrices(Vector3(5.0f, 1.0f, -5.0f), nullvector, Vector3(-mapedge*5,0,+mapheight*5-mapedge*5));
 		SetTransformMatrix(&matrix);
 		DrawMap();
+		DrawLakes();
 	}
 	drawdebug = 0;
 	if(fogenabled) DisableFog();
