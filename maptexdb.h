@@ -1,4 +1,12 @@
 struct MapTextureGroup;
+struct MapTexture;
+
+struct MapTextureEdge
+{
+	MapTexture *tex;
+	uint rot; uint xflip, zflip;
+	// NOTE: Using memcmp with "boolean" types is dangerous!
+};
 
 struct MapTexture
 {
@@ -7,6 +15,7 @@ struct MapTexture
 	texture t;
 	int tfid;
 	MapTextureGroup *grp;
+	GrowList<MapTextureEdge> *atdir; // pointer to GrowList<MapTextureEdge>[4]
 };
 
 struct MapTextureGroup

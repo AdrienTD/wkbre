@@ -18,6 +18,7 @@
 #include <time.h>
 #include <process.h>
 #include <mbstring.h>
+#include <direct.h>
 #include "imgui/imgui.h"
 
 HINSTANCE hInstance;
@@ -918,6 +919,73 @@ void ChangeTileTexture(MapTile *tile, MapTexture *newtex)
 	tile->pl[oldtex->tfid].move(tile->ple, &(tile->pl[newtex->tfid]));
 }
 
+void DoXFlip(MapTile *t)
+{
+	if(t->rot & 1) t->zflip ^= 1;
+	else t->xflip ^= 1;
+}
+
+void DoZFlip(MapTile *t)
+{
+	if(t->rot & 1) t->xflip ^= 1;
+	else t->zflip ^= 1;
+}
+
+void FindAutotileC(int tx, int tz, boolean we, boolean star, MapTextureGroup *ag) // we=0:NORTH-SOUTH, we=1:WEST-EAST
+{
+	if(we) {if((tx <= 0) || (tx >= mapwidth -1)) return;}
+	else   {if((tz <= 0) || (tz >= mapheight-1)) return;}
+	MapTile *mto = &(maptiles[tz*mapwidth+tx]);
+	if(mto->mt->grp == ag) return;
+	MapTile *mtn = &(maptiles[we ? (tz*mapwidth+tx-1) : ((tz-1)*mapwidth+tx)]);
+	MapTile *mts = &(maptiles[we ? (tz*mapwidth+tx+1) : ((tz+1)*mapwidth+tx)]);
+	MapTile *oriref = star ? mts : mtn;
+	GrowList<MapTextureEdge> *gl0 = &mtn->mt->atdir[we ? MAPTEXDIR_EAST : MAPTEXDIR_SOUTH];
+	GrowList<MapTextureEdge> *gl1 = &mts->mt->atdir[we ? MAPTEXDIR_WEST : MAPTEXDIR_NORTH];
+	GrowList<MapTextureEdge*> reslist;
+	for(int i = 0; i < gl0->len; i++)
+	{
+		MapTextureEdge *e0 = gl0->getpnt(i);
+		for(int j = 0; j < gl1->len; j++)
+		{
+			MapTextureEdge *e1 = gl1->getpnt(j);
+			if(!memcmp(e0, e1, sizeof(MapTextureEdge)))
+				reslist.add(e0);
+		}
+	}
+	if(reslist.len)
+	{
+		MapTextureEdge *e = reslist[rand() % reslist.len];
+		ChangeTileTexture(mto, e->tex);
+
+		MapTile oc = *oriref;
+		mto->xflip = e->xflip;
+		mto->zflip = e->zflip;
+		mto->rot = e->rot;
+		if(oc.rot >= 2) {oc.rot -= 2; oc.xflip = !oc.xflip; oc.zflip = !oc.zflip;}
+		if(oc.zflip) DoZFlip(mto);
+		mto->rot = (mto->rot + oc.rot) & 3;
+	}
+}
+
+void DrawATS(int x, int z)
+{
+	MapTile *mt = &(maptiles[z * mapwidth + x]);
+	if(curtex) ChangeTileTexture(mt, curtex);
+	mt->rot = 0; mt->xflip = 0; mt->zflip = 0;
+
+	FindAutotileC(x-1, z, 1, 1, mt->mt->grp);
+	FindAutotileC(x+1, z, 1, 0, mt->mt->grp);
+	FindAutotileC(x, z-1, 0, 1, mt->mt->grp);
+	FindAutotileC(x, z+1, 0, 0, mt->mt->grp);
+	FindAutotileC(x-1, z-1, 0, 1, mt->mt->grp);
+	FindAutotileC(x+1, z-1, 0, 1, mt->mt->grp);
+	FindAutotileC(x-1, z+1, 0, 0, mt->mt->grp);
+	FindAutotileC(x+1, z+1, 0, 0, mt->mt->grp);
+}
+
+int lakemove_mousey_ref; float lakemove_waterlev_ref; Vector3 *lakemove_sellake = 0;
+
 void T7ClickWindow(void *param)
 {
 	if(mousetool)
@@ -941,6 +1009,52 @@ void T7ClickWindow(void *param)
 				break;
 			}
 		*/
+			case 3:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				maplakes.add();
+				Vector3 *l = &maplakes.last->value;
+				l->x = 5 * x + 2.5f;
+				l->z = 5 * (mapheight - z) + 2.5f;
+				float c1 = himap[z * (mapwidth+1) + x];
+				float c2 = himap[z * (mapwidth+1) + x+1];
+				float c3 = himap[(z+1) * (mapwidth+1) + x];
+				float c4 = himap[(z+1) * (mapwidth+1) + x+1];
+				l->y = (c1 + c2 + c3 + c4) / 4.0f + 2.5f;
+				FloodfillWater();
+				lakemove_mousey_ref = mouseY;
+				lakemove_waterlev_ref = l->y;
+				lakemove_sellake = l;
+				break;
+			}
+			case 4:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				MapTile *t = &(maptiles[z * mapwidth + x]);
+				if(t->lake)
+				{
+					maplakes.remove(t->lake);
+					FloodfillWater();
+				}
+				break;
+			}
+			case 5:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				MapTile *t = &(maptiles[z * mapwidth + x]);
+				if(t->lake)
+				{
+					lakemove_mousey_ref = mouseY;
+					lakemove_waterlev_ref = t->lake->value.y;
+					lakemove_sellake = &t->lake->value;
+				}
+				else	lakemove_sellake = 0;
+				break;
+			}
+			case 47:
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				DrawATS(x, z);
+				break;
 		}
 		return;
 	}
@@ -978,6 +1092,9 @@ void T7RightClick(void *param)
 				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
 				curtexgrp = mt->mt->grp;
 				curtex = mt->mt;
+				men_rot = mt->rot;
+				men_xflip = mt->xflip;
+				men_zflip = mt->zflip;
 				break;
 			}
 		/*	case 2:
@@ -986,6 +1103,12 @@ void T7RightClick(void *param)
 				himap[z * (mapwidth+1) + x] -= 1.0f;
 				break;
 			}
+		*/
+		/*
+			case 47:
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				FindAutotile(x, z, 1);
+				break;
 		*/
 		}
 		return;
@@ -1303,7 +1426,7 @@ void IGSelectedObject()
 			else
 			{
 				if(ImGui::DragFloat3("Position##Advanced", &o->position.x, 0.1f))
-					GOPosChanged(o, 0);
+					GOPosChanged(o, 0, 0);
 				ImGui::DragFloat2("Orientation##Advanced", &o->orientation.x, 0.1f);
 				ImGui::DragFloat3("Scale##Advanced", &o->scale.x, 0.1f);
 			}
@@ -1757,10 +1880,26 @@ void IGMapEditor()
 {
 	if(!swMapEditor) return;
 	ImGui::Begin("Map editor", &swMapEditor);
-	ImGui::Text("Mode:"); ImGui::SameLine();
+	if(ImGui::Button("Save"))
+	{
+		char p[512];
+		strcpy(p, gamedir);
+		strcat(p, "\\saved");			_mkdir(p);
+		strcat(p, "\\Maps");			_mkdir(p);
+		strcat(p, "\\wkbre_SavedMapTest");	_mkdir(p);
+
+		strcat(p, "\\wkbre_SavedMapTest.snr");
+		SaveMapSNR(p);
+	}
+	ImGui::Text("Tool:"); ImGui::SameLine();
 	ImGui::RadioButton("Default##Mode", &mousetool, 0); ImGui::SameLine();
 	ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
 	ImGui::RadioButton("Vertex##Mode", &mousetool, 2);
+	ImGui::RadioButton("Adrien##Mode", &mousetool, 47);
+	ImGui::Text("Lake:"); ImGui::SameLine();
+	ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
+	ImGui::RadioButton("Remove##Mode", &mousetool, 4); ImGui::SameLine();
+	ImGui::RadioButton("Move##Mode", &mousetool, 5);
 	ImGui::InputInt("Brush size", &brushsize);
 	if(ImGui::CollapsingHeader("General"))
 	{
@@ -1834,10 +1973,15 @@ void IGMapEditor()
 	if(ImGui::CollapsingHeader("Lakes"))
 	{
 		ImGui::PushItemWidth(-1);
-		//ImGui::ListBoxHeader("##LakesListBox");
-		for(int i = 0; i < maplakes.len; i++)
+		if(ImGui::Button("Clear##Lakes"))
 		{
-			Vector3 *l = maplakes.getpnt(i);
+			maplakes.clear();
+			FloodfillWater();
+		}
+		//ImGui::ListBoxHeader("##LakesListBox");
+		for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
+		{
+			Vector3 *l = &e->value;
 			ImGui::BulletText("%f %f %f", l->x, l->y, l->z);
 		}
 		//ImGui::ListBoxFooter();
@@ -2208,6 +2352,16 @@ void Test7()
 
 				break;
 			}
+			case 3:
+			case 5:
+				if(!lakemove_sellake) break;
+				lakemove_sellake->y = (lakemove_mousey_ref - mouseY) * 0.1f + lakemove_waterlev_ref;
+				FloodfillWater();
+				break;
+			case 47:
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				DrawATS(x, z);
+				break;
 		}
 
 		if(mousetoolpress_r) switch(mousetool)
@@ -2220,6 +2374,9 @@ void Test7()
 				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
 				curtexgrp = mt->mt->grp;
 				curtex = mt->mt;
+				men_rot = mt->rot;
+				men_xflip = mt->xflip;
+				men_zflip = mt->zflip;
 				break;
 			}
 			case 2:
@@ -2235,6 +2392,8 @@ void Test7()
 
 				break;
 			}
+			case 47:
+				break;
 		}
 
 	if(experimentalKeys)

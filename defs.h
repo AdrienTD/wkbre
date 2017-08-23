@@ -94,8 +94,9 @@ extern char *CCOMMAND_str[5];
 #define CBLUEPRINT_MISSILE_SPEED 18
 #define CBLUEPRINT_DISPLAYS_ITEM 19
 #define CBLUEPRINT_USE_FOOTPRINT 20
-#define CBLUEPRINT_NUM 21
-extern char *CBLUEPRINT_str[21];
+#define CBLUEPRINT_FLOATS_ON_WATER 21
+#define CBLUEPRINT_NUM 22
+extern char *CBLUEPRINT_str[22];
 #define VALUE_CONSTANT 0
 #define VALUE_DEFINED_VALUE 1
 #define VALUE_ITEM_VALUE 2
@@ -651,3 +652,9 @@ extern char *BUILDINGTYPE_str[12];
 #define PDITEM_NUM 8
 extern char *PDITEM_str[8];
 extern char* PDITEM_tab0[8];
+#define MAPTEXDIR_NORTH 0
+#define MAPTEXDIR_EAST 1
+#define MAPTEXDIR_SOUTH 2
+#define MAPTEXDIR_WEST 3
+#define MAPTEXDIR_NUM 4
+extern char *MAPTEXDIR_str[4];

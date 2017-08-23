@@ -23,7 +23,7 @@ int mapwidth, mapheight, mapedge, mapnverts, mapfogcolor; float maphiscale;
 float *himap = 0;
 MapTile *maptiles;
 int mapsuncolor; Vector3 mapsunvector;
-GrowList<Vector3> maplakes;
+DynList<Vector3> maplakes;
 char mapskytexdir[256];
 
 char lastmap[256];
@@ -120,7 +120,8 @@ void LoadMapBCM(char *filename, int bitoff)
 	int mapnlakes = readnb(6);
 	for(int i = 0; i < mapnlakes; i++)
 	{
-		Vector3 *v = maplakes.addp(); int j;
+		maplakes.add();
+		Vector3 *v = &maplakes.last->value; int j;
 		j = readnb(32); v->x = *(float*)&j;
 		j = readnb(32); v->y = *(float*)&j;
 		j = readnb(32); v->z = *(float*)&j;
@@ -224,7 +225,7 @@ void LoadMapSNR(char *filename)
 		else if(!strcmp(word[0], "SCENARIO_SKY_TEXTURES_DIRECTORY"))
 			strcpy_s(mapskytexdir, 255, word[1]);
 		else if(!strcmp(word[0], "SCENARIO_LAKE"))
-			*(maplakes.addp()) = Vector3(atof(word[1]), atof(word[2]), atof(word[3]));
+			{maplakes.add(); maplakes.last->value = Vector3(atof(word[1]), atof(word[2]), atof(word[3]));}
 	}
 	free(fcnt);
 
@@ -288,17 +289,24 @@ pcxreadend:
 	free(fcnt);
 }
 
-void SetTileWaterLevel(int sx, int sz, float wl)
+void SetTileWaterLevel(int sx, int sz, float wl, DynListEntry<Vector3> *lake)
 {
 	MapTile *t = &(maptiles[sz*mapwidth+sx]);
 	t->waterlev = wl;
+	t->lake = lake;
+
+	if(wl > himap[sz*(mapwidth+1)+sx])
+	if(wl > himap[sz*(mapwidth+1)+sx+1])
+	if(wl > himap[(sz+1)*(mapwidth+1)+sx])
+	if(wl > himap[(sz+1)*(mapwidth+1)+sx+1])
+		t->fullWater = 1;
 }
 
 boolean IsFillableWithWater(int sx, int sz, float wl)
 {
 	if((sx < 0) || (sx >= mapwidth) || (sz < 0) || (sz >= mapheight)) return 0;
 	MapTile *t = &(maptiles[sz*mapwidth+sx]);
-	if(wl <= t->waterlev)
+	if(t->lake) if(wl <= t->waterlev)
 		return 0;
 	if(wl <= himap[sz*(mapwidth+1)+sx])
 	if(wl <= himap[sz*(mapwidth+1)+sx+1])
@@ -308,26 +316,26 @@ boolean IsFillableWithWater(int sx, int sz, float wl)
 	return 1;
 }
 
-void FillLineWithWater(int sx, int sz, float wl)
+void FillLineWithWater(int sx, int sz, float wl, DynListEntry<Vector3> *lake)
 {
 	//if((sx < 0) || (sx >= mapwidth) || (sz < 0) || (sz >= mapheight)) return;
 	if(!IsFillableWithWater(sx, sz, wl)) return;
-	SetTileWaterLevel(sx, sz, wl);
+	SetTileWaterLevel(sx, sz, wl, lake);
 
 	// 1. Fill the line.
 	int x, xmin, xmax;
 	for(x = sx - 1; IsFillableWithWater(x, sz, wl); x--)
-		SetTileWaterLevel(x, sz, wl);
+		SetTileWaterLevel(x, sz, wl, lake);
 	xmin = x + 1;
 	for(x = sx + 1; IsFillableWithWater(x, sz, wl); x++)
-		SetTileWaterLevel(x, sz, wl);
+		SetTileWaterLevel(x, sz, wl, lake);
 	xmax = x - 1;
 
 	// 2. Check above and below the line to fill additional lines.
 	for(x = xmin; x <= xmax; x++)
 	{
-		FillLineWithWater(x, sz-1, wl);
-		FillLineWithWater(x, sz+1, wl);
+		FillLineWithWater(x, sz-1, wl, lake);
+		FillLineWithWater(x, sz+1, wl, lake);
 	}
 }
 
@@ -335,12 +343,16 @@ void FloodfillWater()
 {
 	// Reset water height for every tile
 	for(int i = 0; i < mapwidth*mapheight; i++)
-		maptiles[i].waterlev = -1;
-
-	for(int i = 0; i < maplakes.len; i++)
 	{
-		Vector3 *lake = maplakes.getpnt(i);
-		FillLineWithWater(lake->x / 5, mapheight - lake->z / 5, lake->y);
+		maptiles[i].waterlev = -1;
+		maptiles[i].lake = 0;
+		maptiles[i].fullWater = 0;
+	}
+
+	for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
+	{
+		Vector3 *lake = &e->value;
+		FillLineWithWater(lake->x / 5, mapheight - lake->z / 5, lake->y, e);
 	}
 }
 
@@ -628,7 +640,7 @@ void DrawLakes()
 		for(DynListEntry<MapTile*> *e = mp->tpt[i].first; e; e = e->next)
 		{
 			MapTile *c = e->value;
-			if(c->waterlev < 0) continue;
+			if(!c->lake) continue;
 			if(!IsWaterTileInScreen(c)) continue;
 
 			batchVertex *bv; ushort *bi; uint fi;
@@ -663,4 +675,52 @@ void DrawLakes()
 		}
 	}
 	mapbatch->flush();
+}
+
+void SaveMapSNR(char *filename)
+{
+	char tbuf[512];
+	char *fnwoext = strdup(filename);
+	char *ext = strrchr(fnwoext, '.');
+	if(ext) *ext = 0;
+	//char *bs = strrchr(fnwoext, '\\'), *fs = strrchr(fnwoext, '/');
+	//char *namewop;
+	//if((bs) && (bs > fs)) namewop = bs + 1;
+	//else if(fs) namewop = fs + 1;
+	//else namewop = fnwoext;
+
+	FILE *fsnr = fopen(filename, "w"); if(!fsnr) ferr("Cannot open \"%s\" for writing scenario.", filename);
+	fprintf(fsnr, "SCENARIO_VERSION 4.00\n");
+	fprintf(fsnr, "SCENARIO_DIMENSIONS %u %u\n", mapwidth, mapheight);
+	fprintf(fsnr, "SCENARIO_EDGE_WIDTH %u\n", mapedge);
+	fprintf(fsnr, "SCENARIO_TEXTURE_DATABASE \"Maps\\Map_Textures\\All_Textures.dat\"\n");
+	fprintf(fsnr, "SCENARIO_TERRAIN \"%s.trn\"\n", fnwoext);
+	fprintf(fsnr, "SCENARIO_HEIGHTMAP \"%s_heightmap.pcx\"\n", fnwoext);
+	fprintf(fsnr, "SCENARIO_HEIGHT_SCALE_FACTOR %f\n", maphiscale);
+	fprintf(fsnr, "SCENARIO_SUN_COLOUR %u %u %u\n", (mapsuncolor>>16)&255, (mapsuncolor>>8)&255, mapsuncolor&255);
+	fprintf(fsnr, "SCENARIO_SUN_VECTOR %f %f %f\n", mapsunvector.x, mapsunvector.y, mapsunvector.z);
+	fprintf(fsnr, "SCENARIO_FOG_COLOUR %u %u %u\n", (mapfogcolor>>16)&255, (mapfogcolor>>8)&255, mapfogcolor&255);
+	fprintf(fsnr, "SCENARIO_SKY_TEXTURES_DIRECTORY \"%s\"\n", mapskytexdir);
+	fprintf(fsnr, "SCENARIO_MINIMAP \"%s_minimap.pcx\"\n", fnwoext);
+	for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
+	{
+		Vector3 *l = &e->value;
+		fprintf(fsnr, "SCENARIO_LAKE %f %f %f 0.0000\n", l->x, l->y, l->z);
+	}
+	fclose(fsnr);
+
+	sprintf(tbuf, "%s.trn", fnwoext);
+	FILE *ftrn = fopen(tbuf, "w"); if(!ftrn) ferr("Cannot open \"%s\" for writing terrain.", tbuf);
+	for(int i = 0; i < mapwidth*mapheight; i++)
+	{
+		MapTile *t = &(maptiles[i]);
+		fprintf(ftrn, "X\t%u\tZ\t%u\tGROUP\t\"%s\"\tID\t%i\tROTATION\t%u\tXFLIP\t%u\tZFLIP\t%u\n", 
+			t->x + 1, mapheight - t->z, t->mt->grp->name, t->mt->id, t->rot, t->xflip, t->zflip);
+	}
+	fclose(ftrn);
+
+	sprintf(tbuf, "%s_heightmap.pcx", fnwoext);
+	// ...
+
+	free(fnwoext);
 }

@@ -35,12 +35,12 @@ struct MapTile
 	uint rot, xflip, zflip;
 	uint x, z;
 	DynList<MapTile*> *pl; DynListEntry<MapTile*> *ple;
-	float waterlev;
+	float waterlev; DynListEntry<Vector3> *lake; uint fullWater;
 };
 
 extern int mapwidth, mapheight, mapedge, mapfogcolor; extern float maphiscale;
 extern int mapsuncolor; extern Vector3 mapsunvector;
-extern GrowList<Vector3> maplakes;
+extern DynList<Vector3> maplakes;
 extern char mapskytexdir[256];
 extern char lastmap[256];
 
@@ -58,3 +58,5 @@ void LoadMap(char *filename, int bitoff = 0);
 void DrawMap();
 float GetHeight(float ipx, float ipy);
 void DrawLakes();
+void FloodfillWater();
+void SaveMapSNR(char *filename);

@@ -73,7 +73,7 @@ char *CCOMMAND_str[5] = {
 "BLUEPRINT_TOOLTIP",
 "START_SEQUENCE",
 };
-char *CBLUEPRINT_str[21] = {
+char *CBLUEPRINT_str[22] = {
 "ITEM",
 "STARTS_WITH_ITEM",
 "BLUEPRINT_TOOLTIP",
@@ -95,6 +95,7 @@ char *CBLUEPRINT_str[21] = {
 "MISSILE_SPEED",
 "DISPLAYS_ITEM",
 "USE_FOOTPRINT",
+"FLOATS_ON_WATER",
 };
 char *VALUE_str[47] = {
 "CONSTANT",
@@ -670,4 +671,10 @@ char* PDITEM_tab0[8] = {
 "Hit Point Capacity",
 "Hit Points Of Object Being Spawned",
 "Hit Point Capacity Of Object Being Spawned",
+};
+char *MAPTEXDIR_str[4] = {
+"NORTH",
+"EAST",
+"SOUTH",
+"WEST",
 };

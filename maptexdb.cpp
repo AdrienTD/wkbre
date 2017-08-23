@@ -115,10 +115,40 @@ void AddMapTexture(MapTextureGroup *g, char **word)
 	}
 }
 
-void ReadMapTexture(char **pntfp, char **fstline, MapTextureGroup *g)
+void ReadMapTextureP1(char **pntfp, char **fstline, MapTextureGroup *g)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	GrowList<MapTextureEdge> *atdir = new GrowList<MapTextureEdge>[4];
+	int tix = g->tex->len; int nt = 1;
 	AddMapTexture(g, fstline);
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!strcmp(word[0], "END_TEXTURE"))
+		{
+			for(int i = tix; i < (tix + nt); i++)
+				g->tex->getpnt(i)->atdir = atdir;
+			return;
+		}
+
+		if(!strcmp(word[0], "MATCHING"))
+			{AddMapTexture(g, word); nt++;}
+	}
+	ferr("UEOF");
+}
+
+void ReadMapTextureP2(char **pntfp, char **fstline, MapTextureGroup *g)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+	int curdir = 0; int tid = atoi(fstline[6]); MapTexture *t = 0;
+	for(int i = 0; i < g->tex->len; i++)
+		if(g->tex->getpnt(i)->id == tid)
+			{t = g->tex->getpnt(i); break;}
+	if(!t) ferr(":''");
+	GrowList<MapTextureEdge> *atdir = t->atdir;
+
 	while(**pntfp)
 	{
 		*pntfp = GetLine(*pntfp, wwl);
@@ -127,13 +157,38 @@ void ReadMapTexture(char **pntfp, char **fstline, MapTextureGroup *g)
 		if(!strcmp(word[0], "END_TEXTURE"))
 			return;
 
-		if(!strcmp(word[0], "MATCHING"))
-			AddMapTexture(g, word);
+		if(!strcmp(word[0], "EDGE"))
+		{
+			MapTextureGroup *eg = 0;
+			for(int i = 0; i < maptexgroup.len; i++)
+				if(!strcmp(word[2], maptexgroup.getpnt(i)->name))
+					{eg = maptexgroup.getpnt(i); break;}
+			if(!eg) {printf("Unknown texture group %s in texture database autotiling edge.", word[2]); continue;}
+			//if(!eg) continue;
+			MapTexture *et = 0; int it = atoi(word[3]);
+			for(int i = 0; i < eg->tex->len; i++)
+				if(eg->tex->getpnt(i)->id == it)
+					{et = eg->tex->getpnt(i); break;}
+			if(!et) {printf("Unknown texture id %i in group %s in texture database autotiling edge.\n", it, eg->name); continue;}
+			//if(!et) continue;
+			MapTextureEdge *edge = atdir[curdir].addp();
+			edge->tex = et;
+			edge->rot = atoi(word[4]);
+			edge->xflip = atoi(word[5]);
+			edge->zflip = atoi(word[6]);
+		}
+
+		for(int i = 0; i < 4; i++)
+		if(!strcmp(word[0], MAPTEXDIR_str[i])) // NORTH, EAST, SOUTH, WEST
+		{
+			curdir = i;
+			break;
+		}
 	}
 	ferr("UEOF");
 }
 
-void ReadMapTextureGroup(char **pntfp, char **fstline)
+void ReadMapTextureGroupP1(char **pntfp, char **fstline)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
 	MapTextureGroup *g = maptexgroup.addp();
@@ -148,7 +203,31 @@ void ReadMapTextureGroup(char **pntfp, char **fstline)
 			return;
 
 		if(!strcmp(word[0], "TEXTURE"))
-			ReadMapTexture(pntfp, word, g);
+			ReadMapTextureP1(pntfp, word, g);
+	}
+	ferr("UEOF");
+}
+
+void ReadMapTextureGroupP2(char **pntfp, char **fstline)
+{
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
+
+	MapTextureGroup *g = 0;
+	for(int i = 0; i < maptexgroup.len; i++)
+		if(!strcmp(fstline[1], maptexgroup.getpnt(i)->name))
+			{g = maptexgroup.getpnt(i); break;}
+	if(!g) ferr("Unknown texture database group in 2nd pass, should not happen.");
+
+	while(**pntfp)
+	{
+		*pntfp = GetLine(*pntfp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+		if(!strcmp(word[0], "END_GROUP"))
+			return;
+
+		if(!strcmp(word[0], "TEXTURE"))
+			ReadMapTextureP2(pntfp, word, g);
 	}
 	ferr("UEOF");
 }
@@ -159,8 +238,10 @@ void LoadMapTextures()
 	LoadFile("Maps\\Map_Textures\\All_Textures.dat", &file, &fs, 1);
 	file[fs] = 0;
 
-	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
-	char *fp = file;
+	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE], *fp; int nwords;
+
+	// 1st pass
+	fp = file;
 	while(*fp)
 	{
 		fp = GetLine(fp, wwl);
@@ -168,7 +249,7 @@ void LoadMapTextures()
 		if(!nwords) continue;
 
 		if(!strcmp(word[0], "TEXTURE_GROUP"))
-			ReadMapTextureGroup(&fp, word);
+			ReadMapTextureGroupP1(&fp, word);
 	}
 
 	// Set the MapTexture::grp element.
@@ -180,6 +261,18 @@ void LoadMapTextures()
 			MapTexture *t = g->tex->getpnt(j);
 			t->grp = g;
 		}
+	}
+
+	// 2nd pass
+	fp = file;
+	while(*fp)
+	{
+		fp = GetLine(fp, wwl);
+		nwords = GetWords(wwl, word);
+		if(!nwords) continue;
+
+		if(!strcmp(word[0], "TEXTURE_GROUP"))
+			ReadMapTextureGroupP2(&fp, word);
 	}
 
 	free(file);

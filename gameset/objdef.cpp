@@ -346,10 +346,12 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 						objdef[x].itemsDisplayed.add(d);
 				break;}
 			case CBLUEPRINT_USE_FOOTPRINT:
-				int d = strFootprint.find(word[1]);
+				{int d = strFootprint.find(word[1]);
 				if(d != -1)
 					objdef[x].footprint = &(gsfootprint[d]);
-				break;
+				break;}
+			case CBLUEPRINT_FLOATS_ON_WATER:
+				objdef[x].floatsOnWater = 1; break;
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

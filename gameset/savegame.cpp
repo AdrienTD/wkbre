@@ -1081,7 +1081,7 @@ GameObject *DuplicateObject(GameObject *a)
 {
 	GameObject *o = CreateObject(a->objdef, a->parent);
 	o->position = a->position; o->orientation = a->orientation; o->scale = a->scale;
-	GOPosChanged(o);
+	GOPosChanged(o, 0, 0);
 	o->subtype = a->subtype; o->appearance = a->appearance;
 	for(DynListEntry<GOItem> *e = a->item.first; e; e = e->next)
 		{o->item.add(); o->item.last->value = e->value;}

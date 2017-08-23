@@ -57,8 +57,23 @@ void ResetITiles()
 	PutObjsInITiles(levelobj);
 }
 
-void GOPosChanged(GameObject *o, boolean sendEvents)
+void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
 {
+	if(autoHeight)
+	{
+		o->position.y = GetHeight(o->position.x, o->position.z);
+		if((o->objdef->type != CLASS_CHARACTER) || o->objdef->floatsOnWater)
+		{
+			int tx = o->position.x / 5 + mapedge, tz = mapheight - o->position.z / 5 - mapedge;
+			if((tz < 0) || (tz >= mapheight) || (tx < 0) || (tx >= mapwidth))
+				return;
+			float wl = maptiles[tz*mapwidth+tx].waterlev;
+			if(wl >= 0)
+				if(wl > o->position.y)
+					o->position.y = wl;
+		}
+	}
+
 	if(!itiles) return;
 	int x, z;
 	x = o->position.x / 5; z = o->position.z / 5;

@@ -728,10 +728,218 @@ void Test26()
 	}
 }
 
-#define NUMTESTS 26
+MapTextureGroup *seltexgrp[2] = {0,0};
+MapTexture *seltex[2] = {0,0}, *autotex = 0;
+int selrot[2] = {0,0}, atrot;
+bool selxflip[2] = {0,0}, selzflip[2] = {0,0}, atxflip, atzflip;
+GrowList<MapTextureEdge*> atlist;
+MapTextureEdge *autote = 0;
+
+int TransformEdge(int edge, int rot, boolean xflip, boolean zflip)
+{
+	int d = (edge + rot) & 3;
+	if(xflip) if(!(d&1)) d ^= 2;
+	if(zflip) if(d&1) d ^= 2;
+	return d;
+}
+
+void DoAutotile()
+{
+	atlist.clear(); autote = 0; autotex = 0;
+	if(!(seltex[0] && seltex[1])) return;
+	int da, db;
+	GrowList<MapTextureEdge> *gle0 = &seltex[0]->atdir[da = TransformEdge(MAPTEXDIR_SOUTH, -selrot[0], selxflip[0], selzflip[0])];
+	GrowList<MapTextureEdge> *gle1 = &seltex[1]->atdir[db = TransformEdge(MAPTEXDIR_NORTH, -selrot[1], selxflip[1], selzflip[1])];
+	printf("N:%i\nS:%i\n", da, db);
+	for(int i = 0; i < gle0->len; i++)
+	{
+		MapTextureEdge *e0 = gle0->getpnt(i);
+		for(int j = 0; j < gle1->len; j++)
+		{
+			MapTextureEdge *e1 = gle1->getpnt(j);
+			if(!memcmp(e0, e1, sizeof(MapTextureEdge)))
+			{
+				atlist.add(e0);
+			/*
+				autotex = e0->tex;
+				atrot = e0->rot;
+				atxflip = e0->xflip;
+				atzflip = e0->zflip;
+				return;
+			*/
+			}
+		}
+	}
+}
+
+void IGAutotileTest()
+{
+if(ImGui::CollapsingHeader("Autotile explorer"))
+{
+	for(int i = 0; i < maptexgroup.len; i++)
+	{
+		MapTextureGroup *g = maptexgroup.getpnt(i);
+		if(ImGui::TreeNode(g->name))
+		{
+			for(int j = 0; j < g->tex->len; j++)
+			{
+				MapTexture *t = g->tex->getpnt(j);
+				if(ImGui::TreeNode((void*)j, "%i", t->id))
+				{
+					for(int k = 0; k < 4; k++)
+					{
+						if(ImGui::TreeNode((void*)k, "%s (%i elements)", MAPTEXDIR_str[k], t->atdir[k].len))
+						{
+							for(int l = 0; l < t->atdir[k].len; l++)
+							{
+								MapTextureEdge *e = t->atdir[k].getpnt(l);
+								ImGui::Text("%s %i, Rot:%i XFlip:%i ZFlip:%i", e->tex->grp->name, e->tex->id, e->rot, e->xflip, e->zflip);
+							}
+							ImGui::TreePop();
+						}
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+	}
+}
+if(ImGui::CollapsingHeader("Autotile test"))
+{
+	ImGui::Columns(2);
+	for(int n = 0; n < 2; n++)
+	{
+		ImGui::PushItemWidth(-1);
+		ImGui::PushID(n);
+		ImGui::TextColored(n ? ImVec4(0,1,1,1) : ImVec4(1,0,1,1), n ? "--- South ---" : "--- North---");
+		ImGui::Text("Group:");
+		ImGui::ListBoxHeader("##Group");
+		for(int i = 0; i < maptexgroup.len; i++)
+		{
+			MapTextureGroup *g = maptexgroup.getpnt(i);
+			if(ImGui::Selectable(g->name, seltexgrp[n] == g))
+				{seltexgrp[n] = g; seltex[n] = g->tex->getpnt(0);}
+		}
+		ImGui::ListBoxFooter();
+
+		ImGui::BeginChild(n ? "Texture1" : "Texture0", ImVec2(0,96), true, ImGuiWindowFlags_HorizontalScrollbar);
+		MapTextureGroup *g = seltexgrp[n];
+		if(g)
+		for(int i = 0; i < g->tex->len; i++)
+		{
+			MapTexture *t = g->tex->getpnt(i);
+			boolean ss = seltex[n] == t;
+			ImGui::PushID(i);
+			if(ss)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1,0,0,1));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1,0.3f,0.3f,1));
+			}
+			if(ImGui::ImageButton((ImTextureID)t->t, ImVec2(64, 64), ImVec2(t->x/256.f, t->y/256.f), ImVec2((t->x+t->w)/256.f, (t->y+t->h)/256.f)))
+				seltex[n] = t;
+			if(ImGui::IsItemHovered())
+				ImGui::SetTooltip("ID: %i", t->id);
+			if(ss) ImGui::PopStyleColor(2);
+			ImGui::PopID();
+			ImGui::SameLine();
+		}
+		ImGui::NewLine();
+		ImGui::EndChild();
+
+		ImGui::Text("Rotation:"); ImGui::SameLine();
+		ImGui::RadioButton("0°##rot", &selrot[n], 0); ImGui::SameLine();
+		ImGui::RadioButton("90°##rot", &selrot[n], 1); ImGui::SameLine();
+		ImGui::RadioButton("180°##rot", &selrot[n], 2); ImGui::SameLine();
+		ImGui::RadioButton("270°##rot", &selrot[n], 3);
+		ImGui::Text("Flip:"); ImGui::SameLine();
+		ImGui::Checkbox("X", &selxflip[n]); ImGui::SameLine();
+		ImGui::Checkbox("Z", &selzflip[n]);
+
+		ImGui::PopID();
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+	}
+	ImGui::Columns(1);
+	ImGui::Separator();
+	ImGui::TextColored(ImVec4(0,1,0,1), "--- Autotile ---");
+	if(ImGui::Button("Find"))
+		DoAutotile();
+
+	ImGui::BeginChild("AutotileResult", ImVec2(0,96), true, ImGuiWindowFlags_HorizontalScrollbar);
+	for(int i = 0; i < atlist.len; i++)
+	{
+		MapTextureEdge *e = atlist[i];
+		MapTexture *t = e->tex;
+		boolean ss = e == autote;
+		ImGui::PushID(i);
+		if(ss)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1,0,0,1));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1,0.3f,0.3f,1));
+		}
+		if(ImGui::ImageButton((ImTextureID)t->t, ImVec2(64, 64), ImVec2(t->x/256.f, t->y/256.f), ImVec2((t->x+t->w)/256.f, (t->y+t->h)/256.f)))
+		{
+			autote = e;
+			autotex = e->tex;
+			atrot = e->rot;
+			atxflip = e->xflip;
+			atzflip = e->zflip;
+		}
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("%s %i\nRot:%i XFlip:%i ZFlip:%i", t->grp->name, t->id, e->rot, e->xflip, e->zflip);
+		if(ss) ImGui::PopStyleColor(2);
+		ImGui::PopID();
+		ImGui::SameLine();
+	}
+	ImGui::NewLine();
+	ImGui::EndChild();
+
+	for(int i = 0; i < 3; i++)
+	{
+		MapTexture *t = (i==0) ? seltex[0] : ((i==1) ? autotex : seltex[1]);
+		if(t)
+		{
+			ImGui::Image((ImTextureID)t->t, ImVec2(64, 64), ImVec2(t->x/256.f, t->y/256.f), ImVec2((t->x+t->w)/256.f, (t->y+t->h)/256.f));
+			ImGui::SameLine();
+			ImGui::BeginGroup();
+			if(i==0)	ImGui::TextColored(ImVec4(1,0,1,1), "North");
+			else if(i==1)	ImGui::TextColored(ImVec4(0,1,0,1), "Autotile");
+			else if(i==2)	ImGui::TextColored(ImVec4(0,1,1,1), "South");
+			ImGui::Text("%s %i", t->grp->name, t->id);
+			if(i==1) ImGui::Text("Rot:%i XFlip:%i ZFlip:%i", atrot, atxflip, atzflip);
+			else ImGui::Text("Rot:%i XFlip:%i ZFlip:%i", selrot[i/2], selxflip[i/2], selzflip[i/2]);
+			ImGui::EndGroup();
+		}
+	}
+}
+}
+
+void Test27()
+{
+	scrw = 1024; scrh = 768;
+	LoadBCP("data.bcp"); InitWindow();
+	ImGuiImpl_Init();
+	LoadMapTextures();
+	//mapfogcolor = 0xFF204080;
+
+	while(!appexit)
+	{
+		ImGuiImpl_NewFrame();
+		IGAutotileTest();
+
+		BeginDrawing();
+		renderer->InitImGuiDrawing();
+		ImGui::Render();
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+#define NUMTESTS 27
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25, Test26};
+ Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25, Test26, Test27};
 
 void RunTest()
 {

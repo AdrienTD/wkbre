@@ -194,7 +194,16 @@ struct ValueWaterBeneath : public CValue
 	ValueWaterBeneath(CFinder *a) : f(a) {}
 	valuetype get(SequenceEnv *env)
 	{
-		// TODO: Rewrite when water implemented.
+		// Returns 1 if at least one object is on water.
+		f->begin(env);
+		while(GameObject *o = f->getnext())
+		{
+			int tx = o->position.x / 5 + mapedge;
+			int tz = mapheight - (o->position.z / 5 + mapedge);
+			MapTile *mt = &(maptiles[tz * mapwidth + tx]);
+			if(mt->lake) if(mt->fullWater)
+				return 1;
+		}
 		return 0;
 	}
 };
