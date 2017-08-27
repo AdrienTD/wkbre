@@ -130,11 +130,12 @@ int orderButtY[6] = {	364,	354,	361,	384,	416,	448	};
 CObjectDefinition *objtypeToStampdown = 0;
 bool eventAfterStampdown = 0;
 goref playerToGiveStampdownObj;
+float stampdownRot = 0;
 
 MapTextureGroup *curtexgrp = 0; MapTexture *curtex = 0;
 int men_rot = 0; bool men_xflip = 0, men_zflip = 0;
 boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
-int brushsize = 1; bool randommaptex = 0;
+int brushsize = 1, brushshape = 0; bool randommaptex = 0;
 
 void DrawTooltip()
 {
@@ -308,7 +309,8 @@ void ResetPosition(GameObject *o)
 		ResetPosition(&e->value);
 	if((o->objdef->type == CLASS_BUILDING) || (o->objdef->type == CLASS_CHARACTER) ||
 	   (o->objdef->type == CLASS_CONTAINER) || (o->objdef->type == CLASS_PROP))
-		o->position.y = GetHeight(o->position.x, o->position.z);
+		GOPosChanged(o, 0, 1);
+		//o->position.y = GetHeight(o->position.x, o->position.z);
 }
 
 void RemoveObjOfClass(GameObject *o, int c)
@@ -664,6 +666,14 @@ void CallCommand(int cmd)
 			}
 		} break;
 		case CMD_ROTATEOBJQP:
+			if(objtypeToStampdown)
+			 if(playerToGiveStampdownObj.valid())
+			{
+				stampdownRot += M_PI / 2;
+				if(stampdownRot >= 2*M_PI)
+					stampdownRot -= M_PI * 2;
+				break;
+			}
 			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 			if(e->value.valid())
 			{
@@ -912,6 +922,113 @@ void SetTargetCursor()
 	findertargetcommand = 0;
 }
 
+void CopyHeightmap()
+{
+	if(!OpenClipboard(0)) return;
+	EmptyClipboard();
+
+	int pitch = ((mapwidth+1)&3) ? (((mapwidth+1)&(~3))+4) : (mapwidth+1);
+	int rppl = pitch - (mapwidth + 1);
+	HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, sizeof(BITMAPINFOHEADER) + 4*256 + pitch*(mapheight+1));
+	BITMAPINFO *bi = (BITMAPINFO*)GlobalLock(hg);
+	BITMAPINFOHEADER &head = bi->bmiHeader;
+	int *pal = (int*)&bi->bmiColors;
+	char *bmp = (char*)bi + sizeof(BITMAPINFOHEADER) + 4*256;
+
+	head.biSize = sizeof(BITMAPINFOHEADER);
+	head.biWidth = mapwidth+1;
+	head.biHeight = mapheight+1;
+	head.biPlanes = 1;
+	head.biBitCount = 8;
+	head.biCompression = BI_RGB;
+	head.biSizeImage = 0;
+	head.biXPelsPerMeter = 0;
+	head.biYPelsPerMeter = 0;
+	head.biClrUsed = 256; // GIMP hates 0. Also determining biClrUsed automatically can be annoying.
+	head.biClrImportant = 0;
+	for(int i = 0; i < 256; i++)
+		pal[i] = i | (i << 8) | (i << 16);
+	for(int y = 0; y <= mapheight; y++)
+	{
+		memcpy(bmp + y*pitch, himap_byte + (mapheight-y)*(mapwidth+1), mapwidth+1);
+		memset(bmp + y*pitch + mapwidth+1, 0, rppl);
+	}
+
+	GlobalUnlock(hg);
+	SetClipboardData(CF_DIB, hg);
+	CloseClipboard();
+}
+
+void PasteHeightmap()
+{
+	OpenClipboard(0);
+	HGLOBAL hg = GetClipboardData(CF_DIB);
+	if(!hg)
+	{
+		MessageBox(hWindow, "Could not obtain clipboard data. Be sure you copied a bitmap.", appName, 48);
+		CloseClipboard(); return;
+	}
+	BITMAPINFO *bi = (BITMAPINFO*)GlobalLock(hg);
+	BITMAPINFOHEADER &head = bi->bmiHeader;
+	if((head.biWidth != mapwidth+1) || (head.biHeight != mapheight+1))
+		MessageBox(hWindow, "The bitmap to be pasted does not match map size.", appName, 48);
+	else
+	{
+		if((head.biCompression != BI_RGB) ||
+			( (head.biBitCount != 8) &&
+			  (head.biBitCount != 24) &&
+			  (head.biBitCount != 32) ))
+			MessageBox(hWindow, "Clipboard bitmap's format/compression is not supported.", appName, 48);
+		else
+		{
+			int pitch;
+			int biClrUsed = head.biClrUsed;
+			if(!biClrUsed) if(head.biBitCount == 8) biClrUsed = 256;
+			uchar *bmp = (uchar*)bi + head.biSize + 4 * biClrUsed;
+			int *pal = (int*)((char*)bi + head.biSize);
+			switch(head.biBitCount)
+			{
+				case 8:
+					pitch = ((mapwidth+1)&3) ? (((mapwidth+1)&(~3))+4) : (mapwidth+1);
+					for(int y = 0; y <= mapheight; y++)
+					for(int x = 0; x <= mapwidth; x++)
+					{
+						uchar c = bmp[y*pitch+x];
+						uint p = pal[c];
+						uint m = ((p&255) + ((p>>8)&255) + ((p>>16)&255)) / 3;
+						himap_byte[(mapheight-y)*(mapwidth+1)+x] = m;
+					}
+					break;
+				case 24:
+					pitch = (((mapwidth+1)*3)&3) ? ((((mapwidth+1)*3)&(~3))+4) : ((mapwidth+1)*3);
+					for(int y = 0; y <= mapheight; y++)
+					for(int x = 0; x <= mapwidth; x++)
+					{
+						uchar c1 = bmp[y*pitch+x*3+0];
+						uchar c2 = bmp[y*pitch+x*3+1];
+						uchar c3 = bmp[y*pitch+x*3+2];
+						himap_byte[(mapheight-y)*(mapwidth+1)+x] = (c1 + c2 + c3) / 3;
+					}
+					break;
+				case 32:
+					pitch = (mapwidth+1) * 4;
+					for(int y = 0; y <= mapheight; y++)
+					for(int x = 0; x <= mapwidth; x++)
+					{
+						uint c = bmp[y*pitch+x*4];
+						uint m = ((c&255) + ((c>>8)&255) + ((c>>16)&255)) / 3;
+						himap_byte[(mapheight-y)*(mapwidth+1)+x] = m;
+					}
+					break;
+			}
+			for(int i = 0; i < (mapwidth+1)*(mapheight+1); i++)
+				himap[i] = (float)himap_byte[i] * maphiscale;
+		}
+	}
+	GlobalUnlock(hg);
+	CloseClipboard();
+}
+
 void ChangeTileTexture(MapTile *tile, MapTexture *newtex)
 {
 	MapTexture *oldtex = tile->mt;
@@ -985,6 +1102,62 @@ void DrawATS(int x, int z)
 }
 
 int lakemove_mousey_ref; float lakemove_waterlev_ref; Vector3 *lakemove_sellake = 0;
+uchar vertexflatten_ref;
+
+void ApplyBrush(boolean rclick)
+{
+	int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
+	int m = brushsize/2;
+
+	for(int z = cz-m; z < cz-m+brushsize; z++)
+	if((z >= 0) && (z < mapheight+1))
+	for(int x = cx-m; x < cx-m+brushsize; x++)
+	if((x >= 0) && (x < mapwidth+1))
+	{
+		if(brushshape == 1)
+			if( ((x-cx)*(x-cx) + (z-cz)*(z-cz)) > (m*m))
+				continue;
+		if(!rclick) switch(mousetool)
+		{
+			case 1:
+			{
+				if(!curtex) break;
+				if((x == mapwidth) || (z == mapheight)) break;
+				MapTile *mt = &(maptiles[z * mapwidth + x]);
+				ChangeTileTexture(mt, curtex);
+				mt->rot = men_rot;
+				mt->xflip = men_xflip; mt->zflip = men_zflip;
+				if(randommaptex)
+					curtex = curtexgrp->tex->getpnt(rand() % curtexgrp->tex->len);
+				break;
+			}
+			case 2:
+			{
+				int i = z * (mapwidth+1) + x;
+				if(himap_byte[i] < 255) himap_byte[i] += 1;
+				himap[i] = (float)himap_byte[i] * maphiscale;
+				break;
+			}
+			case 6:
+			{
+				int i = z * (mapwidth+1) + x;
+				himap_byte[i] = vertexflatten_ref;
+				himap[i] = (float)himap_byte[i] * maphiscale;
+				break;
+			}
+		}
+		else switch(mousetool)
+		{
+			case 2:
+			{
+				int i = z * (mapwidth+1) + x;
+				if(himap_byte[i] > 0) himap_byte[i] -= 1;
+				himap[i] = (float)himap_byte[i] * maphiscale;
+				break;
+			}
+		}
+	}
+}
 
 void T7ClickWindow(void *param)
 {
@@ -993,22 +1166,6 @@ void T7ClickWindow(void *param)
 		mousetoolpress_l = 1;
 		switch(mousetool)
 		{
-		/*	case 1:
-			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
-				printf("x=%i  z=%i\n", x, z);
-				MapTile *mt = &(maptiles[z * mapwidth + x]);
-				if(curtex) ChangeTileTexture(mt, curtex);
-				mt->rot = men_rot; mt->xflip = men_xflip; mt->zflip = men_zflip;
-				break;
-			}
-			case 2:
-			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
-				himap[z * (mapwidth+1) + x] += 1.0f;
-				break;
-			}
-		*/
 			case 3:
 			{
 				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
@@ -1049,6 +1206,12 @@ void T7ClickWindow(void *param)
 					lakemove_sellake = &t->lake->value;
 				}
 				else	lakemove_sellake = 0;
+				break;
+			}
+			case 6:
+			{
+				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				vertexflatten_ref = himap_byte[z * (mapwidth+1) + x];
 				break;
 			}
 			case 47:
@@ -1097,13 +1260,6 @@ void T7RightClick(void *param)
 				men_zflip = mt->zflip;
 				break;
 			}
-		/*	case 2:
-			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
-				himap[z * (mapwidth+1) + x] -= 1.0f;
-				break;
-			}
-		*/
 		/*
 			case 47:
 				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
@@ -1119,6 +1275,7 @@ void T7RightClick(void *param)
 	{
 		GameObject *o = CreateObject(objtypeToStampdown, playerToGiveStampdownObj.get());
 		o->position = stdownpos;
+		o->orientation = Vector3(0, stampdownRot, 0);
 		GOPosChanged(o, 0);
 		if(eventAfterStampdown)
 		{
@@ -1416,7 +1573,7 @@ void IGSelectedObject()
 				if(ImGui::DragFloat2("Position##Basic", &v.x, 0.1f))
 				{
 					o->position.x = v.x; o->position.z = v.y;
-					o->position.y = GetHeight(v.x, v.y);
+					//o->position.y = GetHeight(v.x, v.y);
 					GOPosChanged(o, 0);
 				}
 				ImGui::SliderAngle("Orientation##Basic", &o->orientation.y, 0);
@@ -1876,32 +2033,57 @@ void IGAbout()
 	ImGui::End();
 }
 
+char newmapname[128] = "wkbre_NewMap";
+
 void IGMapEditor()
 {
 	if(!swMapEditor) return;
 	ImGui::Begin("Map editor", &swMapEditor);
+	ImGui::InputText("Name", newmapname, sizeof(newmapname)-1);
 	if(ImGui::Button("Save"))
 	{
-		char p[512];
+		char p[768];
 		strcpy(p, gamedir);
 		strcat(p, "\\saved");			_mkdir(p);
 		strcat(p, "\\Maps");			_mkdir(p);
-		strcat(p, "\\wkbre_SavedMapTest");	_mkdir(p);
+		strcat(p, "\\"); strcat(p, newmapname);	_mkdir(p);
 
-		strcat(p, "\\wkbre_SavedMapTest.snr");
-		SaveMapSNR(p);
+		strcat(p, "\\"); strcat(p, newmapname); strcat(p, ".snr");
+		if(_access(p, 0) != -1)
+		{
+			if(MessageBox(hWindow, "The map name already exists. Do you want to overwrite the map?", appName, 48 | MB_YESNO) == IDYES)
+				SaveMapSNR(p);
+		}
+		else	SaveMapSNR(p);
 	}
-	ImGui::Text("Tool:"); ImGui::SameLine();
-	ImGui::RadioButton("Default##Mode", &mousetool, 0); ImGui::SameLine();
+	ImGui::SameLine();
+	if(ImGui::Button("Set"))
+		sprintf(lastmap, "Maps\\%s\\%s.snr", newmapname, newmapname);
+	ImGui::Text("Heightmap:"); ImGui::SameLine();
+	if(ImGui::Button("Copy"))
+		CopyHeightmap();
+	ImGui::SameLine();
+	if(ImGui::Button("Paste"))
+		PasteHeightmap();
+	ImGui::Separator();
+	//ImGui::Text("Misc:"); ImGui::SameLine();
+	ImGui::RadioButton("Default##Mode", &mousetool, 0);
+	ImGui::Text("Texture:"); ImGui::SameLine();
 	ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
-	ImGui::RadioButton("Vertex##Mode", &mousetool, 2);
-	ImGui::RadioButton("Adrien##Mode", &mousetool, 47);
+	ImGui::RadioButton("Autotiles##Mode", &mousetool, 47);
+	ImGui::Text("Vertex:"); ImGui::SameLine();
+	ImGui::RadioButton("Elevate##Mode", &mousetool, 2); ImGui::SameLine();
+	ImGui::RadioButton("Flatten##Mode", &mousetool, 6);
 	ImGui::Text("Lake:"); ImGui::SameLine();
 	ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
-	ImGui::RadioButton("Remove##Mode", &mousetool, 4); ImGui::SameLine();
-	ImGui::RadioButton("Move##Mode", &mousetool, 5);
+	ImGui::RadioButton("Move##Mode", &mousetool, 5); ImGui::SameLine();
+	ImGui::RadioButton("Remove##Mode", &mousetool, 4);
+	ImGui::Separator();
 	ImGui::InputInt("Brush size", &brushsize);
-	if(ImGui::CollapsingHeader("General"))
+	ImGui::Text("Brush shape:"); ImGui::SameLine();
+	ImGui::RadioButton("Square", &brushshape, 0); ImGui::SameLine();
+	ImGui::RadioButton("Circle", &brushshape, 1);
+	if(ImGui::CollapsingHeader("Properties"))
 	{
 		float c[3];
 		for(int i = 0; i < 3; i++)
@@ -2319,39 +2501,10 @@ void Test7()
 		if(mousetoolpress_l) switch(mousetool)
 		{
 			case 1:
-			{
-				int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
-				if(!curtex) break;
-				int m = brushsize/2;
-
-				for(int z = cz-m; z < cz-m+brushsize; z++)
-				if((z >= 0) && (z < mapheight))
-				for(int x = cx-m; x < cx-m+brushsize; x++)
-				if((x >= 0) && (x < mapwidth))
-				{
-					MapTile *mt = &(maptiles[z * mapwidth + x]);
-					ChangeTileTexture(mt, curtex);
-					mt->rot = men_rot;
-					mt->xflip = men_xflip; mt->zflip = men_zflip;
-					if(randommaptex)
-						curtex = curtexgrp->tex->getpnt(rand() % curtexgrp->tex->len);
-				}
-
-				break;
-			}
 			case 2:
-			{
-				int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
-				int m = brushsize/2;
-
-				for(int z = cz-m; z < cz-m+brushsize; z++)
-				if((z >= 0) && (z < mapheight+1))
-				for(int x = cx-m; x < cx-m+brushsize; x++)
-				if((x >= 0) && (x < mapwidth+1))
-					himap[z * (mapwidth+1) + x] += 1.0f;
-
+			case 6:
+				ApplyBrush(0);
 				break;
-			}
 			case 3:
 			case 5:
 				if(!lakemove_sellake) break;
@@ -2380,18 +2533,8 @@ void Test7()
 				break;
 			}
 			case 2:
-			{
-				int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
-				int m = brushsize/2;
-
-				for(int z = cz-m; z < cz-m+brushsize; z++)
-				if((z >= 0) && (z < mapheight+1))
-				for(int x = cx-m; x < cx-m+brushsize; x++)
-				if((x >= 0) && (x < mapwidth+1))
-					himap[z * (mapwidth+1) + x] -= 1.0f;
-
+				ApplyBrush(1);
 				break;
-			}
 			case 47:
 				break;
 		}

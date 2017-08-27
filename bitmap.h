@@ -34,3 +34,4 @@ Bitmap *ConvertBitmapToR8G8B8A8(Bitmap *sb);
 Bitmap *ConvertBitmapToB8G8R8A8(Bitmap *sb);
 void FreeBitmap(Bitmap *bm);
 void BitmapBlit32(Bitmap *db, int dx, int dy, Bitmap *sb, int sx, int sy, int sw, int sh);
+void SaveBitmapPCX(Bitmap *bm, char *fname);

@@ -44,7 +44,7 @@ extern DynList<Vector3> maplakes;
 extern char mapskytexdir[256];
 extern char lastmap[256];
 
-extern float *himap;
+extern float *himap; extern uchar *himap_byte;
 extern MapTile *maptiles;
 
 extern uint mappartw, mapparth;

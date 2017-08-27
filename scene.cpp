@@ -330,6 +330,7 @@ void DisableFog()
 
 extern CObjectDefinition *objtypeToStampdown;
 extern goref playerToGiveStampdownObj;
+extern float stampdownRot;
 
 void DrawScene()
 {
@@ -396,7 +397,7 @@ if(experimentalKeys) {
 		if(m)
 		{
 			renderer->BeginMeshDrawing();
-			SetMatrices(objtypeToStampdown->scale, nullvector, stdownpos);
+			SetMatrices(objtypeToStampdown->scale, Vector3(0,-stampdownRot,0), stdownpos);
 			SetTransformMatrix(&matrix);
 			m->draw(playerToGiveStampdownObj->color);
 		}

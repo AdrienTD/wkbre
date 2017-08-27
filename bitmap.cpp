@@ -113,10 +113,10 @@ Bitmap *LoadPCX(char *data, int ds)
 	bm->h = *((ushort*)&(data[10])) - *((ushort*)&(data[6])) + 1;
 	bm->form = (nplanes==3) ? BMFORMAT_R8G8B8 : BMFORMAT_P8;
 	bm->pix = (uchar*)malloc(bm->w * bm->h * nplanes);
-	int p = (bm->w & 1) ? (bm->w + 1) : bm->w;
+	int pitch = (bm->w & 1) ? (bm->w + 1) : bm->w;
 
 	uchar *f = (uchar*)data + 128, *o = bm->pix; int pp = 0;
-	while(pp < (bm->w * bm->h * nplanes))
+	while(pp < (bm->w * pitch * nplanes))
 	{
 		int a = *f++, c;
 		if(a >= 192)
@@ -125,14 +125,14 @@ Bitmap *LoadPCX(char *data, int ds)
 		for(; c > 0; c--)
 			{if(bm->w & 1)
 				if( (pp % (bm->w+1)) == bm->w)	
-					continue;
+					{pp++; continue;}
 			if(bm->form == BMFORMAT_P8)
 				*o++ = a;
 			else if(bm->form == BMFORMAT_R8G8B8)
 			{
-				int pl = (pp / bm->w) % 3;
-				int oy = (pp / bm->w) / 3;
-				int ox = pp % bm->w;
+				int pl = (pp / pitch) % 3;
+				int oy = (pp / pitch) / 3;
+				int ox = pp % pitch;
 				bm->pix[(oy*bm->w+ox)*3+pl] = a;
 			}
 			pp++;}
@@ -250,4 +250,76 @@ void BitmapBlit32(Bitmap *db, int dx, int dy, Bitmap *sb, int sx, int sy, int sw
 	for(int y = sy; y < (sy+sh); y++)
 	for(int x = sx; x < (sx+sw); x++)
 		((uint*)db->pix)[((y-sy+dy)*db->w+(x-sx+dx))] = ((uint*)sb->pix)[(y*sb->w+x)];
+}
+
+void write8(FILE *f, uchar a) {fwrite(&a, 1, 1, f);}
+void write16(FILE *f, ushort a) {fwrite(&a, 2, 1, f);}
+void write32(FILE *f, uint a) {fwrite(&a, 4, 1, f);}
+
+void WritePCXHeader(FILE *f, int w, int h, int np)
+{
+	int i;
+	write8(f, 10); write8(f, 5); write8(f, 1); write8(f, 8);
+	write32(f, 0);
+	write16(f, w-1); write16(f, h-1);
+	write16(f, w); write16(f, h);
+	for(i = 0; i < 12; i++) write32(f, 0);
+	write8(f, 0);
+	write8(f, np);
+	write16(f, w + (w&1));
+	write16(f, 1);
+	write16(f, 0);
+	for(i = 0; i < 14; i++) write32(f, 0);
+}
+
+void WritePCXData(FILE *f, uchar *pix, int w, int h, int np)
+{
+	int y, p, x;
+	for(y = 0; y < h; y++)
+	for(p = 0; p < np; p++)
+	{
+		uchar *sl = pix + y*w*np + p;
+		uchar *d = sl;
+		uchar o; // = *d;
+		int cnt = 1;
+		//d += np;
+		for(x = 0; x < w-1; x++)
+		{
+			o = *d;
+			d += np;
+			if((*d != o) || (cnt >= 63))
+			{
+				if((cnt > 1) | (o >= 0xC0))
+					write8(f, 0xC0 | cnt);
+				write8(f, o);
+				cnt = 1;
+			}
+			else cnt++;
+		}
+		if((cnt > 1) | (o >= 0xC0))
+			write8(f, 0xC0 | cnt);
+		write8(f, o);
+		if(w & 1) write8(f, 0);
+	}
+}
+
+void SaveBitmapPCX(Bitmap *bm, char *fname)
+{
+	FILE *f = fopen(fname, "wb"); if(!f) ferr("Cannot open \"%s\" for writing PCX file.", fname);
+	switch(bm->form)
+	{
+		case BMFORMAT_P8:
+			WritePCXHeader(f, bm->w, bm->h, 1);
+			WritePCXData(f, bm->pix, bm->w, bm->h, 1);
+			write8(f, 12);
+			fwrite(bm->pal, 768, 1, f);
+			break;
+		case BMFORMAT_R8G8B8:
+			WritePCXHeader(f, bm->w, bm->h, 3);
+			WritePCXData(f, bm->pix, bm->w, bm->h, 3);
+			break;
+		default:
+			ferr("SaveBitmapPCX doesn't support format %i.", bm->form);
+	}
+	fclose(f);
 }

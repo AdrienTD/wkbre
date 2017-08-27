@@ -20,7 +20,7 @@
 #include "global.h"
 
 int mapwidth, mapheight, mapedge, mapnverts, mapfogcolor; float maphiscale;
-float *himap = 0;
+float *himap = 0; uchar *himap_byte = 0;
 MapTile *maptiles;
 int mapsuncolor; Vector3 mapsunvector;
 DynList<Vector3> maplakes;
@@ -112,7 +112,8 @@ void LoadMapBCM(char *filename, int bitoff)
 
 	mapnverts = (mapwidth+1)*(mapheight+1);
 	himap = (float*)malloc(mapnverts*sizeof(float));
-	if(!himap) ferr("No mem. left for heightmap.");
+	himap_byte = (uchar*)malloc(mapnverts);
+	if(!(himap && himap_byte)) ferr("No mem. left for heightmap.");
 
 	bytepos = fp + 0xC000; bitpos = 0;
 
@@ -188,7 +189,10 @@ void LoadMapBCM(char *filename, int bitoff)
 
 	// Heightmap
 	for(int i = 0; i < mapnverts; i++)
-		himap[i] = (float)((uchar)readnb(8)) * maphiscale;
+	{
+		himap_byte[i] = (uchar)readnb(8);
+		himap[i] = (float)himap_byte[i] * maphiscale;
+	}
 
 	free(fcnt);
 }
@@ -258,10 +262,12 @@ void LoadMapSNR(char *filename)
 	free(fcnt);
 notiles:
 	// Heightmap
-	LoadFile(sfnpcx, &fcnt, &fsize);
+	//LoadFile(sfnpcx, &fcnt, &fsize);
 	mapnverts = (mapwidth+1)*(mapheight+1);
 	himap = (float*)malloc(mapnverts*sizeof(float));
-	if(!himap) ferr("No mem. left for heightmap.");
+	himap_byte = (uchar*)malloc(mapnverts);
+	if(!(himap && himap_byte)) ferr("No mem. left for heightmap.");
+/*
 	fp = fcnt + 128;
 	int o = 0, q = 0;
 	//printf("--- PCX MAP LOADING ---\n");
@@ -286,7 +292,18 @@ notiles:
 	}
 pcxreadend:
 	//printf("--- END ---\n");
-	free(fcnt);
+*/
+	Bitmap *bm = LoadBitmap(sfnpcx);
+	if(bm->form != BMFORMAT_P8)
+		ferr("SNR heightmap must be an 8 bpp bitmap file!");
+	if((bm->w != mapwidth + 1) || (bm->h != mapheight + 1))
+		ferr("SNR heightmap bitmap has size (%i, %i), but (%i, %i) is expected.", bm->w, bm->h, mapwidth+1, mapheight+1);
+	memcpy(himap_byte, bm->pix, mapnverts);
+	for(int i = 0; i < mapnverts; i++)
+		himap[i] = (float)himap_byte[i] * maphiscale;
+	FreeBitmap(bm);
+
+//	free(fcnt);
 }
 
 void SetTileWaterLevel(int sx, int sz, float wl, DynListEntry<Vector3> *lake)
@@ -683,25 +700,26 @@ void SaveMapSNR(char *filename)
 	char *fnwoext = strdup(filename);
 	char *ext = strrchr(fnwoext, '.');
 	if(ext) *ext = 0;
-	//char *bs = strrchr(fnwoext, '\\'), *fs = strrchr(fnwoext, '/');
-	//char *namewop;
-	//if((bs) && (bs > fs)) namewop = bs + 1;
-	//else if(fs) namewop = fs + 1;
-	//else namewop = fnwoext;
+
+	char *bs = strrchr(fnwoext, '\\'), *fs = strrchr(fnwoext, '/');
+	char *namewop;
+	if((bs) && (bs > fs)) namewop = bs + 1;
+	else if(fs) namewop = fs + 1;
+	else namewop = fnwoext;
 
 	FILE *fsnr = fopen(filename, "w"); if(!fsnr) ferr("Cannot open \"%s\" for writing scenario.", filename);
 	fprintf(fsnr, "SCENARIO_VERSION 4.00\n");
 	fprintf(fsnr, "SCENARIO_DIMENSIONS %u %u\n", mapwidth, mapheight);
 	fprintf(fsnr, "SCENARIO_EDGE_WIDTH %u\n", mapedge);
 	fprintf(fsnr, "SCENARIO_TEXTURE_DATABASE \"Maps\\Map_Textures\\All_Textures.dat\"\n");
-	fprintf(fsnr, "SCENARIO_TERRAIN \"%s.trn\"\n", fnwoext);
-	fprintf(fsnr, "SCENARIO_HEIGHTMAP \"%s_heightmap.pcx\"\n", fnwoext);
+	fprintf(fsnr, "SCENARIO_TERRAIN \"Maps\\%s\\%s.trn\"\n", namewop, namewop);
+	fprintf(fsnr, "SCENARIO_HEIGHTMAP \"Maps\\%s\\%s_heightmap.pcx\"\n", namewop, namewop);
 	fprintf(fsnr, "SCENARIO_HEIGHT_SCALE_FACTOR %f\n", maphiscale);
 	fprintf(fsnr, "SCENARIO_SUN_COLOUR %u %u %u\n", (mapsuncolor>>16)&255, (mapsuncolor>>8)&255, mapsuncolor&255);
 	fprintf(fsnr, "SCENARIO_SUN_VECTOR %f %f %f\n", mapsunvector.x, mapsunvector.y, mapsunvector.z);
 	fprintf(fsnr, "SCENARIO_FOG_COLOUR %u %u %u\n", (mapfogcolor>>16)&255, (mapfogcolor>>8)&255, mapfogcolor&255);
 	fprintf(fsnr, "SCENARIO_SKY_TEXTURES_DIRECTORY \"%s\"\n", mapskytexdir);
-	fprintf(fsnr, "SCENARIO_MINIMAP \"%s_minimap.pcx\"\n", fnwoext);
+	fprintf(fsnr, "SCENARIO_MINIMAP \"Maps\\%s\\%s_minimap.pcx\"\n", namewop, namewop);
 	for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
 	{
 		Vector3 *l = &e->value;
@@ -719,8 +737,35 @@ void SaveMapSNR(char *filename)
 	}
 	fclose(ftrn);
 
+	Bitmap bhm;
+	bhm.w = mapwidth + 1; bhm.h = mapheight + 1; bhm.form = BMFORMAT_P8;
+	bhm.pix = himap_byte;
+	bhm.pal = (uchar*)malloc(768);
+	for(int i = 0; i < 256; i++)
+		for(int j = 0; j < 3; j++)
+			bhm.pal[i*3+j] = i;
+
 	sprintf(tbuf, "%s_heightmap.pcx", fnwoext);
-	// ...
+	SaveBitmapPCX(&bhm, tbuf);
+	free(bhm.pal);
+
+	bhm.w = bhm.h = 128; bhm.form = BMFORMAT_R8G8B8;
+	bhm.pix = (uchar*)malloc(128*128*3); bhm.pal = 0;
+	int ltw = mapwidth - 2*mapedge;  int lvw = ltw + 1;
+	int lth = mapheight - 2*mapedge; int lvh = lth + 1;
+	for(int y = 0; y < 128; y++)
+	for(int x = 0; x < 128; x++)
+	{
+		int v = (y * lvh / 128 + mapedge) * (mapwidth+1) + x * lvw / 128 + mapedge;
+		int t = (y * lth / 128 + mapedge) * mapwidth + x * ltw / 128 + mapedge;
+		bhm.pix[3*(y*128+x)+0] = 0;
+		bhm.pix[3*(y*128+x)+1] = himap_byte[v] * 3 / 4 + 64;
+		bhm.pix[3*(y*128+x)+2] = maptiles[t].lake ? 255 /*bhm.pix[3*(y*128+x)+1]*/ : 0;
+	}
+
+	sprintf(tbuf, "%s_minimap.pcx", fnwoext);
+	SaveBitmapPCX(&bhm, tbuf);
+	free(bhm.pix);
 
 	free(fnwoext);
 }
