@@ -21,6 +21,6 @@ void LoadBCP(char *fn);
 void LoadFile(char *fn, char **out, int *outsize, int extraBytes = 0);
 //void TestBCP();
 int FileExists(char *fn);
-GrowStringList *ListFiles(char *dn);
+GrowStringList *ListFiles(char *dn, GrowStringList *gsl = 0);
 GrowStringList *ListDirectories(char *dn);
 //void SetGameDir();

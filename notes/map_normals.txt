@@ -1,0 +1,92 @@
+// OLD (1st try)
+
+u(1, a, 0) v(0, b, 1)
+
+o.x = u.y * v.z - u.z * v.y = a*1 - 0*b = a
+o.y = u.z * v.x - u.x * v.z = 0*0 - 1*1 = -1
+o.z = u.x * v.y - u.y * v.x = 1*b - a*0 = b
+
+u(-1, c, 0) v(0, d, 1)
+
+o.x = u.y * v.z - u.z * v.y = c*1 - 0*d = c
+o.y = u.z * v.x - u.x * v.z = 0*0 - (-1)*1 = +1
+o.z = u.x * v.y - u.y * v.x = (-1)*d - c*0 = -d
+
+u(-1, e, 0) v(0, f, -1)
+
+o.x = u.y * v.z - u.z * v.y = e*(-1) - 0*f = -e
+o.y = u.z * v.x - u.x * v.z = 0*0 - (-1)*(-1) = -1
+o.z = u.x * v.y - u.y * v.x = (-1)*f - e*0 = -f
+
+u(1, g, 0) v(0, h, -1)
+
+o.x = u.y * v.z - u.z * v.y = g*(-1) - 0*h = -g
+o.y = u.z * v.x - u.x * v.z = 0*0 - 1*(-1) = +1
+o.z = u.x * v.y - u.y * v.x = 1*h - g*0 = h
+
+a = g
+b = d
+c = e
+f = h
+
+n.x = a + c - c - a = 0
+
+n.x = -a + c
+
+
+//////////////////////
+
+// BEST
+
+u(0, a, 1) v(-1, b, 0)
+
+o.x = u.y * v.z - u.z * v.y = a*0 - 1*b = -b
+o.y = u.z * v.x - u.x * v.z = 1*(-1) - 0*0 = -1
+o.z = u.x * v.y - u.y * v.x = 0*b - a*(-1) = a
+
+u(-1, b, 0) v(0, c, -1)
+
+o.x = u.y * v.z - u.z * v.y = b*(-1) - 0*c = -b
+o.y = u.z * v.x - u.x * v.z = 0*0 - (-1)*(-1) = -1
+o.z = u.x * v.y - u.y * v.x = (-1)*c - b*0 = -c
+
+u(0, c, -1) v(1, d, 0)
+
+o.x = u.y * v.z - u.z * v.y = c*0 - (-1)*d = d
+o.y = u.z * v.x - u.x * v.z = (-1)*1 - 0*0 = -1
+o.z = u.x * v.y - u.y * v.x = 0*d - c*1 = -c
+
+u(1, d, 0) v(0, a, 1)
+
+o.x = u.y * v.z - u.z * v.y = d*1 - 0*a = d
+o.y = u.z * v.x - u.x * v.z = 0*0 - 1*1 = -1
+o.z = u.x * v.y - u.y * v.x = 1*a - d*0 = a
+
+n.x =  b + b - d - d = 2*b - 2*d = 2*(b-d)
+n.y =  1 + 1 + 1 + 1 = 4
+n.z = -a + c + c - a = 2*c - 2*a = 2*(c-a)
+
+n.x = b - d
+n.y = 2
+n.z = c - a
+
+//////////////////////
+
+void GetMapVertexNormal(Vector3 *out, int vx, int vz)
+{
+	Vector3 r(0,0,0);
+
+	float a, b, c, d, h;
+	h = himap[vz*(mapwidth+1)+vx];
+	if(vz > 0)         a = himap[(vz-1)*(mapwidth+1) +vx  ] - h;
+	if(vx > 0)         b = himap[ vz   *(mapwidth+1) +vx-1] - h;
+	if(vz < mapheight) c = himap[(vz+1)*(mapwidth+1) +vx  ] - h;
+	if(vx < mapwidth)  d = himap[ vz   *(mapwidth+1) +vx+1] - h;
+
+	if(vx > 0 && vz > 0)                r += Vector3( b, 1, -a);
+	if(vx > 0 && vz < mapheight)        r += Vector3( b, 1,  c);
+	if(vx < mapwidth && vz < mapheight) r += Vector3(-d, 1,  c);
+	if(vx < mapwidth && vz > 0)         r += Vector3(-d, 1, -a);
+
+	*out = r.normal();
+}

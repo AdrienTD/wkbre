@@ -141,6 +141,22 @@ public:
 		l->len++;
 	}
 
+	void movedown(DynListEntry<T> *b)
+	{
+		if(!b->next) return;
+		DynListEntry<T> *a = b->previous;
+		DynListEntry<T> *c = b->next;
+		DynListEntry<T> *d = c->next;
+		if(a) a->next = c;
+		c->previous = a;
+		c->next = b;
+		b->previous = c;
+		b->next = d;
+		if(d) d->previous = b;
+		if(first == b) first = c;
+		if(last == c) last = b;
+	}
+
 	DynList() {len = 0; first = last = 0;}
 	~DynList() {clear();}
 };

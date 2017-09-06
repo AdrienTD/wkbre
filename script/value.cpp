@@ -200,6 +200,8 @@ struct ValueWaterBeneath : public CValue
 		{
 			int tx = o->position.x / 5 + mapedge;
 			int tz = mapheight - (o->position.z / 5 + mapedge);
+			if(!(tx >= 0 && tx < mapwidth && tz >= 0 && tz < mapheight))
+				continue;
 			MapTile *mt = &(maptiles[tz * mapwidth + tx]);
 			if(mt->lake) if(mt->fullWater)
 				return 1;

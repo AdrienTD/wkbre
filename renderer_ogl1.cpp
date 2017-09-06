@@ -19,13 +19,45 @@
 #define glprocvalid(x) ( (((scpuint)(x)) < -1) || (((scpuint)(x)) > 3) )
 #ifndef GL_BGRA_EXT
 #define GL_BGRA_EXT 0x80E1
-
 #endif
 
 typedef BOOL (APIENTRY *gli_wglSwapIntervalEXT)(int n);
 typedef int (APIENTRY *gli_wglGetSwapIntervalEXT)();
 
+#ifndef DONT_USE_OWN_OPENGL_DEFINITIONS
+#define GLsizeiptrARB ucpuint
+#define GL_ARRAY_BUFFER_ARB 0x8892
+#define GL_ELEMENT_ARRAY_BUFFER_ARB 0x8893
+#define GL_STREAM_DRAW_ARB 0x88E0
+#define GL_STREAM_READ_ARB 0x88E1
+#define GL_STREAM_COPY_ARB 0x88E2
+#define GL_STATIC_DRAW_ARB 0x88E4
+#define GL_STATIC_READ_ARB 0x88E5
+#define GL_STATIC_COPY_ARB 0x88E6
+#define GL_DYNAMIC_DRAW_ARB 0x88E8
+#define GL_DYNAMIC_READ_ARB 0x88E9
+#define GL_DYNAMIC_COPY_ARB 0x88EA
+#define GL_READ_ONLY_ARB 0x88B8
+#define GL_WRITE_ONLY_ARB 0x88B9
+#define GL_READ_WRITE_ARB 0x88BA
+#endif
+
+typedef void  (APIENTRY *gli_glBindBufferARB)(GLenum target, GLuint buffer);
+typedef void  (APIENTRY *gli_glDeleteBuffersARB)(GLsizei n, /*const*/ GLuint *buffers);
+typedef void  (APIENTRY *gli_glGenBuffersARB)(GLsizei n, GLuint *buffers);
+typedef void  (APIENTRY *gli_glBufferDataARB)(GLenum target, GLsizeiptrARB size, /*const*/ void *data, GLenum usage);
+typedef void* (APIENTRY *gli_glMapBufferARB)(GLenum target, GLenum access);
+typedef GLboolean (APIENTRY *gli_glUnmapBufferARB)(GLenum target);
+
+gli_glBindBufferARB glBindBufferARB;
+gli_glDeleteBuffersARB glDeleteBuffersARB;
+gli_glGenBuffersARB glGenBuffersARB;
+gli_glBufferDataARB glBufferDataARB;
+gli_glMapBufferARB glMapBufferARB;
+gli_glUnmapBufferARB glUnmapBufferARB;
+
 HDC whdc; HGLRC glrc;
+bool rglUseBufferObjects = 1;
 
 void OGL1Quit()
 {
@@ -61,13 +93,104 @@ struct RBatchOGL1 : public RBatch
 	void flush()
 	{
 		if(!curverts) return;
-		for(int i = 0; i < curverts; i++)
-			vbuf[i].color = BGRA_TO_RGBA(vbuf[i].color);
+		//for(int i = 0; i < curverts; i++)
+		//	vbuf[i].color = BGRA_TO_RGBA(vbuf[i].color);
 		glVertexPointer(3, GL_FLOAT, sizeof(batchVertex), &vbuf->x);
 		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(batchVertex), &vbuf->color);
 		glTexCoordPointer(2, GL_FLOAT, sizeof(batchVertex), &vbuf->u);
 		glDrawElements(GL_TRIANGLES, curindis, GL_UNSIGNED_SHORT, ibuf);
 		curverts = curindis = 0;
+	}
+};
+
+void chkglerr()
+{/*
+	GLenum e = glGetError();
+	if(e != GL_NO_ERROR)
+		ferr("OpenGL error %04X.", e);*/
+}
+
+struct RBatchOGL1_BO : public RBatch
+{
+	GLuint vbuf, ibuf;
+	batchVertex *vlock;
+	ushort *ilock;
+	boolean locked;
+	//DynListEntry<RBatchOGL1_BO*> *rble;
+
+	~RBatchOGL1_BO()
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+		if(locked) unlock();
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+		glDeleteBuffersARB(1, &vbuf);
+		glDeleteBuffersARB(1, &ibuf);
+		//rblist.remove(rble);
+	}
+
+	void lock()
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+
+		glBufferDataARB(GL_ARRAY_BUFFER_ARB, maxverts * sizeof(batchVertex), NULL, GL_STREAM_DRAW_ARB);
+		glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, maxindis * 2, NULL, GL_STREAM_DRAW_ARB);
+
+		vlock = (batchVertex*)glMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB); chkglerr();
+		ilock = (ushort*)glMapBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB); chkglerr();
+		if(!vlock) ferr("glbo vlock is 0");
+		if(!ilock) ferr("glbo ilock is 0");
+		locked = 1;
+	}
+	void unlock()
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+
+		glUnmapBufferARB(GL_ARRAY_BUFFER_ARB); chkglerr();
+		glUnmapBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB); chkglerr();
+		locked = 0;
+	}
+
+	void begin() {}
+	void end() {}
+
+	void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi)
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+
+		if(nverts > maxverts) ferr("Too many vertices to fit in the batch.");
+		if(nindis > maxindis) ferr("Too many indices to fit in the batch.");
+
+		if((curverts + nverts > maxverts) || (curindis + nindis > maxindis))
+			flush();
+
+		if(!locked) lock();
+		*vpnt = vlock + curverts;
+		*ipnt = ilock + curindis;
+		*fi = curverts;
+
+		curverts += nverts; curindis += nindis;
+	}
+
+	void flush()
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+
+		if(locked) unlock();
+		if(!curverts) goto flshend;
+		glVertexPointer(3, GL_FLOAT, sizeof(batchVertex), &((batchVertex*)0)->x);
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(batchVertex), &((batchVertex*)0)->color);
+		glTexCoordPointer(2, GL_FLOAT, sizeof(batchVertex), &((batchVertex*)0)->u);
+		glDrawElements(GL_TRIANGLES, curindis, GL_UNSIGNED_SHORT, 0);
+
+flshend:	curverts = curindis = 0;
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 	}
 };
 
@@ -164,6 +287,19 @@ void Init()
 			//	printf("wglGetSwapIntervalEXT returns %i.\n", wglGetSwapIntervalEXT());
 		}
 		else printf("wglSwapIntervalEXT unsupported.\n");
+	}
+
+	if(rglUseBufferObjects)
+	{
+		glBindBufferARB = (gli_glBindBufferARB)wglGetProcAddress("glBindBufferARB");
+		glDeleteBuffersARB = (gli_glDeleteBuffersARB)wglGetProcAddress("glDeleteBuffersARB");
+		glGenBuffersARB = (gli_glGenBuffersARB)wglGetProcAddress("glGenBuffersARB");
+		glBufferDataARB = (gli_glBufferDataARB)wglGetProcAddress("glBufferDataARB");
+		glMapBufferARB = (gli_glMapBufferARB)wglGetProcAddress("glMapBufferARB");
+		glUnmapBufferARB = (gli_glUnmapBufferARB)wglGetProcAddress("glUnmapBufferARB");
+		if(!glBindBufferARB || !glDeleteBuffersARB || !glGenBuffersARB ||
+		   !glBufferDataARB || !glMapBufferARB || !glUnmapBufferARB)
+			ferr("GL_ARB_vertex_buffer_object functions not found.");
 	}
 
 	atexit(OGL1Quit);
@@ -439,12 +575,31 @@ void DrawMesh(Mesh *m, int iwtcolor)
 RBatch *CreateBatch(int mv, int mi)
 {
 	//ferr("Batch unsupported in OpenGL driver.");
-	RBatchOGL1 *b = new RBatchOGL1;
-	b->maxverts = mv; b->maxindis = mi;
-	b->curverts = b->curindis = 0;
-	b->vbuf = new batchVertex[mv];
-	b->ibuf = new ushort[mi];
-	return b;
+	if(rglUseBufferObjects)
+	{
+		RBatchOGL1_BO *b = new RBatchOGL1_BO;
+		b->maxverts = mv; b->maxindis = mi;
+		b->curverts = b->curindis = 0;
+		glGenBuffersARB(1, &b->vbuf);
+		glGenBuffersARB(1, &b->ibuf);
+		//glBindBufferARB(GL_ARRAY_BUFFER_ARB, b->vbuf);
+		//glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, b->ibuf);
+		//glBufferDataARB(GL_ARRAY_BUFFER_ARB, mv * sizeof(batchVertex), NULL, GL_DYNAMIC_DRAW_ARB);
+		//glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, mi * 2, NULL, GL_DYNAMIC_DRAW_ARB);
+		//glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+		//glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+		b->locked = 0;
+		return b;
+	}
+	else
+	{
+		RBatchOGL1 *b = new RBatchOGL1;
+		b->maxverts = mv; b->maxindis = mi;
+		b->curverts = b->curindis = 0;
+		b->vbuf = new batchVertex[mv];
+		b->ibuf = new ushort[mi];
+		return b;
+	}
 }
 
 void BeginBatchDrawing()
@@ -525,6 +680,11 @@ void BeginLakeDrawing()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+int ConvertColor(int c)
+{
+	return BGRA_TO_RGBA(c);
 }
 
 };

@@ -111,19 +111,25 @@ void Anim::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 {
 	if(!ready) prepare();
 	if(!mesh->ready) mesh->prepare();
+	int cdif = renderer->ConvertColor(dif);
 
 	if((uint)uvl >= mesh->muvlist.len) uvl = 0;
 	int sv = mesh->mgrpindex[grp+1] - mesh->mgrpindex[grp];
 	int si = mesh->mstartix[grp+1] - mesh->mstartix[grp];
 
 	batchVertex *o = new batchVertex[sv], *p; p = o;
+/*	batchVertex *vp; ushort *ip; uint fi;
+	batch->next(sv, si, &vp, &ip, &fi);
+	batchVertex *op = new batchVertex[sv]; batchVertex *o = op, *p = vp;
+*/
 	CreateVertsFromTime(o, tm, grp);
 	for(int i = mesh->mgrpindex[grp]; i < mesh->mgrpindex[grp+1]; i++)
 	{
 		Vector3 v(p->x, p->y, p->z), t;
+		//Vector3 v(o->x, o->y, o->z), t; o++;
 		TransformVector3(&t, &v, &mWorld);
 		p->x = t.x; p->y = t.y; p->z = t.z;
-		p->color = dif;
+		p->color = cdif;
 		p->u = mesh->muvlist[uvl]->get(i*2);
 		p->v = mesh->muvlist[uvl]->get(i*2+1);
 		p++;
@@ -132,6 +138,7 @@ void Anim::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 	batch->next(sv, si, &vp, &ip, &fi);
 	memcpy(vp, o, sv * sizeof(batchVertex));
 	delete o;
+//	delete op;
 
 	for(int i = mesh->mstartix[grp]; i < mesh->mstartix[grp+1]; i++)
 		*(ip++) = mesh->mindices[i] - mesh->mgrpindex[grp] + fi;

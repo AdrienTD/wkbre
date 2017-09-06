@@ -634,6 +634,11 @@ void BeginLakeDrawing()
 	ddev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 }
 
+int ConvertColor(int c)
+{
+	return c;
+}
+
 };
 
 IRenderer *CreateD3D9Renderer() {return new D3D9Renderer;}

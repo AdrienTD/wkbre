@@ -25,6 +25,8 @@ extern int numTilesX, numTilesZ, numTilesS;
 extern DynList<goref> oobobjs;
 
 void InitITiles();
+void FreeITiles();
+void ReinitITiles();
 void PutObjsInITiles(GameObject *o);
 void ResetITiles();
 void GOPosChanged(GameObject *o, boolean sendEvents = 0, boolean autoHeight = 1);

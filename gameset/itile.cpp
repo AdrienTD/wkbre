@@ -28,6 +28,18 @@ void InitITiles()
 	itiles = new ITile[numTilesS];
 }
 
+void FreeITiles()
+{
+	delete [] itiles; itiles = 0;
+	oobobjs.clear();
+}
+
+void ReinitITiles()
+{
+	FreeITiles();
+	InitITiles();
+}
+
 void PutObjsInITiles(GameObject *o)
 {
 	if(!itiles) return;
@@ -52,6 +64,7 @@ void PutObjsInITiles(GameObject *o)
 void ResetITiles()
 {
 	if(!itiles) return;
+	oobobjs.clear();
 	for(int i = 0; i < numTilesS; i++)
 		itiles[i].objs.clear();
 	PutObjsInITiles(levelobj);

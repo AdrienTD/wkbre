@@ -116,7 +116,7 @@ Bitmap *LoadPCX(char *data, int ds)
 	int pitch = (bm->w & 1) ? (bm->w + 1) : bm->w;
 
 	uchar *f = (uchar*)data + 128, *o = bm->pix; int pp = 0;
-	while(pp < (bm->w * pitch * nplanes))
+	while(pp < (pitch * bm->h * nplanes))
 	{
 		int a = *f++, c;
 		if(a >= 192)
@@ -127,7 +127,14 @@ Bitmap *LoadPCX(char *data, int ds)
 				if( (pp % (bm->w+1)) == bm->w)	
 					{pp++; continue;}
 			if(bm->form == BMFORMAT_P8)
+			{
 				*o++ = a;
+			/*
+				int oy = pp / pitch;
+				int ox = pp % pitch;
+				bm->pix[oy*bm->w + ox] = a;
+			*/
+			}
 			else if(bm->form == BMFORMAT_R8G8B8)
 			{
 				int pl = (pp / pitch) % 3;

@@ -136,6 +136,8 @@ MapTextureGroup *curtexgrp = 0; MapTexture *curtex = 0;
 int men_rot = 0; bool men_xflip = 0, men_zflip = 0;
 boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
 int brushsize = 1, brushshape = 0; bool randommaptex = 0;
+bool himapautowater = 0;
+goref newmanorplayer;
 
 void DrawTooltip()
 {
@@ -604,10 +606,11 @@ void CallCommand(int cmd)
 			SetCurCameraPosXYZ(0, 0, (mapheight-mapedge*2)*5); break;
 		case CMD_CAMUPRIGHT:
 			SetCurCameraPosXYZ((mapwidth-mapedge*2)*5, 0, (mapheight-mapedge*2)*5); break;
-		case CMD_BCMHIMAPRIGHT:
+/*		case CMD_BCMHIMAPRIGHT:
 			LoadMap(lastmap, ++bo); break;
 		case CMD_BCMHIMAPLEFT:
 			LoadMap(lastmap, --bo); break;
+*/
 		case CMD_SHOWHIDELANDSCAPE:
 			enableMap = !enableMap; break;
 		case CMD_QUIT:
@@ -666,8 +669,8 @@ void CallCommand(int cmd)
 			}
 		} break;
 		case CMD_ROTATEOBJQP:
-			if(objtypeToStampdown)
-			 if(playerToGiveStampdownObj.valid())
+			if( (objtypeToStampdown && playerToGiveStampdownObj.valid()) ||
+			    (mousetool == 7 && newmanorplayer.valid()) )
 			{
 				stampdownRot += M_PI / 2;
 				if(stampdownRot >= 2*M_PI)
@@ -1023,6 +1026,7 @@ void PasteHeightmap()
 			}
 			for(int i = 0; i < (mapwidth+1)*(mapheight+1); i++)
 				himap[i] = (float)himap_byte[i] * maphiscale;
+			if(himapautowater) FloodfillWater();
 		}
 	}
 	GlobalUnlock(hg);
@@ -1136,6 +1140,7 @@ void ApplyBrush(boolean rclick)
 				int i = z * (mapwidth+1) + x;
 				if(himap_byte[i] < 255) himap_byte[i] += 1;
 				himap[i] = (float)himap_byte[i] * maphiscale;
+				if(himapautowater) FloodfillWater();
 				break;
 			}
 			case 6:
@@ -1143,6 +1148,7 @@ void ApplyBrush(boolean rclick)
 				int i = z * (mapwidth+1) + x;
 				himap_byte[i] = vertexflatten_ref;
 				himap[i] = (float)himap_byte[i] * maphiscale;
+				if(himapautowater) FloodfillWater();
 				break;
 			}
 		}
@@ -1153,10 +1159,108 @@ void ApplyBrush(boolean rclick)
 				int i = z * (mapwidth+1) + x;
 				if(himap_byte[i] > 0) himap_byte[i] -= 1;
 				himap[i] = (float)himap_byte[i] * maphiscale;
+				if(himapautowater) FloodfillWater();
 				break;
 			}
 		}
 	}
+}
+
+void CICPart(CObjectDefinition *objdef, GameObject *parent, Vector3 &p, float r)
+{
+	GameObject *o = CreateObject(objdef, parent);
+	o->position = p;
+	o->orientation = Vector3(0,r,0);
+	GOPosChanged(o, 0, 1);
+}
+void CICMoveForward(Vector3 &p, float r, float l)
+{
+	float dx = sin(r) * l;
+	float dz = -cos(r) * l;
+	p += Vector3(dx, 0, dz);
+}
+void CICMoveRight(Vector3 &p, float r, float l)
+{
+	float dx = -cos(r) * l;
+	float dz = -sin(r) * l;
+	p += Vector3(dx, 0, dz);
+}
+void CICRotate(float &r, float nr)
+{
+	r += nr;
+	if(r >= 2 * M_PI) r -= 2 * M_PI;
+}
+CObjectDefinition *CICFindObjDef(int c, char *n)
+{
+	int i = FindObjDef(c, n);
+	if(i != -1) return &(objdef[i]);
+	else return 0;
+}
+void CreateInitialCity(GameObject *player, Vector3 ipos, float irot)
+{
+	CObjectDefinition *citytype, *wall, *corner, *gatehouse, *manor;
+	citytype =  CICFindObjDef(CLASS_CITY, "New City");
+	wall =      CICFindObjDef(CLASS_BUILDING, "Stockade");
+	corner =    CICFindObjDef(CLASS_BUILDING, "Stockade Corner Out");
+	gatehouse = CICFindObjDef(CLASS_BUILDING, "Stockade Gatehouse");
+	manor =     CICFindObjDef(CLASS_BUILDING, "Manor");
+	if(!(citytype && wall && corner && gatehouse && manor))
+	{
+		MessageBox(hWindow, "Some object types are missing for city creation.", appName, 48);
+		return;
+	}
+
+	GameObject *city = CreateObject(citytype, player);
+	Vector3 pos = ipos; float rot = irot;
+	CICPart(manor, city, pos, rot);
+	CICMoveForward(pos, rot, 5*5);
+	CICMoveRight(pos, rot, 2.5f);
+	CICPart(gatehouse, city, pos, rot);
+	CICMoveRight(pos, rot, 12.5f);
+	for(int i = 0; i < 2; i++)
+		{CICPart(wall, city, pos, rot); CICMoveRight(pos, rot, 5);}
+	for(int j = 0; j < 3; j++)
+	{
+		CICRotate(rot, M_PI); CICPart(corner, city, pos, rot);
+		CICRotate(rot, M_PI/2); CICMoveRight(pos, rot, 5);
+		for(int i = 0; i < 9; i++)
+			{CICPart(wall, city, pos, rot); CICMoveRight(pos, rot, 5);}
+	}
+	CICRotate(rot, M_PI); CICPart(corner, city, pos, rot);
+	CICRotate(rot, M_PI/2); CICMoveRight(pos, rot, 5);
+	for(int i = 0; i < 3; i++)
+		{CICPart(wall, city, pos, rot); CICMoveRight(pos, rot, 5);}
+
+	if(!city->rects) city->rects = new GrowList<int>;
+	city->rects->add(ipos.x / 5 - 5);
+	city->rects->add(ipos.z / 5 - 5);
+	city->rects->add(ipos.x / 5 + 5);
+	city->rects->add(ipos.z / 5 + 5);
+}
+
+GameObject *GetTileCity(int tx, int tz)
+{
+	for(DynListEntry<GameObject> *pdle = levelobj->children.first; pdle; pdle = pdle->next)
+	{
+		GameObject *player = &pdle->value;
+		for(DynListEntry<GameObject> *cdle = player->children.first; cdle; cdle = cdle->next)
+		{
+			GameObject *city = &cdle->value;
+			if(city->objdef->type != CLASS_CITY) continue;
+			if(!city->rects) continue;
+			for(int i = 0; i < city->rects->len / 4; i++)
+			{
+				int x1, z1, x2, z2;
+				x1 = city->rects->get(i*4+0);
+				z1 = city->rects->get(i*4+1);
+				x2 = city->rects->get(i*4+2);
+				z2 = city->rects->get(i*4+3);
+				if((tx >= x1) && (tx <= x2) && (tz >= z1) && (tz <= z2))
+					return city;
+			}
+		}
+	}
+	return 0;
 }
 
 void T7ClickWindow(void *param)
@@ -1214,6 +1318,14 @@ void T7ClickWindow(void *param)
 				vertexflatten_ref = himap_byte[z * (mapwidth+1) + x];
 				break;
 			}
+			case 7:
+			{
+				if(!newmanorplayer.valid()) break;
+				int x = stdownpos.x / 5, z = stdownpos.z / 5;
+				Vector3 p(5*x+2.5f, 0, 5*z+2.5f);
+				CreateInitialCity(newmanorplayer.get(), p, stampdownRot);
+				break;
+			}
 			case 47:
 				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
 				DrawATS(x, z);
@@ -1248,6 +1360,7 @@ void T7RightClick(void *param)
 		switch(mousetool)
 		{
 			case 1:
+			case 47:
 			{
 				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
 				//printf("x=%i  z=%i\n", x, z);
@@ -1260,6 +1373,11 @@ void T7RightClick(void *param)
 				men_zflip = mt->zflip;
 				break;
 			}
+			case 7:
+				int x = stdownpos.x / 5, z = stdownpos.z / 5;
+				GameObject *c = GetTileCity(x, z);
+				if(c) RemoveObject(c);
+				break;
 		/*
 			case 47:
 				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
@@ -1454,12 +1572,13 @@ void IGDisplayItem(GameObject *o, int item)
 	ImGui::PopID();
 }
 
-bool IGObjectSelectable(GameObject *o)
+bool IGObjectSelectable(GameObject *o, boolean playerinfo = 0)
 {
 	char t[256]; bool r;
-	_snprintf(t, 255, "%u: %s \"%s\"###", o->id, CLASS_str[o->objdef->type], o->objdef->name);
+	if(playerinfo) _snprintf(t, 255, "%S (%u)", o->name, o->id);
+	else _snprintf(t, 255, "%u: %s \"%s\"###", o->id, CLASS_str[o->objdef->type], o->objdef->name);
 	ImGui::PushID(o->id);
-	r = ImGui::Selectable(t, o->flags & FGO_SELECTED);
+	r = ImGui::Selectable(playerinfo ? "" : t, o->flags & FGO_SELECTED);
 	if(ImGui::IsItemClicked(1))
 	{
 		if(!keypressed[VK_SHIFT])
@@ -1467,6 +1586,13 @@ bool IGObjectSelectable(GameObject *o)
 		if(o->flags & FGO_SELECTED)
 			DeselectObject(o);
 		else	SelectObject(o);
+	}
+	if(playerinfo)
+	{
+		ImGui::SameLine();
+		ImGui::ColorButton(ivcolortable[o->color], true);
+		ImGui::SameLine();
+		ImGui::Text(t);
 	}
 	ImGui::PopID();
 	return r;
@@ -1967,6 +2093,65 @@ void IGLevelInfo()
 		ImGui::Columns(1);
 		ImGui::Separator();
 	}
+	if(ImGui::CollapsingHeader("Human players list"))
+	{
+		DynListEntry<goref> *nx;
+		for(DynListEntry<goref> *e = humanplayers.first; e; e = nx)
+		{
+			nx = e->next;
+			if(!e->value.valid())
+				humanplayers.remove(e);
+		}
+		if(ImGui::Button("Move up"))
+		{
+			boolean canmove = 0;
+			for(DynListEntry<goref> *e = humanplayers.first; e; e = e->next)
+			 if(e->value.valid())
+			{
+				if(e->value->flags & FGO_SELECTED)
+					{if(canmove) if(e->previous) humanplayers.movedown(e->previous);}
+				else
+					canmove = 1;
+			}
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("Move down"))
+		{
+			boolean canmove = 0;
+			for(DynListEntry<goref> *e = humanplayers.last; e; e = e->previous)
+			 if(e->value.valid())
+			{
+				if(e->value->flags & FGO_SELECTED)
+					{if(canmove) humanplayers.movedown(e);}
+				else
+					canmove = 1;
+			}
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("Remove"))
+		{
+			DynListEntry<goref> *n;
+			for(DynListEntry<goref> *e = humanplayers.first; e; e = n)
+			{
+				n = e->next;
+				if(e->value->flags & FGO_SELECTED)
+					humanplayers.remove(e);
+			}
+		}
+		goref g;
+		ImGui::Text("Add:"); ImGui::SameLine();
+		IGPlayerChooser("AddNewHumanPlayerPopup", &g);
+		if(g.valid())
+			{humanplayers.add();
+			humanplayers.last->value = g;}
+		ImGui::PushItemWidth(-1);
+		ImGui::ListBoxHeader("##HumanplayerList");
+		for(DynListEntry<goref> *e = humanplayers.first; e; e = e->next)
+			if(e->value.valid())
+				IGObjectSelectable(e->value.get(), 1);
+		ImGui::ListBoxFooter();
+		ImGui::PopItemWidth();
+	}
 	ImGui::End();
 }
 
@@ -2033,14 +2218,19 @@ void IGAbout()
 	ImGui::End();
 }
 
-char newmapname[128] = "wkbre_NewMap";
+char newmapname[128] = "wkbre_NewMap", openmappath[265];
+int newmapwidth, newmapheight;
 
 void IGMapEditor()
 {
 	if(!swMapEditor) return;
 	ImGui::Begin("Map editor", &swMapEditor);
 	ImGui::InputText("Name", newmapname, sizeof(newmapname)-1);
-	if(ImGui::Button("Save"))
+
+	int iWantToSave = 0;
+	if(ImGui::Button("Save SNR")) iWantToSave = 1; ImGui::SameLine();
+	if(ImGui::Button("Save BCM")) iWantToSave = 2; ImGui::SameLine();
+	if(iWantToSave)
 	{
 		char p[768];
 		strcpy(p, gamedir);
@@ -2048,43 +2238,108 @@ void IGMapEditor()
 		strcat(p, "\\Maps");			_mkdir(p);
 		strcat(p, "\\"); strcat(p, newmapname);	_mkdir(p);
 
-		strcat(p, "\\"); strcat(p, newmapname); strcat(p, ".snr");
+		strcat(p, "\\"); strcat(p, newmapname); strcat(p, (iWantToSave==1) ? ".snr" : ".bcm");
 		if(_access(p, 0) != -1)
+			if(MessageBox(hWindow, "The map name already exists. Do you want to overwrite the map?", appName, 48 | MB_YESNO) == IDNO)
+				goto saveend;
+		if(iWantToSave==1)
+			{SaveMapSNR(p);
+			sprintf(lastmap, "Maps\\%s\\%s.snr", newmapname, newmapname);}
+		else
+			{SaveMapBCM(p);
+			sprintf(lastmap, "Maps\\%s\\%s.bcm", newmapname, newmapname);}
+saveend:	;
+	}
+	//ImGui::SameLine();
+	//if(ImGui::Button("Set"))
+	//	sprintf(lastmap, "Maps\\%s\\%s.snr", newmapname, newmapname);
+	ImGui::SameLine();
+	if(ImGui::Button("New"))
+	{
+		ImGui::OpenPopup("CreateMapPopup");
+		newmapwidth = mapwidth; newmapheight = mapheight;
+	}
+	if(ImGui::BeginPopup("CreateMapPopup"))
+	{
+		ImGui::InputInt("Width", &newmapwidth);
+		ImGui::InputInt("Height", &newmapheight);
+		if(ImGui::Button("OK"))
 		{
-			if(MessageBox(hWindow, "The map name already exists. Do you want to overwrite the map?", appName, 48 | MB_YESNO) == IDYES)
-				SaveMapSNR(p);
+			CreateEmptyMap(newmapwidth, newmapheight);
+			ImGui::CloseCurrentPopup();
 		}
-		else	SaveMapSNR(p);
+		ImGui::EndPopup();
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("Set"))
-		sprintf(lastmap, "Maps\\%s\\%s.snr", newmapname, newmapname);
+	if(ImGui::Button("Open"))
+	{
+		ImGui::OpenPopup("OpenMapPopup");
+		sprintf_s(openmappath, 255, "Maps\\%s\\%s.", newmapname, newmapname);
+		openmappath[255] = 0;
+		char *mpext = openmappath + strlen(openmappath);
+		strcpy(mpext, "snr");
+		if(!FileExists(openmappath))
+			strcpy(mpext, "bcm");
+	}
+	if(ImGui::BeginPopup("OpenMapPopup"))
+	{
+		ImGui::InputText("##OpenMapFilePath", openmappath, 255);
+		if(ImGui::Button("OK"))
+		{
+			LoadMap(openmappath);
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+		
 	ImGui::Text("Heightmap:"); ImGui::SameLine();
 	if(ImGui::Button("Copy"))
 		CopyHeightmap();
 	ImGui::SameLine();
 	if(ImGui::Button("Paste"))
 		PasteHeightmap();
-	ImGui::Separator();
-	//ImGui::Text("Misc:"); ImGui::SameLine();
-	ImGui::RadioButton("Default##Mode", &mousetool, 0);
-	ImGui::Text("Texture:"); ImGui::SameLine();
-	ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
-	ImGui::RadioButton("Autotiles##Mode", &mousetool, 47);
-	ImGui::Text("Vertex:"); ImGui::SameLine();
-	ImGui::RadioButton("Elevate##Mode", &mousetool, 2); ImGui::SameLine();
-	ImGui::RadioButton("Flatten##Mode", &mousetool, 6);
-	ImGui::Text("Lake:"); ImGui::SameLine();
-	ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
-	ImGui::RadioButton("Move##Mode", &mousetool, 5); ImGui::SameLine();
-	ImGui::RadioButton("Remove##Mode", &mousetool, 4);
-	ImGui::Separator();
-	ImGui::InputInt("Brush size", &brushsize);
-	ImGui::Text("Brush shape:"); ImGui::SameLine();
-	ImGui::RadioButton("Square", &brushshape, 0); ImGui::SameLine();
-	ImGui::RadioButton("Circle", &brushshape, 1);
+	//ImGui::Separator();
+	if(ImGui::CollapsingHeader("Tools"))
+	{
+		//ImGui::Text("Misc:"); ImGui::SameLine();
+		ImGui::RadioButton("Default##Mode", &mousetool, 0);
+		ImGui::Text("Texture:"); ImGui::SameLine();
+		ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
+		ImGui::RadioButton("Autotiles##Mode", &mousetool, 47);
+		ImGui::Text("Vertex:"); ImGui::SameLine();
+		ImGui::RadioButton("Elevate##Mode", &mousetool, 2); ImGui::SameLine();
+		ImGui::RadioButton("Flatten##Mode", &mousetool, 6);
+		ImGui::Text("Lake:"); ImGui::SameLine();
+		ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
+		ImGui::RadioButton("Move##Mode", &mousetool, 5); ImGui::SameLine();
+		ImGui::RadioButton("Remove##Mode", &mousetool, 4);
+		ImGui::RadioButton("Add manor for:", &mousetool, 7); ImGui::SameLine();
+		IGPlayerChooser("NewManorPlayer", &newmanorplayer);
+		ImGui::Separator();
+		ImGui::InputInt("Brush size", &brushsize);
+		ImGui::Text("Brush shape:"); ImGui::SameLine();
+		ImGui::RadioButton("Square", &brushshape, 0); ImGui::SameLine();
+		ImGui::RadioButton("Circle", &brushshape, 1);
+	}
 	if(ImGui::CollapsingHeader("Properties"))
 	{
+		ImGui::LabelText("Map size", "w=%u\th=%u", mapwidth, mapheight);
+		ImGui::LabelText("Level size", "w=%u\th=%u", mapwidth-2*mapedge, mapheight-2*mapedge);
+		int newedge = mapedge;
+		if(ImGui::InputInt("Edge", &newedge))
+		 if((newedge != mapedge) && (newedge >= 0))
+		  if((newedge < mapwidth/2) && (newedge < mapheight/2))
+		{
+			mapedge = newedge;
+			ReinitITiles();
+			ResetITiles();
+		}
+		if(ImGui::DragFloat("Height scale", &maphiscale, 0.01f))
+		{
+			for(int i = 0; i < (mapwidth+1)*(mapheight+1); i++)
+				himap[i] = (float)himap_byte[i] * maphiscale;
+			if(himapautowater) FloodfillWater();
+		}
 		float c[3];
 		for(int i = 0; i < 3; i++)
 			c[2-i] = ((mapsuncolor >> (8 * i)) & 255) / 255.0f;
@@ -2160,12 +2415,27 @@ void IGMapEditor()
 			maplakes.clear();
 			FloodfillWater();
 		}
+		ImGui::SameLine();
+		if(ImGui::Button("Floodfill##Lakes"))
+			FloodfillWater();
+		ImGui::Checkbox("Floodfill when heightmap changes", &himapautowater);
 		//ImGui::ListBoxHeader("##LakesListBox");
-		for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
+		ImGui::PushItemWidth(-ImGui::GetItemsLineHeightWithSpacing());
+		DynListEntry<Vector3> *n;
+		for(DynListEntry<Vector3> *e = maplakes.first; e; e = n)
 		{
+			n = e->next;
+			ImGui::PushID(e);
 			Vector3 *l = &e->value;
-			ImGui::BulletText("%f %f %f", l->x, l->y, l->z);
+			//ImGui::BulletText("%f %f %f", l->x, l->y, l->z);
+			if(ImGui::DragFloat3("##LakePos", &l->x, 0.1f))
+				FloodfillWater();
+			ImGui::SameLine(0, 0);
+			if(ImGui::Button("X"))
+				maplakes.remove(e);
+			ImGui::PopID();
 		}
+		ImGui::PopItemWidth();
 		//ImGui::ListBoxFooter();
 		ImGui::PopItemWidth();
 	}
@@ -2189,13 +2459,16 @@ void Test7()
 	WriteAndDrawGfxConsole("Compiled with GNU C/C++ compiler");
 #endif
 
-	GrowStringList *gsl = ListFiles("Save_Games");
+	GrowStringList *gsl = new GrowStringList;
+	gsl->add("<New empty level>");
+	ListFiles("Save_Games", gsl);
 	int lx = ListDlgBox(gsl, "Select a saved game you want to load. The list begins with files from data.bcp and ends with your personal saved games in the \"saved\" directory.");
 	if(lx == -1) return;
 	char sgn[384] = "Save_Games\\\0";
 	strcat(sgn, gsl->getdp(lx));
 	delete gsl;
-	LoadSaveGame(sgn);
+	CreateEmptyMap(128, 128);
+	LoadSaveGame((lx != 0) ? sgn : "newlevel.lvl");
 
 	loadinginfo("Savegame loaded!\n");
 
@@ -2520,6 +2793,7 @@ void Test7()
 		if(mousetoolpress_r) switch(mousetool)
 		{
 			case 1:
+			case 47:
 			{
 				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
 				//printf("x=%i  z=%i\n", x, z);
@@ -2534,8 +2808,6 @@ void Test7()
 			}
 			case 2:
 				ApplyBrush(1);
-				break;
-			case 47:
 				break;
 		}
 

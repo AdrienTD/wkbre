@@ -459,9 +459,9 @@ void FindFiles(char *sn, GrowStringList *gsl)
 	} while(FindNextFile(hf, &fnd));
 }
 
-GrowStringList *ListFiles(char *dn)
+GrowStringList *ListFiles(char *dn, GrowStringList *gsl)
 {
-	GrowStringList *gsl = new GrowStringList;
+	if(!gsl) gsl = new GrowStringList;
 
 	//mainbcp->listFileNames(dn, gsl);
 	for(int i = 0; i < bcpacks.len; i++)

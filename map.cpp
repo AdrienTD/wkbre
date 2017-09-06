@@ -74,12 +74,19 @@ void CloseMap()
 {
 	if(!himap) return;
 	free(himap); himap = 0;
+	free(himap_byte); himap_byte = 0;
+	delete [] maptiles; maptiles = 0;
+	maplakes.clear();
+
 	for(int i = 0; i < mparts.len; i++)
 	{
 		MapPart *p = mparts.getpnt(i);
 		renderer->FreeMapPart(p);
+		delete [] p->tpt;
 	}
 	mparts.clear();
+
+	FreeMapTextures();
 }
 
 int GetMaxBits(int x)
@@ -306,6 +313,37 @@ pcxreadend:
 //	free(fcnt);
 }
 
+void GetMapVertexNormal(Vector3 *out, int vx, int vz)
+{
+	Vector3 r(0,0,0);
+
+	float a, b, c, d, h;
+	h = himap[vz*(mapwidth+1)+vx];
+	if(vz > 0)         a = himap[(vz-1)*(mapwidth+1) +vx  ] - h;
+	if(vx > 0)         b = himap[ vz   *(mapwidth+1) +vx-1] - h;
+	if(vz < mapheight) c = himap[(vz+1)*(mapwidth+1) +vx  ] - h;
+	if(vx < mapwidth)  d = himap[ vz   *(mapwidth+1) +vx+1] - h;
+
+	if(vx > 0 && vz > 0)                r += Vector3( b, 1, -a);
+	if(vx > 0 && vz < mapheight)        r += Vector3( b, 1,  c);
+	if(vx < mapwidth && vz < mapheight) r += Vector3(-d, 1,  c);
+	if(vx < mapwidth && vz > 0)         r += Vector3(-d, 1, -a);
+
+	*out = r.normal();
+}
+
+uint GetMapVertexColor(int vx, int vz)
+{
+	uint rc; Vector3 n, s;
+	GetMapVertexNormal(&n, vx, vz);
+	s = mapsunvector.normal();
+	float dp = n.dot(s);
+	float i = (dp + 1) / 4 + 0.5f;
+	uchar b = i * 255;
+	rc = 0xFF000000 | (b) | (b<<8) | (b<<16);
+	return renderer->ConvertColor(rc);
+}
+
 void SetTileWaterLevel(int sx, int sz, float wl, DynListEntry<Vector3> *lake)
 {
 	MapTile *t = &(maptiles[sz*mapwidth+sx]);
@@ -405,6 +443,28 @@ if(usemaptexdb)
 	renderer->CreateMapPart(p, x, y, w, h);
 }
 
+void InitMapParts()
+{
+	int mqx = mapwidth / mappartw, mrx = mapwidth % mappartw;
+	int mqy = mapheight / mapparth, mry = mapheight % mapparth;
+	npartsw = mqx + (mrx ? 1 : 0);
+	npartsh = mqy + (mry ? 1 : 0);
+	for(int y = 0; y < mqy; y++)
+	{
+		for(int x = 0; x < mqx; x++)
+			CreateMapPart(x*mappartw, y*mapparth, mappartw, mapparth);
+		if(mrx)
+			CreateMapPart(mqx*mappartw, y*mapparth, mrx, mapparth);
+	}
+	if(mry)
+	{
+		for(int x = 0; x < mqx; x++)
+			CreateMapPart(x*mappartw, mqy*mapparth, mappartw, mry);
+		if(mrx)
+			CreateMapPart(mqx*mappartw, mqy*mapparth, mrx, mry);
+	}
+}
+
 void LoadMap(char *filename, int bitoff)
 {
 	if(himap) CloseMap();
@@ -429,25 +489,7 @@ void LoadMap(char *filename, int bitoff)
 		LoadMapBCM(filename, bitoff);
 	else	LoadMapSNR(filename);
 
-	int mqx = mapwidth / mappartw, mrx = mapwidth % mappartw;
-	int mqy = mapheight / mapparth, mry = mapheight % mapparth;
-	npartsw = mqx + (mrx ? 1 : 0);
-	npartsh = mqy + (mry ? 1 : 0);
-	for(int y = 0; y < mqy; y++)
-	{
-		for(int x = 0; x < mqx; x++)
-			CreateMapPart(x*mappartw, y*mapparth, mappartw, mapparth);
-		if(mrx)
-			CreateMapPart(mqx*mappartw, y*mapparth, mrx, mapparth);
-	}
-	if(mry)
-	{
-		for(int x = 0; x < mqx; x++)
-			CreateMapPart(x*mappartw, mqy*mapparth, mappartw, mry);
-		if(mrx)
-			CreateMapPart(mqx*mappartw, mqy*mapparth, mrx, mry);
-	}
-
+	InitMapParts();
 	FloodfillWater();
 }
 
@@ -564,6 +606,13 @@ else
 				batchVertex *bv; ushort *bi; uint fi;
 				mapbatch->next(4, 6, &bv, &bi, &fi);
 				int a = c->rot, f = ((c->zflip&1)?1:0) ^ ((c->xflip&1)?3:0);
+			/*
+				int difcol = -1;
+				if((c->x < mapedge) || (c->x >= mapwidth-mapedge) ||
+				   (c->z < mapedge) || (c->z >= mapwidth-mapedge) )
+					difcol = 0xFF808080;
+				difcol = renderer->ConvertColor(difcol);
+			*/
 
 				float tu[4], tv[4];
 
@@ -575,28 +624,28 @@ else
 				bv[0].x = c->x;
 				bv[0].y = himap[(c->z+0)*(mapwidth+1)+c->x+0];
 				bv[0].z = c->z;
-				bv[0].color = -1;
+				bv[0].color = GetMapVertexColor(c->x, c->z); //difcol;
 				if(showMapGrid) {bv[0].u = 0; bv[0].v = 0;}
 				else {bv[0].u = tu[0]; bv[0].v = tv[0];}
 
 				bv[1].x = c->x + 1;
 				bv[1].y = himap[(c->z+0)*(mapwidth+1)+c->x+1];
 				bv[1].z = c->z;
-				bv[1].color = -1;
+				bv[1].color = GetMapVertexColor(c->x+1, c->z); //difcol;
 				if(showMapGrid) {bv[1].u = 1; bv[1].v = 0;}
 				else {bv[1].u = tu[1]; bv[1].v = tv[1];}
 
 				bv[2].x = c->x + 1;
 				bv[2].y = himap[(c->z+1)*(mapwidth+1)+c->x+1];
 				bv[2].z = c->z + 1;
-				bv[2].color = -1;
+				bv[2].color = GetMapVertexColor(c->x+1, c->z+1); //difcol;
 				if(showMapGrid) {bv[2].u = 1; bv[2].v = 1;}
 				else {bv[2].u = tu[2]; bv[2].v = tv[2];}
 
 				bv[3].x = c->x;
 				bv[3].y = himap[(c->z+1)*(mapwidth+1)+c->x+0];
 				bv[3].z = c->z + 1;
-				bv[3].color = -1;
+				bv[3].color = GetMapVertexColor(c->x, c->z+1); //difcol;
 				if(showMapGrid) {bv[3].u = 0; bv[3].v = 1;}
 				else {bv[3].u = tu[3]; bv[3].v = tv[3];}
 
@@ -642,7 +691,7 @@ void DrawLakes()
 	//SetTexture(0, gridtex);
 	NoTexture(0);
 
-	lakedifcolor = (mapfogcolor & 0xFFFFFF) | 0x80000000;
+	lakedifcolor = renderer->ConvertColor((mapfogcolor & 0xFFFFFF) | 0x80000000);
 
 	for(int dy = -sh; dy <= sh; dy++)
 	for(int dx = -sw; dx <= sw; dx++)
@@ -692,6 +741,28 @@ void DrawLakes()
 		}
 	}
 	mapbatch->flush();
+}
+
+void CreateMinimap(Bitmap &bhm)
+{
+	bhm.w = bhm.h = 128; bhm.form = BMFORMAT_R8G8B8;
+	bhm.pix = (uchar*)malloc(128*128*3); bhm.pal = 0;
+	memset(bhm.pix, 0, 128*128*3);
+	int ltw = mapwidth - 2*mapedge;  int lvw = ltw + 1;
+	int lth = mapheight - 2*mapedge; int lvh = lth + 1;
+	int mmw, mmh;
+	if(ltw > lth) {mmw = 128; mmh = lth * 128 / ltw;}
+	else          {mmh = 128; mmw = ltw * 128 / lth;}
+	int sx = 64-mmw/2, sy = 64-mmh/2;
+	for(int y = sy; y < sy+mmh; y++)
+	for(int x = sx; x < sx+mmw; x++)
+	{
+		int v = ((y-sy) * lvh / mmh + mapedge) * (mapwidth+1) + (x-sx) * lvw / mmw + mapedge;
+		int t = ((y-sy) * lth / mmh + mapedge) * mapwidth     + (x-sx) * ltw / mmw + mapedge;
+		bhm.pix[3*(y*128+x)+0] = 0;
+		bhm.pix[3*(y*128+x)+1] = himap_byte[v] * 3 / 4 + 64;
+		bhm.pix[3*(y*128+x)+2] = maptiles[t].lake ? 255 /*bhm.pix[3*(y*128+x)+1]*/ : 0;
+	}
 }
 
 void SaveMapSNR(char *filename)
@@ -744,28 +815,173 @@ void SaveMapSNR(char *filename)
 	for(int i = 0; i < 256; i++)
 		for(int j = 0; j < 3; j++)
 			bhm.pal[i*3+j] = i;
-
 	sprintf(tbuf, "%s_heightmap.pcx", fnwoext);
 	SaveBitmapPCX(&bhm, tbuf);
 	free(bhm.pal);
 
-	bhm.w = bhm.h = 128; bhm.form = BMFORMAT_R8G8B8;
-	bhm.pix = (uchar*)malloc(128*128*3); bhm.pal = 0;
-	int ltw = mapwidth - 2*mapedge;  int lvw = ltw + 1;
-	int lth = mapheight - 2*mapedge; int lvh = lth + 1;
-	for(int y = 0; y < 128; y++)
-	for(int x = 0; x < 128; x++)
-	{
-		int v = (y * lvh / 128 + mapedge) * (mapwidth+1) + x * lvw / 128 + mapedge;
-		int t = (y * lth / 128 + mapedge) * mapwidth + x * ltw / 128 + mapedge;
-		bhm.pix[3*(y*128+x)+0] = 0;
-		bhm.pix[3*(y*128+x)+1] = himap_byte[v] * 3 / 4 + 64;
-		bhm.pix[3*(y*128+x)+2] = maptiles[t].lake ? 255 /*bhm.pix[3*(y*128+x)+1]*/ : 0;
-	}
-
+	CreateMinimap(bhm);
 	sprintf(tbuf, "%s_minimap.pcx", fnwoext);
 	SaveBitmapPCX(&bhm, tbuf);
 	free(bhm.pix);
 
 	free(fnwoext);
+}
+
+void CreateEmptyMap(int w, int h)
+{
+	if(himap) CloseMap();
+
+	if(usemaptexdb) LoadMapTextures();
+
+	mapwidth = w; mapheight = h;
+	mapnverts = (mapwidth+1)*(mapheight+1);
+	mapedge = 0;
+	mapfogcolor = 0x9FC5E6;
+	maphiscale = 0.25f;
+	mapsuncolor = 0xFFFFFF; mapsunvector = Vector3(1,1,1);
+	strcpy(mapskytexdir, "Maps\\Sky Textures\\Bright Cloudy Blue Sky\\");
+
+	himap = (float*)malloc(mapnverts*sizeof(float));
+	himap_byte = (uchar*)malloc(mapnverts);
+	if(!(himap && himap_byte)) ferr("No mem. left for heightmap.");
+	memset(himap, 0, mapnverts*sizeof(float));
+	memset(himap_byte, 0, mapnverts);
+
+if(usemaptexdb)
+{
+	maptiles = new MapTile[mapwidth*mapheight];
+	MapTile *t = maptiles;
+	MapTexture *mtx = maptexgroup.getpnt(0)->tex->getpnt(0);
+	for(int z = 0; z < mapheight; z++)
+	for(int x = 0; x < mapwidth; x++)
+	{
+		t->mt = mtx;
+		t->rot = 0; t->xflip = 0; t->zflip = 0;
+		t->x = x; t->z = z;
+		t++;
+	}
+}
+
+	InitMapParts();
+	FloodfillWater();
+}
+
+int bwcurbyte = 0; int bwnextbit = 0;
+FILE *bwfile;
+
+void writebit(bool b)
+{
+	if(b) bwcurbyte |= 1 << bwnextbit;
+	bwnextbit++;
+	if(bwnextbit == 8)
+	{
+		fputc(bwcurbyte, bwfile);
+		bwcurbyte = 0;
+		bwnextbit = 0;
+	}
+}
+
+void writenb(int nb, int a)
+{
+	for(int i = 0; i < nb; i++)
+		writebit(a & (1 << i));
+}
+
+void writefloat(float a) {writenb(32, *(int*)&a);}
+
+void awrite8(FILE *f, uchar c)     {fwrite(&c, 1, 1, f);}
+void awrite16(FILE *f, ushort c)   {fwrite(&c, 2, 1, f);}
+void awrite32(FILE *f, uint c)     {fwrite(&c, 4, 1, f);}
+void awritefloat(FILE *f, float c) {fwrite(&c, 4, 1, f);}
+void awritestr(FILE *f, char *s)
+{
+	int l = strlen(s);
+	awrite16(f, l*2 + 2);
+	for(int i = 0; i <= l; i++)
+		awrite16(f, s[i]);
+}
+
+void SaveMapBCM(char *filename)
+{
+	FILE *bcm = fopen(filename, "wb"); if(!bcm) ferr("Could not open \"%s\" for writing BCM.", filename);
+	fputs("TEQUILA", bcm); fputc(0, bcm); // To consume with moderation.
+	awrite32(bcm, 0x3F000000);
+	awrite32(bcm, mapwidth); awrite32(bcm, mapheight); awrite32(bcm, mapedge);
+	awritestr(bcm, "Maps\\Map_Textures\\All_Textures.dat");
+	awritefloat(bcm, maphiscale);
+	for(int i = 2; i >= 0; i--) awrite32(bcm, (mapsuncolor >> (i*8)) & 255);
+	awritefloat(bcm, mapsunvector.x); awritefloat(bcm, mapsunvector.y); awritefloat(bcm, mapsunvector.z);
+	for(int i = 2; i >= 0; i--) awrite32(bcm, (mapfogcolor >> (i*8)) & 255);
+	awritestr(bcm, mapskytexdir);
+
+	Bitmap b;
+	CreateMinimap(b);
+	fwrite(b.pix, 128*128*3, 1, bcm);
+	free(b.pix);
+
+	bwcurbyte = 0; bwnextbit = 0; bwfile = bcm;
+	writenb(6, maplakes.len);
+	for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
+	{
+		writefloat(e->value.x); writefloat(e->value.y); writefloat(e->value.z);
+		writenb(2, 0);
+	}
+
+	// Make a list of used groups, IDs, and textures.
+	GrowList<MapTextureGroup*> usedmtg;
+	GrowList<int> usedids;
+	GrowList<MapTexture*> usedtex;
+	for(int i = 0; i < mapwidth*mapheight; i++)
+	{
+		MapTile *t = &(maptiles[i]);
+		if(!usedmtg.has(t->mt->grp))
+			usedmtg.add(t->mt->grp);
+		if(!usedids.has(t->mt->id))
+			usedids.add(t->mt->id);
+		if(!usedtex.has(t->mt))
+			usedtex.add(t->mt);
+	}
+
+	writenb(16, usedmtg.len);
+	for(int i = 0; i < usedmtg.len; i++)
+	{
+		MapTextureGroup *g = usedmtg[i];
+		int l = strlen(g->name);
+		writenb(8, l);
+		for(int i = 0; i < l; i++)
+			writenb(8, g->name[i]);
+	}
+
+	writenb(16, usedids.len);
+	for(int i = 0; i < usedids.len; i++)
+		writenb(32, usedids[i]);
+
+	int ngrpbits = GetMaxBits(usedmtg.len);
+	int nidbits = GetMaxBits(usedids.len);
+
+	MapTile *t = maptiles;
+	for(int z = 0; z < mapheight; z++)
+	for(int x = 0; x < mapwidth; x++)
+	{
+		writenb(ngrpbits, usedmtg.find(t->mt->grp));
+		writenb(nidbits, usedids.find(t->mt->id));
+		writenb(2, t->rot);
+		writenb(1, t->xflip);
+		writenb(1, t->zflip);
+		t++;
+	}
+
+	writenb(32, usedtex.len); writenb(32, 0x62);
+	for(int i = 0; i < usedtex.len; i++)
+	{
+		writenb(ngrpbits, usedmtg.find(usedtex[i]->grp));
+		writenb(ngrpbits, usedids.find(usedtex[i]->id));
+	}
+
+	for(int i = 0; i < (mapwidth+1)*(mapheight+1); i++)
+		writenb(8, himap_byte[i]);
+
+	if(bwnextbit != 0) fputc(bwcurbyte, bcm);
+	fclose(bcm);
+	bwfile = 0;
 }

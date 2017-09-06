@@ -9,30 +9,39 @@ typedef struct
 GrowList<MapTextureGroup> maptexgroup;
 GrowStringList maptexfilenames;
 
-char **ltsrcname, **ltdstname;
+char **ltsrcname = 0, **ltdstname = 0;
 uint ltnsrc = 0, ltndst = 0;
-tte *lttt; uint ltne = 0;
+tte *lttt = 0; uint ltne = 0;
+
+GrowList<GrowList<MapTextureEdge>*> maptexedges; // list of all GrowList<MapTextureEdge>[4], used to free them
 
 void FreeLTTT()
 {
 	for(int i = 0; i < ltnsrc; i++)
 		free(ltsrcname[i]);
-	free(ltsrcname);
+	if(ltsrcname) free(ltsrcname);
 	for(int i = 0; i < ltndst; i++)
 		free(ltdstname[i]);
-	free(ltdstname);
-	free(lttt);
+	if(ltdstname) free(ltdstname);
+	if(lttt) free(lttt);
 	ltnsrc = ltndst = ltne = 0;
+	ltsrcname = 0; ltdstname = 0; lttt = 0;
 }
+
+extern MapTextureGroup *curtexgrp; extern MapTexture *curtex; // editor variables
 
 void FreeMapTextures()
 {
 	// NOTE: Currently, textures are not freed. I will have to make a reference
 	//       count for each texture.
+	for(int i = 0; i < maptexedges.len; i++)
+		delete [] maptexedges[i];
 	for(int i = 0; i < maptexgroup.len; i++)
 		delete maptexgroup.getpnt(i)->tex;
 	maptexgroup.clear();
 	maptexfilenames.clear();
+	maptexedges.clear();
+	curtexgrp = 0; curtex = 0;
 }
 
 void LoadLTTT(char *fn)
@@ -119,6 +128,7 @@ void ReadMapTextureP1(char **pntfp, char **fstline, MapTextureGroup *g)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
 	GrowList<MapTextureEdge> *atdir = new GrowList<MapTextureEdge>[4];
+	maptexedges.add(atdir);
 	int tix = g->tex->len; int nt = 1;
 	AddMapTexture(g, fstline);
 	while(**pntfp)
@@ -163,14 +173,14 @@ void ReadMapTextureP2(char **pntfp, char **fstline, MapTextureGroup *g)
 			for(int i = 0; i < maptexgroup.len; i++)
 				if(!strcmp(word[2], maptexgroup.getpnt(i)->name))
 					{eg = maptexgroup.getpnt(i); break;}
-			if(!eg) {printf("Unknown texture group %s in texture database autotiling edge.", word[2]); continue;}
-			//if(!eg) continue;
+			//if(!eg) {printf("Unknown texture group %s in texture database autotiling edge.", word[2]); continue;}
+			if(!eg) continue;
 			MapTexture *et = 0; int it = atoi(word[3]);
 			for(int i = 0; i < eg->tex->len; i++)
 				if(eg->tex->getpnt(i)->id == it)
 					{et = eg->tex->getpnt(i); break;}
-			if(!et) {printf("Unknown texture id %i in group %s in texture database autotiling edge.\n", it, eg->name); continue;}
-			//if(!et) continue;
+			//if(!et) {printf("Unknown texture id %i in group %s in texture database autotiling edge.\n", it, eg->name); continue;}
+			if(!et) continue;
 			MapTextureEdge *edge = atdir[curdir].addp();
 			edge->tex = et;
 			edge->rot = atoi(word[4]);

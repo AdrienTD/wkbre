@@ -103,6 +103,7 @@ struct IRenderer
 	// Batch drawing
 	virtual RBatch *CreateBatch(int mv, int mi) = 0;
 	virtual void BeginBatchDrawing() = 0;
+	virtual int ConvertColor(int c) = 0;
 
 	// Buffer drawing
 	virtual RVertexBuffer *CreateVertexBuffer(int nv) = 0;
@@ -115,5 +116,6 @@ struct IRenderer
 	virtual void InitImGuiDrawing() = 0;
 };
 
+IRenderer *CreateNULLRenderer();
 IRenderer *CreateD3D9Renderer();
 IRenderer *CreateOGL1Renderer();

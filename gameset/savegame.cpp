@@ -37,7 +37,7 @@ GrowList<RSAssociationListEntry> toassolist;
 
 uint game_type = 0, update_id, random_seed; float next_update_time_stamp;
 float current_time, previous_time, elapsed_time; uint paused, lock_count;
-uint num_human_players = 0; GrowList<uint> humanplayers;
+DynList<goref> humanplayers;
 uint wkver = 0;
 DynList<DelayedSequenceEntry> delayedSeq;
 DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
@@ -503,10 +503,15 @@ void LoadSaveGame(char *fn)
 				serverName[nc] = 0;
 				break;}
 			case SAVEGAME_NUM_HUMAN_PLAYERS:
-				num_human_players = atoi(word[1]);
+				{int num_human_players = atoi(word[1]);
 				for(int i = 0; i < num_human_players; i++)
-					humanplayers.add(atoi(word[2+i]));
-				break;
+				{
+					GameObject *o = FindObjID(atoi(word[2+i]));
+					if(!o) continue;
+					humanplayers.add();
+					humanplayers.last->value = o;
+				}
+				break;}
 			case SAVEGAME_UPDATE_ID:
 				update_id = atoi(word[1]); break;
 			case SAVEGAME_NEXT_UPDATE_TIME_STAMP:
@@ -776,9 +781,14 @@ void SaveSaveGame(char *fn)
 			fprintf(f, " %u", serverName[i]);
 		fprintf(f, "\n");
 	}
-		
-	fprintf(f, "NUM_HUMAN_PLAYERS %u", num_human_players);
-	for(int i = 0; i < num_human_players; i++) fprintf(f, " %u", humanplayers[i]);
+
+	DynListEntry<goref> *nhp;
+	for(DynListEntry<goref> *e = humanplayers.first; e; e = nhp)
+		{nhp = e->next; if(!e->value.valid()) humanplayers.remove(e);}
+	fprintf(f, "NUM_HUMAN_PLAYERS %u", humanplayers.len);
+	for(DynListEntry<goref> *e = humanplayers.first; e; e = e->next)
+		fprintf(f, " %u", e->value.getID());
+
 	fprintf(f, "\nUPDATE_ID %u\nNEXT_UPDATE_TIME_STAMP %f\n", update_id, next_update_time_stamp);
 	fprintf(f, "TIME_MANAGER_STATE\n\tCURRENT_TIME %f\n\tPREVIOUS_TIME %f\n\tELAPSED_TIME %f\n\tPAUSED %i\n\tLOCK_COUNT %i\nEND_TIME_MANAGER_STATE\n",
 		current_time, previous_time, elapsed_time, paused, lock_count + 1);

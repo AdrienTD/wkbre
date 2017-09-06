@@ -328,9 +328,23 @@ void DisableFog()
 	renderer->DisableFog();
 }
 
+Model *GetObjTypeDefaultModel(CObjectDefinition *cod)
+{
+	Model *m = 0;
+	int s = (cod->numsubtypes >= 2) ? 1 : 0;
+	for(int i = 0; i < strAppearTag.len; i++)
+		if(cod->subtypes[s].appear[i].def)
+			{m = cod->subtypes[s].appear[i].def; break;}
+	if(!m) if(cod->representation)
+		m = cod->representation;
+	return m;
+}
+
 extern CObjectDefinition *objtypeToStampdown;
 extern goref playerToGiveStampdownObj;
 extern float stampdownRot;
+extern int mousetool;
+extern goref newmanorplayer;
 
 void DrawScene()
 {
@@ -387,19 +401,33 @@ if(experimentalKeys) {
 			}
 			stdownpos.y = GetHeight(stdownpos.x, stdownpos.z);
 		}
-		Model *m = 0;
-		int s = (objtypeToStampdown->numsubtypes >= 2) ? 1 : 0;
-		for(int i = 0; i < strAppearTag.len; i++)
-			if(objtypeToStampdown->subtypes[s].appear[i].def)
-				{m = objtypeToStampdown->subtypes[s].appear[i].def; break;}
-		if(!m) if(objtypeToStampdown->representation)
-			m = objtypeToStampdown->representation;
+		Model *m = GetObjTypeDefaultModel(objtypeToStampdown);
 		if(m)
 		{
 			renderer->BeginMeshDrawing();
 			SetMatrices(objtypeToStampdown->scale, Vector3(0,-stampdownRot,0), stdownpos);
 			SetTransformMatrix(&matrix);
 			m->draw(playerToGiveStampdownObj->color);
+		}
+	}
+	int moti;
+	if(mousetool == 7)
+	if(stdownvalid)
+	if(newmanorplayer.valid())
+	if((moti = FindObjDef(CLASS_BUILDING, "Manor")) != -1)
+	{
+		CObjectDefinition *cod = &(objdef[moti]);
+		// Align buildings in the grid.
+		stdownpos.x = (int)(stdownpos.x / 5) * 5.0f + 2.5f;
+		stdownpos.z = (int)(stdownpos.z / 5) * 5.0f + 2.5f;
+		stdownpos.y = GetHeight(stdownpos.x, stdownpos.z);
+		Model *m = GetObjTypeDefaultModel(cod);
+		if(m)
+		{
+			renderer->BeginMeshDrawing();
+			SetMatrices(cod->scale, Vector3(0,-stampdownRot,0), stdownpos);
+			SetTransformMatrix(&matrix);
+			m->draw(newmanorplayer->color);
 		}
 	}
 }

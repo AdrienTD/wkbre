@@ -79,6 +79,11 @@ void CObjectCreation::run(SequenceEnv *env, CFinder *findcreator)
 			PosOri po;
 			createAt->get(&ne, &po);
 			o->position = po.pos; o->orientation = po.ori;
+
+			float mx = 5*(mapwidth-2*mapedge), mz = 5*(mapheight-2*mapedge);
+			if(o->position.x < 0) o->position.x = 0; if(o->position.x >= mx) o->position.x = mx-0.1f;
+			if(o->position.z < 0) o->position.z = 0; if(o->position.z >= mz) o->position.z = mz-0.1f;
+
 			o->position.y = GetHeight(o->position.x, o->position.z);
 		}else{
 			o->position = creator->position;

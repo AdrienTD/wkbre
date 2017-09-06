@@ -122,6 +122,8 @@ extern DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
 
 extern DynList<GameObject*> norefobjs;
 
+extern DynList<goref> humanplayers;
+
 GameObject *SubFindObjID(int id, GameObject *p);
 GameObject *FindObjID(int id);
 

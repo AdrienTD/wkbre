@@ -242,6 +242,7 @@ void Mesh::draw(int iwtcolor)
 void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 {
 	if(!ready) prepare();
+	int cdif = renderer->ConvertColor(dif);
 
 	if((uint)uvl >= muvlist.len) uvl = 0;
 	int sv = mgrpindex[grp+1] - mgrpindex[grp];
@@ -255,7 +256,7 @@ void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 		TransformVector3(&t, &p, &mWorld);
 		vp->x = t.x; vp->y = t.y; vp->z = t.z;
 		//vp->x = 0; vp->y = 0; vp->z = 0;
-		vp->color = dif;
+		vp->color = cdif;
 		vp->u = muvlist[uvl]->get(i*2); vp->v = muvlist[uvl]->get(i*2+1);
 		vp++;
 	}

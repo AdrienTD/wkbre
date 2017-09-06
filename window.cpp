@@ -234,9 +234,15 @@ void InitWindow()
 	ShowWindow(hWindow, SW_SHOWNORMAL);
 	SetTimer(0, 0, 1000, OnSecond);
 
-	if(reqRender == 2)
-		renderer = CreateOGL1Renderer();
-	else
-		renderer = CreateD3D9Renderer();
+	switch(reqRender)
+	{
+		case 0:
+			renderer = CreateNULLRenderer(); break;
+		default:
+		case 1:
+			renderer = CreateD3D9Renderer(); break;
+		case 2:
+			renderer = CreateOGL1Renderer(); break;
+	}
 	renderer->Init();
 }
