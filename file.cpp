@@ -402,7 +402,7 @@ void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
 		sf = fopen(sn, "rb");
 	}
 	if(!sf)
-		ferr("The file \"%s\" could not be found in the game directories/archives (data.bcp, saved, redata, data, ...).", fn);
+		ferr("The file \"%s\" could not be found in the game directories/archives (data.bcp, saved, redata, data, ...).\n\nIf it is the first time you use this program, be sure that you have configured the GAME_DIR parameter in settings.txt . See help.htm for more details.", fn);
 		//ferr("File cannot be found in data.bcp, in the \"saved\" folder and the \"redata\" directory.");
 	fseek(sf, 0, SEEK_END);
 	int ss = ftell(sf);

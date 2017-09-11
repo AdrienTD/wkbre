@@ -26,6 +26,7 @@ extern int fogenabled;
 extern int showrepresentations;
 
 extern Vector3 stdownpos; extern int stdownvalid;
+extern Vector3 mapstdownpos; extern int mapstdownvalid;
 
 extern boolean meshbatching, animsEnabled;
 

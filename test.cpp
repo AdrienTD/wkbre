@@ -571,6 +571,7 @@ void Test23()
 		//RBatch *batch = renderer->CreateBatch(1024, 1536);
 		RBatch *batch = renderer->CreateBatch(2*8192, 3*8192);
 		renderer->BeginBatchDrawing();
+		batch->begin();
 		Matrix mx; CreateZeroMatrix(&mx);
 		mx._11 = 2.0f / scrw; mx._22 = -2.0f / scrh;
 		mx._41 = -1 - (0.5f / (scrw)); mx._42 = 1 + (0.5f / (scrh));
@@ -612,6 +613,7 @@ void Test23()
 			}
 			batch->flush();
 		}
+		batch->end();
 		delete batch;
 
 		if(keypressed[VK_LEFT])
@@ -663,6 +665,7 @@ void Test24()
 		BeginDrawing();
 		BeginMeshDrawing();
 		renderer->BeginBatchDrawing();
+		batch->begin();
 		SetModelMatrices();
 		//CreateIdentityMatrix(&mWorld);
 
@@ -674,6 +677,7 @@ void Test24()
 		//batch->flush();
 
 		DrawAnim(&tm, batch, 1, timeGetTime());
+		batch->end();
 
 		EndDrawing();
 		HandleWindow();

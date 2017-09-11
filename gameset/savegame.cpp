@@ -149,7 +149,7 @@ char *ProcessPredec(char *fp)
 	ferr("UEOF"); return fp;
 }
 
-uint FindPredec(int id)
+int FindPredec(int id)
 {
 	for(int i = 0; i < predec.len; i++)
 	{
@@ -158,7 +158,7 @@ uint FindPredec(int id)
 			if(p->id[j] == id)
 				return p->objdef;
 	}
-	return 0;
+	return -1;
 }
 
 void FreePredec()
@@ -176,7 +176,7 @@ char *LoadGameObjectP0(char *fp, char **fline, int fwords, GameObject *parent)
 	int t = stfind_cs(CLASS_str, CLASS_NUM, fline[0]); mustbefound(t);
 	int id = atoi(fline[1]);
 	int od;
-	if(!(od = FindPredec(id)))
+	if((od = FindPredec(id)) == -1)
 		{od = FindObjDef(t, (fwords>=3)?fline[2]:"Standard");
 		mustbefound(od);}
 
@@ -405,6 +405,12 @@ char *LoadGameObjectP1(char *fp, char **fline, int fwords, GameObject *parent)
 				{int s; mustbefound(s = strDiplomaticStatus.find(word[3]));
 				MakeDiplomaticOffer(FindObjID(atoi(word[1])), FindObjID(atoi(word[2])), s);
 				break;}
+			case GAMEOBJ_START_CAMERA_POS:
+				go->startcampos = Vector3(atof(word[1]), atof(word[2]), atof(word[3]));
+				break;
+			case GAMEOBJ_START_CAMERA_ORIENTATION:
+				go->startcamori = Vector3(atof(word[1]), atof(word[2]), 0);
+				break;
 		}
 	}
 	ferr("UEOF"); return fp;
@@ -688,6 +694,8 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	if(o->objdef->type == CLASS_PLAYER)
 	{
 		fprintf(f, "%s\tCOLOUR_INDEX %i\n", strtab, o->color);
+		fprintf(f, "%s\tSTART_CAMERA_POS %.2f %.2f %.2f\n", strtab, o->startcampos.x, o->startcampos.y, o->startcampos.z);
+		fprintf(f, "%s\tSTART_CAMERA_ORIENTATION %.2f %.2f\n", strtab, o->startcamori.x, o->startcamori.y);
 		fprintf(f, "%s\tRECONNAISSANCE %i\n%s\tFOG_OF_WAR %i\n", strtab, (o->flags & FGO_RECONNAISSANCE)?1:0, strtab, (o->flags & FGO_FOG_OF_WAR)?1:0);
 	}
 
@@ -1079,6 +1087,8 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 
 	go->client = 0;
 	go->aicontroller = 0;
+
+	go->startcampos = go->startcamori = Vector3(0,0,0);
 
 	go->animtag = 0; go->animvar = 0;
 	go->animtimeref = current_time * 1000;

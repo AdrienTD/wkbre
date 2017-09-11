@@ -16,7 +16,7 @@
 
 #include "global.h"
 
-Vector3 camerapos(0.0f, 0.0f, 0.0f);
+Vector3 camerapos(0.0f, 15.0f, 0.0f);
 Matrix matrix, vpmatrix;
 Vector3 nullvector(0.0f, 0.0f, 0.0f), onevector(1.0f, 1.0f, 1.0f);
 
@@ -98,6 +98,7 @@ void DrawOOBM()
 	uint tt = timeGetTime();
 	renderer->BeginBatchDrawing();
 	SetTransformMatrix(&vpmatrix);
+	mshbatch->begin();
 	for(int t = 0; t < strMaterials.len; t++)
 	{
 		int txset = 0;
@@ -162,6 +163,7 @@ void DrawOOBM()
 		}
 		mshbatch->flush();
 	}
+	mshbatch->end();
 }
 
 //GrowList<GameObject*> visobj;	// Visible objects
@@ -208,13 +210,22 @@ int InLevel(Vector3 &v)
 	return 0;
 }
 
+int InMap(Vector3 &v)
+{
+	if( (v.x >= -mapedge*5) && (v.x < ((mapwidth -mapedge)*5)) )
+	if( (v.z >= -mapedge*5) && (v.z < ((mapheight-mapedge)*5)) )
+		return 1;
+	return 0;
+}
+
 Vector3 stdownpos; int stdownvalid = 0;
+Vector3 mapstdownpos; int mapstdownvalid = 0;
 
 void CalcStampdownPos()
 {
 	float lv = 4;
 
-	if(!InLevel(raystart)) {stdownvalid = 0; return;}
+	//if(!InMap(raystart)) {stdownvalid = mapstdownvalid = 0; return;}
 
 	Vector3 ptt = raystart, vta;
 	NormalizeVector3(&vta, &raydir);
@@ -223,10 +234,11 @@ void CalcStampdownPos()
 	float h;
 	int nlp = farzvalue * 1.5f / lv;
 	int m = (ptt.y < GetHeight(ptt.x, ptt.z)) ? 0 : 1;
+
 	for(int i = 0; i < nlp; i++)
 	{
 		ptt += vta;
-		if(!InLevel(ptt)) {stdownvalid = 0; return;}
+		if(!InMap(ptt)) continue; //{stdownvalid = mapstdownvalid = 0; return;}
 		h = GetHeight(ptt.x, ptt.z);
 
 		if(ptt.y == h)
@@ -238,7 +250,12 @@ void CalcStampdownPos()
 			{vta *= -0.5f; m = 1 - m;}
 	}
 
-	stdownpos = ptt; stdownpos.y = h; stdownvalid = 1;
+	if(InMap(ptt))
+		{mapstdownpos = ptt; mapstdownpos.y = h; mapstdownvalid = 1;}
+	else	mapstdownvalid = 0;
+	if(mapstdownvalid && InLevel(mapstdownpos))
+		{stdownpos = mapstdownpos; stdownvalid = 1;}
+	else	stdownvalid = 0;
 }
 
 void DrawObj(GameObject *o)
@@ -437,6 +454,7 @@ if(experimentalKeys) {
 		SetMatrices(Vector3(5.0f, 1.0f, -5.0f), nullvector, Vector3(-mapedge*5,0,+mapheight*5-mapedge*5));
 		SetTransformMatrix(&matrix);
 		DrawMap();
+		DrawTileHighlights();
 		DrawLakes();
 	}
 	drawdebug = 0;

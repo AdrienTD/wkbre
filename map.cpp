@@ -135,7 +135,6 @@ void LoadMapBCM(char *filename, int bitoff)
 		j = readnb(32); v->z = *(float*)&j;
 		readnb(2);
 	}
-		//{readnb(32); readnb(32); readnb(32); readnb(2);}
 
 	// Group name table
 	int nnames = readnb(16);
@@ -269,37 +268,11 @@ void LoadMapSNR(char *filename)
 	free(fcnt);
 notiles:
 	// Heightmap
-	//LoadFile(sfnpcx, &fcnt, &fsize);
 	mapnverts = (mapwidth+1)*(mapheight+1);
 	himap = (float*)malloc(mapnverts*sizeof(float));
 	himap_byte = (uchar*)malloc(mapnverts);
 	if(!(himap && himap_byte)) ferr("No mem. left for heightmap.");
-/*
-	fp = fcnt + 128;
-	int o = 0, q = 0;
-	//printf("--- PCX MAP LOADING ---\n");
-	while(1)
-	{
-		uchar l, b;
-		if(((uchar)(*fp)) >= 0xC0)
-			l = (uchar)(*(fp++))&0x3F;
-		else
-			l = 1;
-		b = *(fp++);
 
-		//printf("l = %i; b = %i\n", l, b);
-		for(int j = 0; j < l; j++)
-		{
-			if((mapwidth+1) & 1)
-				if((q % (mapwidth+2)) == (mapwidth+1))
-					{q++; continue;}
-			himap[o++] = (float)b * maphiscale; q++;
-			if(o >= mapnverts) goto pcxreadend;
-		}
-	}
-pcxreadend:
-	//printf("--- END ---\n");
-*/
 	Bitmap *bm = LoadBitmap(sfnpcx);
 	if(bm->form != BMFORMAT_P8)
 		ferr("SNR heightmap must be an 8 bpp bitmap file!");
@@ -309,8 +282,6 @@ pcxreadend:
 	for(int i = 0; i < mapnverts; i++)
 		himap[i] = (float)himap_byte[i] * maphiscale;
 	FreeBitmap(bm);
-
-//	free(fcnt);
 }
 
 void GetMapVertexNormal(Vector3 *out, int vx, int vz)
@@ -324,10 +295,10 @@ void GetMapVertexNormal(Vector3 *out, int vx, int vz)
 	if(vz < mapheight) c = himap[(vz+1)*(mapwidth+1) +vx  ] - h;
 	if(vx < mapwidth)  d = himap[ vz   *(mapwidth+1) +vx+1] - h;
 
-	if(vx > 0 && vz > 0)                r += Vector3( b, 1, -a);
-	if(vx > 0 && vz < mapheight)        r += Vector3( b, 1,  c);
-	if(vx < mapwidth && vz < mapheight) r += Vector3(-d, 1,  c);
-	if(vx < mapwidth && vz > 0)         r += Vector3(-d, 1, -a);
+	if(vx > 0 && vz > 0)                r += Vector3( b, 5, -a);
+	if(vx > 0 && vz < mapheight)        r += Vector3( b, 5,  c);
+	if(vx < mapwidth && vz < mapheight) r += Vector3(-d, 5,  c);
+	if(vx < mapwidth && vz > 0)         r += Vector3(-d, 5, -a);
 
 	*out = r.normal();
 }
@@ -338,7 +309,15 @@ uint GetMapVertexColor(int vx, int vz)
 	GetMapVertexNormal(&n, vx, vz);
 	s = mapsunvector.normal();
 	float dp = n.dot(s);
-	float i = (dp + 1) / 4 + 0.5f;
+	//float i = (dp + 1) / 4 + 0.5f;
+	float i = (dp + 1) / 2;
+	//float i = 1 - acos(dp) / M_PI;
+	//float i = (dp <= 0.28f) ? 0.28f : dp;
+	//float i = (dp > 0) ? dp : 0;
+	//float i = (dp+1) * 3 / 8 + 0.25f;
+	if((vx < mapedge) || (vx > mapwidth-mapedge) ||
+	   (vz < mapedge) || (vz > mapwidth-mapedge) )
+		i /= 2.0f;
 	uchar b = i * 255;
 	rc = 0xFF000000 | (b) | (b<<8) | (b<<16);
 	return renderer->ConvertColor(rc);
@@ -465,15 +444,17 @@ void InitMapParts()
 	}
 }
 
+extern char newmapname[128];
+
 void LoadMap(char *filename, int bitoff)
 {
 	if(himap) CloseMap();
 
+	char *nwp = strrchr(filename, '\\');
+	if(!nwp) nwp = filename; else nwp++;
 	if(usemaptexdb)
 	{
 		char ln[512];
-		char *nwp = strrchr(filename, '\\');
-		if(!nwp) nwp = filename; else nwp++;
 		strcpy(ln, "Maps\\Map_Textures\\");
 		strcat(ln, nwp);
 		strcpy(strrchr(ln, '.')+1, "lttt");
@@ -484,6 +465,9 @@ void LoadMap(char *filename, int bitoff)
 	}
 
 	strcpy_s(lastmap, 255, filename);
+	strcpy_s(newmapname, 127, nwp);
+	char *nmne = strrchr(newmapname, '.');
+	if(nmne) *nmne = 0;
 	char *fe = strrchr(filename, '.');
 	if((tolower(fe[1]) == 'b') && (tolower(fe[2]) == 'c') && (tolower(fe[3]) == 'm'))
 		LoadMapBCM(filename, bitoff);
@@ -563,7 +547,7 @@ void DrawMap()
 
 	int cx = (int)camerapos.x / 5 + mapedge, cy = mapheight-2*mapedge-((int)camerapos.z / 5) + mapedge;
 
-	int px = cx / mappartw, py = cy / mapparth;
+	int px = cx / (int)mappartw, py = cy / (int)mapparth;
 
 	int sw = (farzvalue / (mappartw*5)) + 1;
 	int sh = (farzvalue / (mapparth*5)) + 1;
@@ -578,6 +562,7 @@ if(!usemaptexdb)
 else
 {
 	renderer->BeginBatchDrawing();
+	mapbatch->begin();
 	if(showMapGrid) SetTexture(0, gridtex);
 
 	for(int i = 0; i < maptexfilenames.len; i++)
@@ -653,6 +638,7 @@ else
 				bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;
 		}
 	} mapbatch->flush();}
+	mapbatch->end();
 }
 }
 
@@ -681,13 +667,14 @@ void DrawLakes()
 
 	int cx = (int)camerapos.x / 5 + mapedge, cy = mapheight-2*mapedge-((int)camerapos.z / 5) + mapedge;
 
-	int px = cx / mappartw, py = cy / mapparth;
+	int px = cx / (int)mappartw, py = cy / (int)mapparth;
 
 	int sw = (farzvalue / (mappartw*5)) + 1;
 	int sh = (farzvalue / (mapparth*5)) + 1;
 
 
 	renderer->BeginBatchDrawing();
+	mapbatch->begin();
 	//SetTexture(0, gridtex);
 	NoTexture(0);
 
@@ -741,6 +728,7 @@ void DrawLakes()
 		}
 	}
 	mapbatch->flush();
+	mapbatch->end();
 }
 
 void CreateMinimap(Bitmap &bhm)
@@ -914,12 +902,15 @@ void SaveMapBCM(char *filename)
 	for(int i = 2; i >= 0; i--) awrite32(bcm, (mapfogcolor >> (i*8)) & 255);
 	awritestr(bcm, mapskytexdir);
 
+	// Minimap
 	Bitmap b;
 	CreateMinimap(b);
 	fwrite(b.pix, 128*128*3, 1, bcm);
 	free(b.pix);
 
 	bwcurbyte = 0; bwnextbit = 0; bwfile = bcm;
+
+	// Lakes
 	writenb(6, maplakes.len);
 	for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
 	{
@@ -942,6 +933,7 @@ void SaveMapBCM(char *filename)
 			usedtex.add(t->mt);
 	}
 
+	// List of used texture groups
 	writenb(16, usedmtg.len);
 	for(int i = 0; i < usedmtg.len; i++)
 	{
@@ -952,13 +944,16 @@ void SaveMapBCM(char *filename)
 			writenb(8, g->name[i]);
 	}
 
+	// List of used texture IDs
 	writenb(16, usedids.len);
 	for(int i = 0; i < usedids.len; i++)
 		writenb(32, usedids[i]);
 
+	// Determine the number of bits required for texture groups and IDs
 	int ngrpbits = GetMaxBits(usedmtg.len);
 	int nidbits = GetMaxBits(usedids.len);
 
+	// Tiles
 	MapTile *t = maptiles;
 	for(int z = 0; z < mapheight; z++)
 	for(int x = 0; x < mapwidth; x++)
@@ -971,17 +966,184 @@ void SaveMapBCM(char *filename)
 		t++;
 	}
 
-	writenb(32, usedtex.len); writenb(32, 0x62);
-	for(int i = 0; i < usedtex.len; i++)
+	// Sort the used textures by group
+	GrowList<MapTexture*> sortedtex;
+	for(int i = 0; i < usedmtg.len; i++)
 	{
-		writenb(ngrpbits, usedmtg.find(usedtex[i]->grp));
-		writenb(ngrpbits, usedids.find(usedtex[i]->id));
+		MapTextureGroup *g = usedmtg[i];
+		for(int j = 0; j < usedtex.len; j++)
+		{
+			MapTexture *t = usedtex[j];
+			if(t->grp == g)
+				sortedtex.add(t);
+		}
+	}
+	assert(usedtex.len == sortedtex.len);
+
+	// Used textures list
+	writenb(32, sortedtex.len); writenb(32, 0x62);
+	for(int i = 0; i < sortedtex.len; i++)
+	{
+		writenb(ngrpbits, usedmtg.find(sortedtex[i]->grp));
+		writenb(nidbits, usedids.find(sortedtex[i]->id));
 	}
 
+	// Heightmap
 	for(int i = 0; i < (mapwidth+1)*(mapheight+1); i++)
 		writenb(8, himap_byte[i]);
 
 	if(bwnextbit != 0) fputc(bwcurbyte, bcm);
 	fclose(bcm);
 	bwfile = 0;
+}
+
+extern int brushsize, brushshape, mousetool, nmc_size;
+
+boolean IsTileCorcernedByBrush(int tx, int tz)
+{
+	int cx = mapstdownpos.x / 5 + mapedge, cz = mapheight - (mapstdownpos.z / 5 + mapedge);
+	int m = brushsize/2;
+
+	switch(mousetool)
+	{
+		case 1:
+		case 2:
+		case 6:
+			if(tz >= cz-m && tz < cz-m+brushsize)
+			if(tx >= cx-m && tx < cx-m+brushsize)
+			{
+				if(brushshape == 1)
+					if( ((tx-cx)*(tx-cx) + (tz-cz)*(tz-cz)) > (m*m))
+						return 0;
+				return 1;
+			}
+			return 0;
+		case 7:
+		{
+			int ctlx = cx-1-nmc_size-1, ctlz = cz-1-nmc_size-1;
+			int cbrx = cx+1+nmc_size+1, cbrz = cz+1+nmc_size+1;
+			if(tz >= ctlz && tz <= cbrz)
+				if(tx == ctlx || tx == cbrx)
+					return 1;
+			if(tx >= ctlx && tx <= cbrx)
+				if(tz == ctlz || tz == cbrz)
+					return 1;
+			return 0;
+		}
+		case 47:
+			if(cx == tx && cz == tz) return 1;
+			return 0;
+	}
+	return 0;
+}
+
+//bool smallTileHeightlights = 1;
+
+void DrawTileHighlights()
+{
+	if(!usemaptexdb) return;
+
+	if(!(mousetool == 1 || mousetool == 2 || mousetool == 6 ||
+	     mousetool == 7 || mousetool == 47))
+		return;
+
+	renderer->BeginLakeDrawing();
+
+	int cx = (int)camerapos.x / 5 + mapedge, cy = mapheight-2*mapedge-((int)camerapos.z / 5) + mapedge;
+
+	int px = cx / (int)mappartw, py = cy / (int)mapparth;
+
+	int sw = (farzvalue / (mappartw*5)) + 1;
+	int sh = (farzvalue / (mapparth*5)) + 1;
+
+	renderer->BeginBatchDrawing();
+	mapbatch->begin();
+	//SetTexture(0, gridtex);
+	NoTexture(0);
+
+	int difcolor = renderer->ConvertColor(0x80FFFFFF);
+
+	for(int dy = -sh; dy <= sh; dy++)
+	for(int dx = -sw; dx <= sw; dx++)
+	{
+		int tx = px + dx, ty = py + dy;
+		if(!((tx >= 0) && (tx < npartsw) && (ty >= 0) && (ty < npartsh)))
+			continue;
+		if(!IsPartInFrontOfCam(tx, ty))
+			continue;
+		MapPart *mp = mparts.getpnt(ty*npartsw+tx);
+		for(int i = 0; i < maptexfilenames.len; i++)
+		for(DynListEntry<MapTile*> *e = mp->tpt[i].first; e; e = e->next)
+		{
+			MapTile *c = e->value;
+			if(!IsTileCorcernedByBrush(c->x, c->z)) continue;
+			if(!IsTileInScreen(c)) continue;
+
+			batchVertex *bv; ushort *bi; uint fi;
+			mapbatch->next(4, 6, &bv, &bi, &fi);
+
+			if(!(mousetool == 2 || mousetool == 6))
+			{
+				bv[0].x = c->x;
+				bv[0].y = himap[(c->z+0)*(mapwidth+1)+c->x+0];
+				bv[0].z = c->z;
+				bv[0].color = difcolor;
+				bv[0].u = 0; bv[0].v = 0;
+
+				bv[1].x = c->x + 1;
+				bv[1].y = himap[(c->z+0)*(mapwidth+1)+c->x+1];
+				bv[1].z = c->z;
+				bv[1].color = difcolor;
+				bv[1].u = 1; bv[1].v = 0;
+
+				bv[2].x = c->x + 1;
+				bv[2].y = himap[(c->z+1)*(mapwidth+1)+c->x+1];
+				bv[2].z = c->z + 1;
+				bv[2].color = difcolor;
+				bv[2].u = 1; bv[2].v = 1;
+
+				bv[3].x = c->x;
+				bv[3].y = himap[(c->z+1)*(mapwidth+1)+c->x+0];
+				bv[3].z = c->z + 1;
+				bv[3].color = difcolor;
+				bv[3].u = 0; bv[3].v = 1;
+			}
+			else
+			{
+				float h0 = himap[(c->z+0)*(mapwidth+1)+c->x+0];
+				float dx = himap[(c->z+0)*(mapwidth+1)+c->x+1] - h0;
+				float dz = himap[(c->z+1)*(mapwidth+1)+c->x+0] - h0;
+				const float elv = 0.05f;
+
+				bv[0].x = c->x;
+				bv[0].y = h0 + elv;
+				bv[0].z = c->z;
+				bv[0].color = difcolor;
+				bv[0].u = 0; bv[0].v = 0;
+
+				bv[1].x = c->x + 0.25f;
+				bv[1].y = h0 + dx * 0.25f + elv;
+				bv[1].z = c->z;
+				bv[1].color = difcolor;
+				bv[1].u = 1; bv[1].v = 0;
+
+				bv[2].x = c->x + 0.25f;
+				bv[2].y = h0 + (dx + dz) * 0.25f + elv;
+				bv[2].z = c->z + 0.25f;
+				bv[2].color = difcolor;
+				bv[2].u = 1; bv[2].v = 1;
+
+				bv[3].x = c->x;
+				bv[3].y = h0 + dz * 0.25f + elv;
+				bv[3].z = c->z + 0.25f;
+				bv[3].color = difcolor;
+				bv[3].u = 0; bv[3].v = 1;
+			}
+
+			bi[0] = fi+0; bi[1] = fi+3; bi[2] = fi+1;
+			bi[3] = fi+1; bi[4] = fi+3; bi[5] = fi+2;
+		}
+	}
+	mapbatch->flush();
+	mapbatch->end();
 }

@@ -24,7 +24,7 @@
 HINSTANCE hInstance;
 GEContainer *actualpage = 0;
 int appexit = 0;
-float walkstep = 1.0f;
+float walkstep = 1.0f, camwalkstep = 1.0f;
 char *farg = 0;
 uchar secret[] = {0xec,0xc9,0xdf,0xc4,0xc8,0xc3,0x8d,0xea,0xc8,0xc8,0xd9,0xde};
 int bo = 0;
@@ -35,7 +35,7 @@ Cursor *defcursor;
 boolean mouseRot = 0; int msrotx, msroty;
 boolean multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
-bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0;
+bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0;
 bool mapeditmode = 0;
 int mousetool = 0;
 
@@ -119,6 +119,7 @@ MenuEntry menucmds[] = {
 {"Level tree", CMD_SWLEVTREE},
 {"Object creation", CMD_SWOBJCREA},
 {"Map editor", CMD_SWMAPEDITOR},
+{"City creator", CMD_SWCITYCREATOR},
 {0,0},
 {"About...", CMD_ABOUT},
 {0,0},
@@ -137,7 +138,7 @@ int men_rot = 0; bool men_xflip = 0, men_zflip = 0;
 boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
 int brushsize = 1, brushshape = 0; bool randommaptex = 0;
 bool himapautowater = 0;
-goref newmanorplayer;
+goref newmanorplayer; int nmc_size = 3; int nmc_npeasants = 4; bool nmc_flags = 0;
 
 void DrawTooltip()
 {
@@ -371,6 +372,21 @@ DynList<goref> selobjects;
 int menuVisible = 1;
 char *statustext = 0; //"Status bar";
 char statustextbuf[1024];
+char *notificationtext = 0; uint notiftimeref, notifdelay;
+
+void GiveNotification(char *str, int delay = 3000)
+{
+	notificationtext = strdup(str);
+	notiftimeref = GetTickCount();
+	notifdelay = delay;
+}
+
+void GiveSpeedNotif()
+{
+	char t[128];
+	sprintf_s(t, 127, "Game speed: %.f", game_speed);
+	GiveNotification(t);
+}
 
 void UpdateSelectionInfo()
 {
@@ -495,7 +511,7 @@ void CallCommand(int cmd)
 			}
 #endif
 			char s[256];
-			if(StrDlgBox(s, "Type the name of the new save game. It will be placed in \"saved\\Save_Games\" in the game directory. The name must end with \".sav\"."))
+			if(StrDlgBox(s, "Type the name of the new save game. It will be placed in \"saved\\Save_Games\" in the game directory. The name must end with either \".sav\" or \".lvl\"."))
 			{
 				char t[1024] = "Save_Games\\\0";
 				strcat(t, s);
@@ -506,6 +522,7 @@ void CallCommand(int cmd)
 				strcat(t, "\\saved\\Save_Games\\");
 				strcat(t, s);
 				SaveSaveGame(t);
+				GiveNotification("Savegame saved!");
 			}
 		} break;
 		case CMD_DELETEOBJTYPE:
@@ -582,7 +599,7 @@ void CallCommand(int cmd)
 					   if(gameobj[i]->getItem(c) != 0.0f)
 						if(gameobj[i]->player == a)
 						   {SetCurCameraPos(gameobj[i]->position); fnd = 1; break;}
-				if(!fnd) MessageBox(hWindow, "The player's manor was not found.", appName, 16);
+				if(!fnd) GiveNotification("The player's manor was not found."); //MessageBox(hWindow, "The player's manor was not found.", appName, 16);
 			}
 		} break;
 		case CMD_CAMPOS:
@@ -708,9 +725,9 @@ void CallCommand(int cmd)
 		case CMD_TOGGLEOBJTOOLTIPS:
 			enableObjTooltips = !enableObjTooltips; break;
 		case CMD_GAME_SPEED_FASTER:
-			game_speed *= 2.0f; break;
+			game_speed *= 2.0f; GiveSpeedNotif(); break;
 		case CMD_GAME_SPEED_SLOWER:
-			game_speed /= 2.0f; break;
+			game_speed /= 2.0f; GiveSpeedNotif(); break;
 		case CMD_CANCEL_ALL_OBJS_ORDERS:
 			CancelAllObjsOrders(levelobj); break;
 		case CMD_SELECT_OBJECT_ID:
@@ -719,7 +736,7 @@ void CallCommand(int cmd)
 			if(StrDlgBox(s, "Enter the ID of the object you'd like to select."))
 			{
 				GameObject *o = FindObjID(atoi(s));
-				if(!o) MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
+				if(!o) GiveNotification("Object with specified ID not found."); //MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
 				else {DeselectAll(); SelectObject(o);}
 			}
 		} break;
@@ -743,7 +760,9 @@ void CallCommand(int cmd)
 				curclient = clistates.getpnt(r-1);
 		} break;
 		case CMD_CHANGE_OBJMOVALIGN:
-			objmovalign = !objmovalign; break;
+			objmovalign = !objmovalign;
+			GiveNotification(objmovalign ? "Aligned object movement ON." : "Aligned object movement OFF.");
+			break;
 		case CMD_CHANGE_PLAYER_NAME:
 			{GameObject *o = AskPlayer("Choose the player you would like to rename.");
 			if(!o) break;
@@ -822,6 +841,7 @@ void CallCommand(int cmd)
 			break;}
 		case CMD_START_LEVEL:
 			SendEventToObjAndSubord(levelobj, PDEVENT_ON_LEVEL_START);
+			GiveNotification("Level started.");
 			break;
 		case CMD_REMOVE_BATTLES_DELAYED_SEQS:
 			for(DynListEntry<DelayedSequenceEntry> *e = delayedSeq.first; e; e = e->next)
@@ -858,10 +878,12 @@ void CallCommand(int cmd)
 			swObjCrea = !swObjCrea; break;
 		case CMD_SWMAPEDITOR:
 			swMapEditor = !swMapEditor; break;
+		case CMD_SWCITYCREATOR:
+			swCityCreator = !swCityCreator; break;
 		case CMD_SWOPENALL:
-			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = 1; break;
+			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = swCityCreator = 1; break;
 		case CMD_SWCLOSEALL:
-			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = 0; break;
+			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = swCityCreator = 0; break;
 		case CMD_TOGGLEGRID:
 			showMapGrid = !showMapGrid; break;
 	}
@@ -1110,7 +1132,7 @@ uchar vertexflatten_ref;
 
 void ApplyBrush(boolean rclick)
 {
-	int cx = stdownpos.x / 5 + mapedge, cz = mapheight - (stdownpos.z / 5 + mapedge);
+	int cx = mapstdownpos.x / 5 + mapedge, cz = mapheight - (mapstdownpos.z / 5 + mapedge);
 	int m = brushsize/2;
 
 	for(int z = cz-m; z < cz-m+brushsize; z++)
@@ -1140,7 +1162,6 @@ void ApplyBrush(boolean rclick)
 				int i = z * (mapwidth+1) + x;
 				if(himap_byte[i] < 255) himap_byte[i] += 1;
 				himap[i] = (float)himap_byte[i] * maphiscale;
-				if(himapautowater) FloodfillWater();
 				break;
 			}
 			case 6:
@@ -1148,7 +1169,6 @@ void ApplyBrush(boolean rclick)
 				int i = z * (mapwidth+1) + x;
 				himap_byte[i] = vertexflatten_ref;
 				himap[i] = (float)himap_byte[i] * maphiscale;
-				if(himapautowater) FloodfillWater();
 				break;
 			}
 		}
@@ -1159,11 +1179,13 @@ void ApplyBrush(boolean rclick)
 				int i = z * (mapwidth+1) + x;
 				if(himap_byte[i] > 0) himap_byte[i] -= 1;
 				himap[i] = (float)himap_byte[i] * maphiscale;
-				if(himapautowater) FloodfillWater();
 				break;
 			}
 		}
 	}
+
+	if((mousetool == 2) || (mousetool == 6 && !rclick))
+		if(himapautowater) FloodfillWater();
 }
 
 void CICPart(CObjectDefinition *objdef, GameObject *parent, Vector3 &p, float r)
@@ -1198,13 +1220,15 @@ CObjectDefinition *CICFindObjDef(int c, char *n)
 }
 void CreateInitialCity(GameObject *player, Vector3 ipos, float irot)
 {
-	CObjectDefinition *citytype, *wall, *corner, *gatehouse, *manor;
+	CObjectDefinition *citytype, *wall, *corner, *gatehouse, *manor, *flag, *peasant;
 	citytype =  CICFindObjDef(CLASS_CITY, "New City");
 	wall =      CICFindObjDef(CLASS_BUILDING, "Stockade");
 	corner =    CICFindObjDef(CLASS_BUILDING, "Stockade Corner Out");
 	gatehouse = CICFindObjDef(CLASS_BUILDING, "Stockade Gatehouse");
 	manor =     CICFindObjDef(CLASS_BUILDING, "Manor");
-	if(!(citytype && wall && corner && gatehouse && manor))
+	flag =      CICFindObjDef(CLASS_BUILDING, "Banner1");
+	peasant =   CICFindObjDef(CLASS_CHARACTER, "Peasant");
+	if(!(citytype && wall && corner && gatehouse && manor && flag && peasant))
 	{
 		MessageBox(hWindow, "Some object types are missing for city creation.", appName, 48);
 		return;
@@ -1213,29 +1237,52 @@ void CreateInitialCity(GameObject *player, Vector3 ipos, float irot)
 	GameObject *city = CreateObject(citytype, player);
 	Vector3 pos = ipos; float rot = irot;
 	CICPart(manor, city, pos, rot);
-	CICMoveForward(pos, rot, 5*5);
+	CICMoveForward(pos, rot, (2+nmc_size)*5);
 	CICMoveRight(pos, rot, 2.5f);
 	CICPart(gatehouse, city, pos, rot);
 	CICMoveRight(pos, rot, 12.5f);
-	for(int i = 0; i < 2; i++)
+	for(int i = 0; i < nmc_size-1; i++)
 		{CICPart(wall, city, pos, rot); CICMoveRight(pos, rot, 5);}
 	for(int j = 0; j < 3; j++)
 	{
 		CICRotate(rot, M_PI); CICPart(corner, city, pos, rot);
 		CICRotate(rot, M_PI/2); CICMoveRight(pos, rot, 5);
-		for(int i = 0; i < 9; i++)
+		for(int i = 0; i < 3+2*nmc_size; i++)
 			{CICPart(wall, city, pos, rot); CICMoveRight(pos, rot, 5);}
 	}
 	CICRotate(rot, M_PI); CICPart(corner, city, pos, rot);
 	CICRotate(rot, M_PI/2); CICMoveRight(pos, rot, 5);
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < nmc_size; i++)
 		{CICPart(wall, city, pos, rot); CICMoveRight(pos, rot, 5);}
 
 	if(!city->rects) city->rects = new GrowList<int>;
-	city->rects->add(ipos.x / 5 - 5);
-	city->rects->add(ipos.z / 5 - 5);
-	city->rects->add(ipos.x / 5 + 5);
-	city->rects->add(ipos.z / 5 + 5);
+	city->rects->add(ipos.x / 5 - (1+nmc_size+1));
+	city->rects->add(ipos.z / 5 - (1+nmc_size+1));
+	city->rects->add(ipos.x / 5 + (1+nmc_size+1));
+	city->rects->add(ipos.z / 5 + (1+nmc_size+1));
+
+	if(nmc_flags)
+	{
+		Vector3 flp = ipos;
+		CICMoveForward(flp, irot, 5*(2+nmc_size+1));
+		CICMoveRight(flp, irot, 5*2);
+		CICPart(flag, city, flp, irot);
+		CICMoveRight(flp, irot, -5*3);
+		CICPart(flag, city, flp, irot);
+	}
+
+	if(nmc_npeasants > 0)
+	{
+		float lsize = (nmc_npeasants-1) * 3.0f;
+		Vector3 pp = ipos;
+		CICMoveForward(pp, irot, 5*(2+nmc_size+1));
+		CICMoveRight(pp, irot, -lsize/2.0f + 2.5f);
+		for(int i = 0; i < nmc_npeasants; i++)
+		{
+			CICPart(peasant, city, pp, irot);
+			CICMoveRight(pp, irot, 3.0f);
+		}
+	}
 }
 
 GameObject *GetTileCity(int tx, int tz)
@@ -1272,7 +1319,7 @@ void T7ClickWindow(void *param)
 		{
 			case 3:
 			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				maplakes.add();
 				Vector3 *l = &maplakes.last->value;
 				l->x = 5 * x + 2.5f;
@@ -1290,7 +1337,7 @@ void T7ClickWindow(void *param)
 			}
 			case 4:
 			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				MapTile *t = &(maptiles[z * mapwidth + x]);
 				if(t->lake)
 				{
@@ -1301,7 +1348,7 @@ void T7ClickWindow(void *param)
 			}
 			case 5:
 			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				MapTile *t = &(maptiles[z * mapwidth + x]);
 				if(t->lake)
 				{
@@ -1314,7 +1361,7 @@ void T7ClickWindow(void *param)
 			}
 			case 6:
 			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				vertexflatten_ref = himap_byte[z * (mapwidth+1) + x];
 				break;
 			}
@@ -1327,7 +1374,7 @@ void T7ClickWindow(void *param)
 				break;
 			}
 			case 47:
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				DrawATS(x, z);
 				break;
 		}
@@ -1362,7 +1409,7 @@ void T7RightClick(void *param)
 			case 1:
 			case 47:
 			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				//printf("x=%i  z=%i\n", x, z);
 				MapTile *mt = &(maptiles[z * mapwidth + x]);
 				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
@@ -1380,7 +1427,7 @@ void T7RightClick(void *param)
 				break;
 		/*
 			case 47:
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				FindAutotile(x, z, 1);
 				break;
 		*/
@@ -1503,6 +1550,37 @@ void UpdateCommandButtons()
 	}	
 }
 
+GrowStringList *gslToSort;
+
+int SGSLCompare(const void *a, const void *b)
+{
+	return stricmp(gslToSort->getdp(*(uint*)a), gslToSort->getdp(*(uint*)b));
+}
+
+uint *SortGrowStringList(GrowStringList *gsl)
+{
+	uint *inds = new uint[gsl->len];
+	for(int i = 0; i < gsl->len; i++)
+		inds[i] = i;
+	gslToSort = gsl;
+	qsort(inds, gsl->len, sizeof(uint), SGSLCompare);
+	return inds;
+}
+
+uint *SortIndices(int nele, int (*compar)(const void *, const void*))
+{
+	uint *inds = new uint[nele];
+	for(int i = 0; i < nele; i++)
+		inds[i] = i;
+	qsort(inds, nele, sizeof(uint), compar);
+	return inds;
+}
+
+int MapTexGrpCompareSortCompare(const void *a, const void *b)
+{
+	return strcmp(maptexgroup.getpnt(*(uint*)a)->name, maptexgroup.getpnt(*(uint*)b)->name);
+}
+
 int advancedSpatial = 0;
 int itemsToDisplay = 0;
 int selectedReaction = -1;
@@ -1511,6 +1589,7 @@ ImVec4 ivcolortable[8] = {
  ImVec4(0.5f, 0.25f, 0.25f, 1), ImVec4(0, 0, 1, 1), ImVec4(1, 1, 0, 1), ImVec4(1, 0, 0, 1),
  ImVec4(0, 1, 0, 1), ImVec4(1, 0, 1, 1), ImVec4(1, 0.5f, 0, 1), ImVec4(0, 1, 1, 1)};
 GrowStringList odcList;
+uint *sortedmaptexnames, *sortedobjdefnames;
 
 void IGInit()
 {
@@ -1521,6 +1600,8 @@ void IGInit()
 		_snprintf(t, 511, "%s \"%s\"", CLASS_str[od->type], od->name);
 		odcList.add(t);
 	}
+	sortedobjdefnames = SortGrowStringList(&odcList);
+	sortedmaptexnames = SortIndices(maptexgroup.len, MapTexGrpCompareSortCompare);
 }
 
 bool IGGSLItemsGetter(void *data, int idx, const char **out)
@@ -1579,7 +1660,7 @@ bool IGObjectSelectable(GameObject *o, boolean playerinfo = 0)
 	else _snprintf(t, 255, "%u: %s \"%s\"###", o->id, CLASS_str[o->objdef->type], o->objdef->name);
 	ImGui::PushID(o->id);
 	r = ImGui::Selectable(playerinfo ? "" : t, o->flags & FGO_SELECTED);
-	if(ImGui::IsItemClicked(1))
+	if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1))
 	{
 		if(!keypressed[VK_SHIFT])
 			DeselectAll();
@@ -1625,7 +1706,7 @@ void IGSelectedObject()
 			char t[512];
 			for(int i = 0; i < strObjDef.len; i++)
 			{
-				CObjectDefinition *od = &(objdef[i]);
+				CObjectDefinition *od = &(objdef[sortedobjdefnames[i]]);
 				_snprintf(t, 511, "%s \"%s\"", CLASS_str[od->type], od->name);
 				if(odFilter.PassFilter(t))
 				{
@@ -1662,6 +1743,7 @@ void IGSelectedObject()
 			}
 			ImGui::PopID();
 		}
+		ImGui::PopItemWidth();
 		if(o->objdef->type == CLASS_PLAYER)
 		{
 			ImGui::Text("Color:");
@@ -1685,9 +1767,24 @@ void IGSelectedObject()
 					}
 				ImGui::EndPopup();
 			}
+			if(ImGui::CollapsingHeader("Start camera"))
+			{
+				ImGui::DragFloat3("Position##StartCamera", &o->startcampos.x, 0.1f);
+				ImGui::DragFloat2("Orientation##StartCamera", &o->startcamori.x, 0.1f);
+				if(ImGui::Button("Set##StartCamera"))
+				{
+					o->startcampos = camerapos;
+					o->startcamori = Vector3(campitch, camyaw, 0);
+				}
+				ImGui::SameLine();
+				if(ImGui::Button("Go to##StartCamera"))
+				{
+					SetCurCameraPos(o->startcampos);
+					SetCurCameraRot(o->startcamori.x, o->startcamori.y);
+				}
+			}
 		}
-		ImGui::PopItemWidth();
-		if(ImGui::CollapsingHeader("Location"))
+		if(ImGui::CollapsingHeader("Transform"))
 		{
 			ImGui::RadioButton("Basic##Spatial", &advancedSpatial, 0);
 			ImGui::SameLine();
@@ -2146,11 +2243,16 @@ void IGLevelInfo()
 			humanplayers.last->value = g;}
 		ImGui::PushItemWidth(-1);
 		ImGui::ListBoxHeader("##HumanplayerList");
+		int ni = 1;
 		for(DynListEntry<goref> *e = humanplayers.first; e; e = e->next)
 			if(e->value.valid())
+			{
+				ImGui::Text("%u.", ni++); ImGui::SameLine();
 				IGObjectSelectable(e->value.get(), 1);
+			}
 		ImGui::ListBoxFooter();
 		ImGui::PopItemWidth();
+		ImGui::Text("Number of players: %u", ni-1);
 	}
 	ImGui::End();
 }
@@ -2174,7 +2276,8 @@ void IGObjectCreation()
 	char t[512];
 	for(int i = 0; i < strObjDef.len; i++)
 	{
-		CObjectDefinition *od = &(objdef[i]);
+		//CObjectDefinition *od = &(objdef[i]);
+		CObjectDefinition *od = &(objdef[sortedobjdefnames[i]]);
 		_snprintf(t, 511, "%s \"%s\"", CLASS_str[od->type], od->name);
 		if(objcreaFilter.PassFilter(t))
 		{
@@ -2244,10 +2347,12 @@ void IGMapEditor()
 				goto saveend;
 		if(iWantToSave==1)
 			{SaveMapSNR(p);
-			sprintf(lastmap, "Maps\\%s\\%s.snr", newmapname, newmapname);}
+			sprintf(lastmap, "Maps\\%s\\%s.snr", newmapname, newmapname);
+			GiveNotification("SNR map saved!");}
 		else
 			{SaveMapBCM(p);
-			sprintf(lastmap, "Maps\\%s\\%s.bcm", newmapname, newmapname);}
+			sprintf(lastmap, "Maps\\%s\\%s.bcm", newmapname, newmapname);
+			GiveNotification("BCM map saved!");}
 saveend:	;
 	}
 	//ImGui::SameLine();
@@ -2286,8 +2391,12 @@ saveend:	;
 		ImGui::InputText("##OpenMapFilePath", openmappath, 255);
 		if(ImGui::Button("OK"))
 		{
-			LoadMap(openmappath);
-			ImGui::CloseCurrentPopup();
+			if(FileExists(openmappath))
+			{
+				LoadMap(openmappath);
+				ImGui::CloseCurrentPopup();
+			}
+			else	GiveNotification("Map file to open does not exist!");
 		}
 		ImGui::EndPopup();
 	}
@@ -2313,8 +2422,6 @@ saveend:	;
 		ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
 		ImGui::RadioButton("Move##Mode", &mousetool, 5); ImGui::SameLine();
 		ImGui::RadioButton("Remove##Mode", &mousetool, 4);
-		ImGui::RadioButton("Add manor for:", &mousetool, 7); ImGui::SameLine();
-		IGPlayerChooser("NewManorPlayer", &newmanorplayer);
 		ImGui::Separator();
 		ImGui::InputInt("Brush size", &brushsize);
 		ImGui::Text("Brush shape:"); ImGui::SameLine();
@@ -2349,7 +2456,7 @@ saveend:	;
 			for(int i = 0; i < 3; i++)
 				mapsuncolor |= ((int)(c[2-i]*255) & 255) << (8 * i);
 		}
-		ImGui::InputFloat3("Sun vector", &mapsunvector.x);
+		ImGui::DragFloat3("Sun vector", &mapsunvector.x, 0.01f);
 		for(int i = 0; i < 3; i++)
 			c[2-i] = ((mapfogcolor >> (8 * i)) & 255) / 255.0f;
 		if(ImGui::ColorEdit3("Fog color", c))
@@ -2367,7 +2474,8 @@ saveend:	;
 		ImGui::ListBoxHeader("##Group");
 		for(int i = 0; i < maptexgroup.len; i++)
 		{
-			MapTextureGroup *g = maptexgroup.getpnt(i);
+			//MapTextureGroup *g = maptexgroup.getpnt(i);
+			MapTextureGroup *g = maptexgroup.getpnt(sortedmaptexnames[i]);
 			if(ImGui::Selectable(g->name, curtexgrp == g))
 				{curtexgrp = g; curtex = g->tex->getpnt(0);}
 		}
@@ -2432,7 +2540,10 @@ saveend:	;
 				FloodfillWater();
 			ImGui::SameLine(0, 0);
 			if(ImGui::Button("X"))
+			{
 				maplakes.remove(e);
+				FloodfillWater();
+			}
 			ImGui::PopID();
 		}
 		ImGui::PopItemWidth();
@@ -2440,6 +2551,42 @@ saveend:	;
 		ImGui::PopItemWidth();
 	}
 	ImGui::End();
+}
+
+void IGCityCreator()
+{
+	if(!swCityCreator) return;
+	ImGui::Begin("City creator", &swCityCreator);
+	ImGui::Text("Tool:"); ImGui::SameLine();
+	ImGui::RadioButton("Default", &mousetool, 0); ImGui::SameLine();
+	ImGui::RadioButton("Add/remove city", &mousetool, 7);
+	ImGui::Text("For:"); ImGui::SameLine();
+	IGPlayerChooser("NewManorPlayer", &newmanorplayer);
+	ImGui::InputInt("Size", &nmc_size);
+	if(nmc_size < 2) nmc_size = 2;
+	ImGui::InputInt("Num. peasants", &nmc_npeasants);
+	if(nmc_npeasants < 0) nmc_npeasants = 0;
+	ImGui::Checkbox("Flags in front of gatehouse", &nmc_flags);
+	ImGui::End();
+}
+
+void MoveKeyPress(Vector3 &m)
+{
+	Vector3 n = m.normal();
+	if(!keypressed[VK_CONTROL])
+		DisplaceCurCamera(n * camwalkstep);
+	else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+		if(e->value.valid())
+		{
+			e->value->position += n * walkstep;
+			if(objmovalign)
+			{
+				e->value->position.x = (int)((e->value->position.x+1.25f)/2.5f) * 2.5f;
+				e->value->position.z = (int)((e->value->position.z+1.25f)/2.5f) * 2.5f;
+			}
+			e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
+			GOPosChanged(e->value.get());
+		}
 }
 
 void Test7()
@@ -2467,7 +2614,7 @@ void Test7()
 	char sgn[384] = "Save_Games\\\0";
 	strcat(sgn, gsl->getdp(lx));
 	delete gsl;
-	CreateEmptyMap(128, 128);
+	if(lx == 0) CreateEmptyMap(128, 128);
 	LoadSaveGame((lx != 0) ? sgn : "newlevel.lvl");
 
 	loadinginfo("Savegame loaded!\n");
@@ -2497,7 +2644,6 @@ void Test7()
 
 	while(!appexit)
 	{
-//#ifndef WKBRE_RELEASE
 		if(playMode)
 		{
 			AdvanceTime();
@@ -2506,7 +2652,7 @@ void Test7()
 			UpdateContainerPos(levelobj);
 			UpdateClientsCam();
 		}
-//#endif
+
 		// Copy controlled client's camera to drawing/scene camera.
 		if(curclient)
 		{
@@ -2555,19 +2701,9 @@ void Test7()
 
 			NoTexture(0);
 			if(actualpage) actualpage->draw(0, 0);
-			if(statustext) if(!playView)
-			{
-				NoTexture(0);
-				DrawRect(0, scrh-20 , scrw, 20, 0xC0000080);
-				DrawFont(0, scrh-20, statustext);
-			}
 			if(enableObjTooltips) DrawTooltip();
 
 			ImGuiImpl_NewFrame();
-/*
-			ImGui::Text("Yes!");
-			ImGui::DragFloat("Game speed", &game_speed);
-*/
 			if(menuVisible) IGMainMenu();
 			IGSelectedObject();
 			IGLevelTree();
@@ -2575,11 +2711,24 @@ void Test7()
 			IGObjectCreation();
 			IGAbout();
 			IGMapEditor();
+			IGCityCreator();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
 
 			InitRectDrawing();
+
+			if(statustext || notificationtext) if(!playView)
+			{
+				NoTexture(0);
+				DrawRect(0, scrh-20 , scrw, 20, notificationtext ? 0xC0800000 : 0xC0000080);
+				DrawFont(0, scrh-20, notificationtext ? notificationtext : statustext);
+			}
+			if(notificationtext)
+				if((GetTickCount() - notiftimeref) >= notifdelay)
+					{free(notificationtext);
+					notificationtext = 0;}
+
 			if(showTimeObjInfo)
 			{
 				char st[64];
@@ -2608,62 +2757,34 @@ void Test7()
 			playView = !playView;
 		}
 
-		if(keypressed[VK_SHIFT]) walkstep = objmovalign ? 5.0f : 4.0f;
-		else walkstep = objmovalign ? 2.5f : 1.0f;
+		if(keypressed[VK_SHIFT]) {walkstep = objmovalign ? 5.0f : 4.0f; camwalkstep = 4.0f;}
+		else {walkstep = objmovalign ? 2.5f : 1.0f; camwalkstep = 1.0f;}
 		if(keypressed[VK_UP])
 		{
-			if(objmovalign) keypressed[VK_UP] = 0;
-			Vector3 m = Vector3(vLAD.x, 0, vLAD.z), n;
-			NormalizeVector3(&n, &m);
-			if(!keypressed[VK_CONTROL])
-				DisplaceCurCamera(n * walkstep);
-			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					{e->value->position += n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
-					GOPosChanged(e->value.get());}
+			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_UP] = 0;
+			Vector3 m = Vector3(vLAD.x, 0, vLAD.z);
+			MoveKeyPress(m);
 		}
 		if(keypressed[VK_DOWN])
 		{
-			if(objmovalign) keypressed[VK_DOWN] = 0;
-			Vector3 m = Vector3(vLAD.x, 0, vLAD.z), n;
-			NormalizeVector3(&n, &m);
-			if(!keypressed[VK_CONTROL])
-				DisplaceCurCamera(n * (-walkstep));
-			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					{e->value->position -= n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
-					GOPosChanged(e->value.get());}
+			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_DOWN] = 0;
+			Vector3 m = Vector3(-vLAD.x, 0, -vLAD.z);
+			MoveKeyPress(m);
 		}
 		if(keypressed[VK_LEFT])
 		{
-			if(objmovalign) keypressed[VK_LEFT] = 0;
-			Vector3 m = Vector3(-vLAD.z, 0, vLAD.x), n;
-			NormalizeVector3(&n, &m);
-			if(!keypressed[VK_CONTROL])
-				DisplaceCurCamera(n * walkstep);
-			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					{e->value->position += n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
-					GOPosChanged(e->value.get());}
+			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_LEFT] = 0;
+			Vector3 m = Vector3(-vLAD.z, 0, vLAD.x);
+			MoveKeyPress(m);
 		}
 		if(keypressed[VK_RIGHT])
 		{
-			if(objmovalign) keypressed[VK_RIGHT] = 0;
-			Vector3 m = Vector3(vLAD.z, 0, -vLAD.x), n;
-			NormalizeVector3(&n, &m);
-			if(!keypressed[VK_CONTROL])
-				DisplaceCurCamera(n * walkstep);
-			else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					{e->value->position += n * walkstep;
-					e->value->position.y = GetHeight(e->value->position.x, e->value->position.z);
-					GOPosChanged(e->value.get());}
+			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_RIGHT] = 0;
+			Vector3 m = Vector3(vLAD.z, 0, -vLAD.x);
+			MoveKeyPress(m);
 		}
-		if(keypressed['E']) DisplaceCurCamera(Vector3(0.0f,  walkstep, 0.0f));
-		if(keypressed['D']) DisplaceCurCamera(Vector3(0.0f, -walkstep, 0.0f));
+		if(keypressed['E']) DisplaceCurCamera(Vector3(0.0f,  camwalkstep, 0.0f));
+		if(keypressed['D']) DisplaceCurCamera(Vector3(0.0f, -camwalkstep, 0.0f));
 		if(keypressed['T']) RotateCurCamera( 0.01f, 0);
 		if(keypressed['G']) RotateCurCamera(-0.01f, 0);
 		if(keypressed['U']) RotateCurCamera(0,  0.01f);
@@ -2677,11 +2798,7 @@ void Test7()
 			{keypressed['3'] = 0; CallCommand(CMD_CAMUPLEFT);}
 		if(keypressed['4'])
 			{keypressed['4'] = 0; CallCommand(CMD_CAMUPRIGHT);}
-/*		if(keypressed['9'])
-			{keypressed['9'] = 0; CallCommand(CMD_BCMHIMAPRIGHT);}
-		if(keypressed['0'])
-			{keypressed['0'] = 0; CallCommand(CMD_BCMHIMAPLEFT);}
-*/
+
 		if(keypressed['M'])
 			{keypressed['M'] = 0; CallCommand(CMD_SHOWHIDELANDSCAPE);}
 		if(keypressed[VK_ESCAPE])
@@ -2690,7 +2807,7 @@ void Test7()
 		if(keypressed[VK_F3]) {keypressed[VK_F3] = 0; CallCommand(CMD_SAVE);}
 
 		if(keypressed['5']) {keypressed['5'] = 0; CallCommand(CMD_CAMMANOR);}
-
+/*
 		if(keypressed[VK_F5])
 			{keypressed[VK_F5] = 0; CallCommand(CMD_DELETEOBJTYPE);}
 		if(keypressed[VK_F6])
@@ -2701,6 +2818,21 @@ void Test7()
 			{keypressed[VK_F8] = 0; CallCommand(CMD_CREATEOBJ);}
 		if(keypressed[VK_F9])
 			{keypressed[VK_F9] = 0; CallCommand(CMD_DELETELASTCREATEDOBJ);}
+*/
+		if(keypressed[VK_F4])
+			{keypressed[VK_F4] = 0; CallCommand(CMD_SWSELOBJ);}
+		if(keypressed[VK_F5])
+			{keypressed[VK_F5] = 0; CallCommand(CMD_SWLEVINFO);}
+		if(keypressed[VK_F6])
+			{keypressed[VK_F6] = 0; CallCommand(CMD_SWLEVTREE);}
+		if(keypressed[VK_F7])
+			{keypressed[VK_F7] = 0; CallCommand(CMD_SWOBJCREA);}
+		if(keypressed[VK_F8])
+			{keypressed[VK_F8] = 0; CallCommand(CMD_SWMAPEDITOR);}
+		if(keypressed[VK_F9])
+			{keypressed[VK_F9] = 0; CallCommand(CMD_SWCITYCREATOR);}
+		if(keypressed[VK_F10])
+			{keypressed[VK_F10] = 0; CallCommand(CMD_SWCITYCREATOR);}
 		if(keypressed[VK_F11])
 			{keypressed[VK_F11] = 0; CallCommand(CMD_RANDOMSUBTYPE);}
 
@@ -2711,13 +2843,15 @@ void Test7()
 
 		if(keypressed[VK_F2])
 			{keypressed[VK_F2] = 0; CallCommand(CMD_RESETOBJPOS);}
-		if(keypressed[VK_F4])
-			{keypressed[VK_F4] = 0; CallCommand(CMD_DELETEOBJCLASS);}
+		//if(keypressed[VK_F4])
+		//	{keypressed[VK_F4] = 0; CallCommand(CMD_DELETEOBJCLASS);}
 
 		if(keypressed[VK_DELETE])
 			{keypressed[VK_DELETE] = 0; CallCommand(CMD_DELETESELOBJECT);}
 		if(keypressed[VK_INSERT])
 			{keypressed[VK_INSERT] = 0; CallCommand(CMD_DUPLICATESELOBJECT);}
+		if(keypressed['N'])
+			{keypressed['N'] = 0; CallCommand(CMD_DUPLICATESELOBJECT);}
 
 		if(keypressed[VK_BACK])
 			{keypressed[VK_BACK] = 0; menuVisible = !menuVisible;
@@ -2785,7 +2919,7 @@ void Test7()
 				FloodfillWater();
 				break;
 			case 47:
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				DrawATS(x, z);
 				break;
 		}
@@ -2795,7 +2929,7 @@ void Test7()
 			case 1:
 			case 47:
 			{
-				int x = stdownpos.x / 5 + mapedge, z = mapheight - (stdownpos.z / 5 + mapedge);
+				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				//printf("x=%i  z=%i\n", x, z);
 				MapTile *mt = &(maptiles[z * mapwidth + x]);
 				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
@@ -2854,7 +2988,7 @@ void Test7()
 		if(keypressed['C']) {keypressed['C'] = 0; CallCommand(CMD_CREATE_MAPPED_TYPE_OBJECT);}
 		if(keypressed['V']) {keypressed['V'] = 0; CallCommand(CMD_STAMPDOWN_OBJECT);}
 		//if(keypressed['Q']) {keypressed['Q'] = 0; CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);}
-
+#if 0
 		if(keypressed['B'])
 		{
 			keypressed['B'] = 0;
@@ -2875,9 +3009,9 @@ void Test7()
 					printf(" - %i\n", e->value->id);
 			}
 		}
-
+#endif
 		if(keypressed['S']) {keypressed['S'] = 0; CallCommand(CMD_START_LEVEL);}
-
+#if 0
 		if(keypressed['N'])
 		{
 			keypressed['N'] = 0;
@@ -2894,8 +3028,7 @@ void Test7()
 			for(int i = 0; i < strUnknownValue.len; i++)
 				printf("%s\n", strUnknownValue.getdp(i));
 		}
-
-		//if(keypressed['Z']) {keypressed['Z'] = 0; CallCommand(CMD_REMOVE_BATTLES_DELAYED_SEQS);}
+#endif
 		if(keypressed['H']) {keypressed['H'] = 0; CallCommand(CMD_ENABLE_GTW);}
 		if(keypressed['F']) {keypressed['F'] = 0; CallCommand(CMD_CONTROL_CLIENT);}
 		if(keypressed['J']) {keypressed['J'] = 0; CallCommand(CMD_SEND_EVENT);}

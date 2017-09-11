@@ -86,6 +86,7 @@ struct GameObject
 	GameObject *curtarget; DynListEntry<GameObject*> *ctgdle;
 	ClientState *client;
 	SAIController *aicontroller;
+	Vector3 startcampos, startcamori;
 
 	int animtag, animvar;
 	int animtimeref; boolean animlooping, animlooped;

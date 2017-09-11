@@ -2,15 +2,18 @@ FORMAT SCENARIO
 VERSION 1.0
 MODE TEXT
 
-// This is the level file that will be loaded if you create a new level or
+//   This is the level file that will be loaded if you create a new level or
 // savegame in wkbre.
-// When creating a new level, wkbre will always use a new 128x128 empty map.
-// So, this file doesn't have the LANDSCAPE or MAP lines, because even if they
-// were present, the map would be replaced by a new 128x128 empty map anyway.
+//   When choosing the "<New empty map>" entry in the savegame list, wkbre
+// will first create an empty 128x128 terrain before loading this file.
+//   So, if this file doesn't have the LANDSCAPE or MAP lines, the empty terrain
+// will be kept. It is still possible to write the LANDSCAPE and MAP lines
+// in this file to load another terrain if desired.
+//   This trick won't work with levels/savegames other than this level.
 
 GAME_SET "Warrior Kings Game Set\multi-player extensions.cpp"
 GAME_TYPE 4
-NUM_HUMAN_PLAYERS 2 1027 1030
+NUM_HUMAN_PLAYERS 8 1027 1030 1033 1036 1039 1042 1045 1048
 
 TIME_MANAGER_STATE
     CURRENT_TIME 0

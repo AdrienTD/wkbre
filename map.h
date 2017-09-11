@@ -62,3 +62,4 @@ void FloodfillWater();
 void SaveMapSNR(char *filename);
 void CreateEmptyMap(int w, int h);
 void SaveMapBCM(char *filename);
+void DrawTileHighlights();

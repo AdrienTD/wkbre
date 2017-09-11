@@ -17,6 +17,7 @@
 #include "global.h"
 
 boolean preloadModels = 0;
+extern bool rglUseBufferObjects;
 
 void ReadSettingsFile()
 {
@@ -70,8 +71,8 @@ void ReadSettingsFile()
 				allowBCPPatches = atoi(word[1]); break;
 			case SETTING_RENDERER:
 				reqRender = atoi(word[1]); break;
-			case SETTING_USE_MAP_TEXTURE_DATABASE:
-				usemaptexdb = atoi(word[1]); break;
+			//case SETTING_USE_MAP_TEXTURE_DATABASE:
+			//	usemaptexdb = atoi(word[1]); break;
 			case SETTING_MESH_BATCHING:
 				meshbatching = atoi(word[1]); break;
 			case SETTING_ANIMATED_MODELS:
@@ -88,6 +89,8 @@ void ReadSettingsFile()
 				scriptTraceOn = atoi(word[1]); break;
 			case SETTING_DATA_DIRECTORY:
 				allowDataDirectory = atoi(word[1]); break;
+			case SETTING_R_OGL1_USE_BUFFER_OBJECTS:
+				rglUseBufferObjects = atoi(word[1]); break;
 		}
 	}
 

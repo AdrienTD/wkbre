@@ -72,6 +72,13 @@ void ResetITiles()
 
 void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
 {
+	// Avoid objects being put out of bounds.
+	uint lw = (mapwidth-2*mapedge)*5, lh = (mapheight-2*mapedge)*5;
+	if(o->position.x < 0) o->position.x = 0;
+	else if(o->position.x >= lw) o->position.x = lw-0.01;
+	if(o->position.z < 0) o->position.z = 0;
+	else if(o->position.z >= lh) o->position.z = lh-0.01;
+
 	if(autoHeight)
 	{
 		o->position.y = GetHeight(o->position.x, o->position.z);

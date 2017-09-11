@@ -296,16 +296,16 @@ void WritePCXData(FILE *f, uchar *pix, int w, int h, int np)
 			d += np;
 			if((*d != o) || (cnt >= 63))
 			{
-				if((cnt > 1) | (o >= 0xC0))
+				if((cnt > 1) || (o >= 0xC0))
 					write8(f, 0xC0 | cnt);
 				write8(f, o);
 				cnt = 1;
 			}
 			else cnt++;
 		}
-		if((cnt > 1) | (o >= 0xC0))
+		if((cnt > 1) || (*d >= 0xC0))
 			write8(f, 0xC0 | cnt);
-		write8(f, o);
+		write8(f, *d);
 		if(w & 1) write8(f, 0);
 	}
 }

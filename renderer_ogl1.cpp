@@ -57,7 +57,7 @@ gli_glMapBufferARB glMapBufferARB;
 gli_glUnmapBufferARB glUnmapBufferARB;
 
 HDC whdc; HGLRC glrc;
-bool rglUseBufferObjects = 1;
+bool rglUseBufferObjects = 0;
 
 void OGL1Quit()
 {
@@ -120,8 +120,9 @@ struct RBatchOGL1_BO : public RBatch
 
 	~RBatchOGL1_BO()
 	{
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+/*		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+*/
 		if(locked) unlock();
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
@@ -132,9 +133,9 @@ struct RBatchOGL1_BO : public RBatch
 
 	void lock()
 	{
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+/*		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
-
+*/
 		glBufferDataARB(GL_ARRAY_BUFFER_ARB, maxverts * sizeof(batchVertex), NULL, GL_STREAM_DRAW_ARB);
 		glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, maxindis * 2, NULL, GL_STREAM_DRAW_ARB);
 
@@ -146,22 +147,27 @@ struct RBatchOGL1_BO : public RBatch
 	}
 	void unlock()
 	{
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
-		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
-
 		glUnmapBufferARB(GL_ARRAY_BUFFER_ARB); chkglerr();
 		glUnmapBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB); chkglerr();
 		locked = 0;
 	}
 
-	void begin() {}
-	void end() {}
-
-	void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi)
+	void begin()
 	{
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+	}
+	void end()
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+	}
 
+	void next(uint nverts, uint nindis, batchVertex **vpnt, ushort **ipnt, uint *fi)
+	{
+/*		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
+*/
 		if(nverts > maxverts) ferr("Too many vertices to fit in the batch.");
 		if(nindis > maxindis) ferr("Too many indices to fit in the batch.");
 
@@ -178,9 +184,9 @@ struct RBatchOGL1_BO : public RBatch
 
 	void flush()
 	{
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
+/*		glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbuf);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, ibuf);
-
+*/
 		if(locked) unlock();
 		if(!curverts) goto flshend;
 		glVertexPointer(3, GL_FLOAT, sizeof(batchVertex), &((batchVertex*)0)->x);
@@ -189,8 +195,9 @@ struct RBatchOGL1_BO : public RBatch
 		glDrawElements(GL_TRIANGLES, curindis, GL_UNSIGNED_SHORT, 0);
 
 flshend:	curverts = curindis = 0;
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+/*		glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+*/
 	}
 };
 

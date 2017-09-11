@@ -1,5 +1,41 @@
 wkbre changelog:
 
+[0.0.8]  12/09/2017
+- Added Map (terrain) editor!
+  - Modify height, texture, lakes, properties.
+  - Copy heightmap and paste it in another program and vice versa!
+  - Create new empty terrains with any size.
+  - Save them in either SNR or BCM format!
+- Added lakes, objects can float on them
+- Fixed ZBuffer being always enabled in OpenGL renderer, even when drawing GUI.
+- You can rotate a new object before stamping it down by pressing R.
+- NUM_HUMAN_PLAYERS in savegame loaded and saved.
+  - Added Human player list in Level information.
+- Terrain normal lightning.
+- Load an empty level.
+- NULL renderer.
+- OpenGL renderer optionally supports ARB_vertex_buffer_object extension.
+- Objects are now rarely out-of-bounds.
+- City creator (create a manor in a city with walls, peasants and flags.)
+- START_CAMERA_POS/_ORIENTATION in savegame read and written.
+  - Ability to set and read starting camera positions for PLAYER objects
+    in Selected object window.
+- Added some help when game files not found.
+- Tiles at terrain edge are darker.
+- Fixed bug where the terrains disappear when the camera is out of terrain bounds.
+- It is possible to stampdown when the camera is out of bounds.
+- Camera default position is at (0,15,0) instead of (0,0,0).
+- USE_MAP_TEXTURE_DATABASE setting removed.
+- Notification bar (red) to indicate events, replaces some warning message boxes.
+- Object alignment feature reworked and improved.
+- Object creation list sorted alphabetically.
+- Except the level tree, it is now also possible to select objects in lists
+  with the left mouse button.
+- Set F4-F9 keys to open/hide windows.
+- Fixed a bug in savegame loading where objects of type id 0 become suddenly
+  "Standard" if PREDEC is present.
+- Some improvements I forgot to mention...
+
 [0.0.7]  08/06/2017
 - New GUI and new windows for more possibilities (using the ImGui library):
   - Selected object window shows information on selected object such as
