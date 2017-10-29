@@ -139,7 +139,7 @@ void GUICharTyped(int c)
 void GUIMouseWheel(int w)
 {
 	ImGuiIO &io = ImGui::GetIO();
-	io.MouseWheel += w / 120;
+	io.MouseWheel += w / 120.0f;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

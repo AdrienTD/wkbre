@@ -384,7 +384,7 @@ void GiveNotification(char *str, int delay = 3000)
 void GiveSpeedNotif()
 {
 	char t[128];
-	sprintf_s(t, 127, "Game speed: %.f", game_speed);
+	sprintf_s(t, 127, "Game speed: %g", game_speed);
 	GiveNotification(t);
 }
 
@@ -510,6 +510,9 @@ void CallCommand(int cmd)
 				break;
 			}
 #endif
+			if(!strlen(lastmap))
+				{MessageBox(hWindow, "The savegame is not linked to a terrain file. Either save the current terrain, or set the path of the terrain in \"Level information > Properties > Map\", then try again.", appName, 48);
+				break;}
 			char s[256];
 			if(StrDlgBox(s, "Type the name of the new save game. It will be placed in \"saved\\Save_Games\" in the game directory. The name must end with either \".sav\" or \".lvl\"."))
 			{

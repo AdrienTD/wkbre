@@ -239,7 +239,7 @@ void ProcessCurrentTask(GameObject *o)
 				//o->orientation.x = atan(t->initialVelocity.y + (-gravit) * dt);
 				//o->orientation.z = atan2(t->initialVelocity.y + (-gravit) * dt, t->initialVelocity.len2xz());
 				o->orientation.x = o->orientation.z = 0;
-				GOPosChanged(o);
+				GOPosChanged(o, 0, 0);
 				StartCurrentTaskTriggers(o);
 				CheckCurrentTaskTriggers(o);
 				return;}

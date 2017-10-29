@@ -316,7 +316,7 @@ uint GetMapVertexColor(int vx, int vz)
 	//float i = (dp > 0) ? dp : 0;
 	//float i = (dp+1) * 3 / 8 + 0.25f;
 	if((vx < mapedge) || (vx > mapwidth-mapedge) ||
-	   (vz < mapedge) || (vz > mapwidth-mapedge) )
+	   (vz < mapedge) || (vz > mapheight-mapedge) )
 		i /= 2.0f;
 	uchar b = i * 255;
 	rc = 0xFF000000 | (b) | (b<<8) | (b<<16);
@@ -818,6 +818,7 @@ void SaveMapSNR(char *filename)
 void CreateEmptyMap(int w, int h)
 {
 	if(himap) CloseMap();
+	lastmap[0] = 0;
 
 	if(usemaptexdb) LoadMapTextures();
 
