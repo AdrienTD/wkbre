@@ -32,7 +32,9 @@ struct Anim : public Model
 
 	Anim(char *fn);
 	void CreateVertsFromTime(batchVertex *out, int tm, int grp);
+	void loadMin();
 	void prepare();
 	void draw(int iwtcolor = 0);
 	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0);
+	void getAttachPointPos(Vector3 *vout, int apindex, int tm = 0);
 };

@@ -81,7 +81,43 @@ Mesh::Mesh(char *fn)
 {
 	fname = strdup(fn);
 	ready = 0;
+	mesh = this;
+	loadMin();
 	if(preloadModels) prepare();
+}
+
+void Mesh::loadMin()
+{
+	char *fcnt, *fp; int fsize;
+	LoadFile(fname, &fcnt, &fsize);
+	fp = fcnt + 12;
+	nAttachPnts = *(ushort*)fp; fp += 2;
+	if(nAttachPnts) attachPnts = new AttachmentPoint[nAttachPnts];
+	for(int i = 0; i < nAttachPnts; i++)
+	{
+		attachPnts[i].tag = strdup(fp);
+		while(*(fp++));
+		attachPnts[i].staticState.position.x = *(float*)fp; fp += 4;
+		attachPnts[i].staticState.position.y = *(float*)fp; fp += 4;
+		attachPnts[i].staticState.position.z = *(float*)fp; fp += 4;
+		for(int j = 0; j < 4; j++)
+			{attachPnts[i].staticState.orientation[j] = *(float*)fp; fp += 4;}
+		attachPnts[i].staticState.on = *fp; fp++;
+		attachPnts[i].path = strdup(fp);
+		while(*(fp++));
+
+		attachPnts[i].model = 0;
+		char *ext = strrchr(attachPnts[i].path, '.');
+		if(ext)
+			if(!stricmp(ext+1, "mesh3") || !stricmp(ext+1, "anim3"))
+			{
+				char mp[512];
+				strcpy(mp, "Warrior Kings Game Set\\");
+				strcat(mp, attachPnts[i].path);
+				attachPnts[i].model = GetModel(mp);
+			}
+	}
+	free(fcnt);
 }
 
 void Mesh::prepare()
@@ -90,8 +126,6 @@ void Mesh::prepare()
 
 	FILE *file; int i, ver, nparts, nverts;
 	char *fcnt; int fsize; char *fp;
-
-	mesh = this;
 
 	LoadFile(fname, &fcnt, &fsize);
 	fp = fcnt + 4;
@@ -263,4 +297,9 @@ void Mesh::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 
 	for(int i = mstartix[grp]; i < mstartix[grp+1]; i++)
 		*(ip++) = mindices[i] - mgrpindex[grp] + fi;
+}
+
+void Mesh::getAttachPointPos(Vector3 *vout, int apindex, int tm)
+{
+	*vout = attachPnts[apindex].staticState.position;
 }

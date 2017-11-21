@@ -20,7 +20,29 @@ Anim::Anim(char *fn)
 {
 	fname = strdup(fn);
 	ready = 0;
+	loadMin();
 	if(preloadModels) prepare();
+}
+
+void Anim::loadMin()
+{
+	char *fcnt, *fp; int fsize; int form;
+	LoadFile(fname, &fcnt, &fsize); fp = fcnt;
+	form = *(uint*)fp; fp += 4;
+	if(form != 'minA')
+		ferr("Not an anim3 file.");
+
+	fp += 4;
+	char mshname[512], *mp;
+	strcpy(mshname, fname);
+	mp = strrchr(mshname, '\\');
+	mp = mp ? (mp+1) : mshname;
+	while(*(mp++) = *(fp++));
+	//anim->mesh = new Mesh(mshname);
+	mesh = (Mesh*)GetModel(mshname);
+	assert(mesh == mesh->mesh);
+
+	free(fcnt);
 }
 
 void Anim::prepare()
@@ -36,12 +58,13 @@ void Anim::prepare()
 		ferr("Not an anim3 file.");
 
 	fp += 4;
-	char mshname[512], *mp;
+/*	char mshname[512], *mp;
 	strcpy(mshname, fname);
 	mp = strrchr(mshname, '\\');
 	mp = mp ? (mp+1) : mshname;
 	while(*(mp++) = *(fp++));
 	anim->mesh = new Mesh(mshname);
+*/	 while(*(fp++));
 	anim->dur = *(uint*)fp; fp += 4;
 	fp += 16;
 	nverts = *(uint*)fp; fp += 4;
@@ -142,4 +165,9 @@ void Anim::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 
 	for(int i = mesh->mstartix[grp]; i < mesh->mstartix[grp+1]; i++)
 		*(ip++) = mesh->mindices[i] - mesh->mgrpindex[grp] + fi;
+}
+
+void Anim::getAttachPointPos(Vector3 *vout, int apindex, int tm)
+{
+	mesh->getAttachPointPos(vout, apindex, tm);
 }

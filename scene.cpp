@@ -130,13 +130,14 @@ void DrawOOBM()
 				md->prepare(); md->mesh->prepare();
 				Mesh *msh = md->mesh;
 				// If md != md->mesh, this means that md is an Anim!
+				SetMatrices(o->scale, -o->orientation, o->position);
+				Matrix mWorldCopy = mWorld;
 
 				for(int g = 0; g < msh->ngrp; g++)
 					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
 					{
 						if(!txset) {txset = 1; SetTexture(0, msh->lstmattex[g]);}
 						if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
-						SetMatrices(o->scale, -o->orientation, o->position);
 
 						uint tm = (int)(current_time*1000.0f) - o->animtimeref;
 						// If the current task has SYNCH_ANIMATION_TO_FRACTION, use it.
@@ -155,6 +156,27 @@ void DrawOOBM()
 						if(o->animlooping) if(md != md->mesh)
 							tm %= ((Anim*)md)->dur;
 						(animsEnabled?md:md->mesh)->drawInBatch(mshbatch, g, o->color, dif, tm);
+					}
+
+				for(int j = 0; j < msh->nAttachPnts; j++)
+					if(msh->attachPnts[j].model)
+					{
+						Model *apmd = msh->attachPnts[j].model;
+						Mesh *apms = apmd->mesh;
+						for(int g = 0; g < apms->ngrp; g++)
+							if((apms->lstmatflags[g] == a) && (apms->lstmattid[g] == t))
+							{
+								if(!txset) {txset = 1; SetTexture(0, apms->lstmattex[g]);}
+								if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
+								Vector3 p;
+								TransformVector3(&p, &msh->attachPnts[j].staticState.position, &mWorldCopy);
+								SetMatrices(Vector3(1,1,1), Vector3(0,0,0), p);
+
+								uint tm = current_time * 1000;
+								if(apmd != apmd->mesh)
+									tm %= ((Anim*)apmd)->dur;
+								(animsEnabled?apmd:apms)->drawInBatch(mshbatch, g, o->color, dif, tm);
+							}
 					}
 			}
 
@@ -310,6 +332,9 @@ void DrawObj(GameObject *o)
 			}
 			else
 			{
+			auto f = [o](Mesh *msh)
+			{
+				msh->prepare();
 				for(int i = 0; i < msh->ngrp; i++)
 				{
 					OOBMTex *ot;
@@ -327,6 +352,11 @@ void DrawObj(GameObject *o)
 					ot->objs->add(o);
 				nextgrp: ;
 				}
+			};
+				f(msh);
+				for(int i = 0; i < msh->nAttachPnts; i++)
+					if(msh->attachPnts[i].model)
+						f(msh->attachPnts[i].model->mesh);
 			}
 		}
 	}

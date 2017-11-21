@@ -18,6 +18,23 @@
 
 struct Mesh;
 struct RBatch;
+struct Model;
+
+struct AttachmentPointState
+{
+	Vector3 position;
+	float orientation[4];
+	char on;
+};
+
+struct AttachmentPoint
+{
+	char *tag;
+	AttachmentPointState staticState;
+	char *path;
+	Model *model;
+	//ParticleSystem *psys;
+};
 
 struct Model
 {
@@ -26,6 +43,7 @@ struct Model
 	virtual void prepare() = 0;
 	virtual void draw(int iwtcolor = 0) = 0;
 	virtual void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0) = 0;
+	virtual void getAttachPointPos(Vector3 *vout, int apindex, int tm = 0) = 0;
 };
 
 class Mesh : public Model
@@ -52,11 +70,18 @@ public:
 	IDirect3DIndexBuffer9 *dixbuf;
 	GrowList<IDirect3DVertexBuffer9*> dvbtexc;
 
+	int nAttachPnts;
+	AttachmentPoint *attachPnts;
+	int nNormals;
+	char *normals;
+
 	Mesh(char *fn);
 
+	void loadMin();
 	void prepare();
 	void draw(int iwtcolor = 0);
 	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0);
+	void getAttachPointPos(Vector3 *vout, int apindex, int tm = 0);
 };
 
 extern GrowStringList strMaterials;

@@ -35,7 +35,7 @@ Cursor *defcursor;
 boolean mouseRot = 0; int msrotx, msroty;
 boolean multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
-bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0;
+bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0, swTest = 0;
 bool mapeditmode = 0;
 int mousetool = 0;
 
@@ -2573,6 +2573,29 @@ void IGCityCreator()
 	ImGui::End();
 }
 
+void IGTest()
+{
+	if(!swTest) return;
+	ImGui::Begin("Test", &swTest);
+	if(ImGui::CollapsingHeader("Model attachment points"))
+	{
+		for(int i = 0; i < alModelFn.len; i++)
+			if(ImGui::TreeNode(alModelFn.getdp(i)))
+			{
+				Model *mdl = alModel[i];
+				Mesh *msh = mdl->mesh;
+				for(int j = 0; j < msh->nAttachPnts; j++)
+				{
+					AttachmentPoint *ap = &msh->attachPnts[j];
+					ImGui::Text("Tag: %s", ap->tag);
+					ImGui::Text("Path: %s", ap->path);
+				}
+				ImGui::TreePop();
+			}
+	}
+	ImGui::End();
+}
+
 void MoveKeyPress(Vector3 &m)
 {
 	Vector3 n = m.normal();
@@ -2647,8 +2670,9 @@ void Test7()
 
 	while(!appexit)
 	{
-		if(playMode)
+		if(playMode || keypressed['0'])
 		{
+			keypressed['0'] = 0;
 			AdvanceTime();
 			ProcessAllOrders();
 			CheckBattlesDelayedSequences();
@@ -2715,6 +2739,7 @@ void Test7()
 			IGAbout();
 			IGMapEditor();
 			IGCityCreator();
+			IGTest();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
@@ -2977,12 +3002,15 @@ void Test7()
 			for(int i = 0; i < alModelFn.len; i++)
 				printf(" - %s\n", alModelFn.getdp(i));
 */
+/*
 			if(selobjects.len)
 			if(selobjects.first->value.valid())
 			{
 				GameObject *o = selobjects.first->value.get();
 				printf("animtag = %i, animlooping = %i\n", o->animtag, o->animlooping);
 			}
+*/
+			swTest = !swTest;
 		}
 #endif
 		if(keypressed['A']) {keypressed['A'] = 0; CallCommand(CMD_EXECUTE_COMMAND);}
