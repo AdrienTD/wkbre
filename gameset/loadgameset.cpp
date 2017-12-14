@@ -49,6 +49,7 @@ GrowStringList strCondition; CCondition *gscondition;
 GrowStringList strAnimationTag;
 GrowStringList strSubtype;
 GrowStringList strFootprint; CFootprint *gsfootprint;
+GrowStringList strAttachPointType;
 
 CObjectDefinition *objdef;
 DynList<goref> *alias;
@@ -316,6 +317,8 @@ switch(ipass)
 				strAnimationTag.add(word[1]); break;
 			case CLASS_FOOTPRINT:
 				strFootprint.add(word[1]); break;
+			case CLASS_DECLARE_ATTACHMENT_POINT_TYPE:
+				strAttachPointType.add(word[1]); break;
 		} break;
 
 /*******************************************************************/

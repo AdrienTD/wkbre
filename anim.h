@@ -21,6 +21,13 @@ struct Anim3PosCoord
 	float **verts;
 };
 
+struct Anim3AttachPnt
+{
+	uint nframes;
+	uint *ft;
+	AttachmentPointState *states;
+};
+
 struct batchVertex;
 struct RBatch;
 
@@ -29,6 +36,8 @@ struct Anim : public Model
 	//Mesh *mesh;
 	uint dur;
 	Anim3PosCoord coord[3];
+	uint nAttachPnts;
+	Anim3AttachPnt *apnt;
 
 	Anim(char *fn);
 	void CreateVertsFromTime(batchVertex *out, int tm, int grp);

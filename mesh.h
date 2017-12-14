@@ -29,7 +29,7 @@ struct AttachmentPointState
 
 struct AttachmentPoint
 {
-	char *tag;
+	int tag;
 	AttachmentPointState staticState;
 	char *path;
 	Model *model;
@@ -87,6 +87,7 @@ public:
 extern GrowStringList strMaterials;
 extern GrowStringList alModelFn;
 extern GrowList<Model*> alModel;
+extern GrowStringList strAttachPntTags;
 
 void InitMeshDrawing();
 void BeginMeshDrawing();

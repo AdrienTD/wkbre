@@ -1682,6 +1682,20 @@ bool IGObjectSelectable(GameObject *o, boolean playerinfo = 0)
 	return r;
 }
 
+void IGwcharPntTextBox(char *id, wchar_t **txt)
+{
+	char mb[512]; wchar_t wb[512];
+	if(*txt) wcstombs(mb, *txt, 511);
+	else mb[0] = 0;
+	if(ImGui::InputText(id, mb, 511))
+	{
+		mbstowcs(wb, mb, 511);
+		delete [] *txt;
+		*txt = new wchar_t[wcslen(wb)+1];
+		wcscpy(*txt, wb);
+	}
+}
+
 int igcurod = 0;
 int igliCurrentAssoCat = -1;
 
@@ -2078,6 +2092,7 @@ bool IGPlayerChooser(char *popupid, goref *p)
 
 extern char sggameset[384];
 extern uint game_type;
+extern wchar_t *campaignName, *serverName;
 int igliCurrentAlias = -1;
 goref drPlayer;
 void IGLevelInfo()
@@ -2096,6 +2111,10 @@ void IGLevelInfo()
 		ImGui::InputText("##Map", lastmap, 255);
 		ImGui::Text("Game type:");
 		ImGui::InputInt("##Game type", (int*)&game_type);
+		ImGui::Text("Campaign name:");
+		IGwcharPntTextBox("##Campaign name", &campaignName);
+		ImGui::Text("Server name:");
+		IGwcharPntTextBox("##Server name", &serverName);
 		ImGui::PopItemWidth();
 	}
 	if(ImGui::CollapsingHeader("Time"))
@@ -2587,11 +2606,17 @@ void IGTest()
 				for(int j = 0; j < msh->nAttachPnts; j++)
 				{
 					AttachmentPoint *ap = &msh->attachPnts[j];
-					ImGui::Text("Tag: %s", ap->tag);
+					ImGui::Text("Tag: %s", strAttachPntTags.getdp(ap->tag));
 					ImGui::Text("Path: %s", ap->path);
 				}
 				ImGui::TreePop();
 			}
+	}
+	if(ImGui::CollapsingHeader("Attachment point tags list"))
+	{
+		ImGui::Text("Number: %i", strAttachPntTags.len);
+		for(int i = 0; i < strAttachPntTags.len; i++)
+			ImGui::Text("%s", strAttachPntTags.getdp(i));
 	}
 	ImGui::End();
 }

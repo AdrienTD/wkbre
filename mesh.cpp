@@ -17,6 +17,7 @@
 #include "global.h"
 
 GrowStringList strMaterials;
+GrowStringList strAttachPntTags;
 
 inline uchar readchar(FILE *file) {return fgetc(file);}
 inline ushort readshort(FILE *file) {ushort a; fread(&a, 2, 1, file); return a;}
@@ -95,7 +96,11 @@ void Mesh::loadMin()
 	if(nAttachPnts) attachPnts = new AttachmentPoint[nAttachPnts];
 	for(int i = 0; i < nAttachPnts; i++)
 	{
-		attachPnts[i].tag = strdup(fp);
+		//attachPnts[i].tag = strdup(fp);
+		int t = strAttachPntTags.find_cs(fp);
+		if(t == -1)
+			{t = strAttachPntTags.len; strAttachPntTags.add(fp);}
+		attachPnts[i].tag = t;
 		while(*(fp++));
 		attachPnts[i].staticState.position.x = *(float*)fp; fp += 4;
 		attachPnts[i].staticState.position.y = *(float*)fp; fp += 4;
@@ -103,19 +108,24 @@ void Mesh::loadMin()
 		for(int j = 0; j < 4; j++)
 			{attachPnts[i].staticState.orientation[j] = *(float*)fp; fp += 4;}
 		attachPnts[i].staticState.on = *fp; fp++;
-		attachPnts[i].path = strdup(fp);
+		if(*fp) attachPnts[i].path = strdup(fp);
+		else attachPnts[i].path = 0;
 		while(*(fp++));
 
 		attachPnts[i].model = 0;
-		char *ext = strrchr(attachPnts[i].path, '.');
-		if(ext)
-			if(!stricmp(ext+1, "mesh3") || !stricmp(ext+1, "anim3"))
-			{
-				char mp[512];
-				strcpy(mp, "Warrior Kings Game Set\\");
-				strcat(mp, attachPnts[i].path);
-				attachPnts[i].model = GetModel(mp);
-			}
+		if(attachPnts[i].path)
+		{
+			char *ext = strrchr(attachPnts[i].path, '.');
+			if(ext)
+				if(!stricmp(ext+1, "mesh3") || !stricmp(ext+1, "anim3"))
+				{
+					char mp[512];
+					strcpy(mp, "Warrior Kings Game Set\\");
+					strcat(mp, attachPnts[i].path);
+					attachPnts[i].model = GetModel(mp);
+				}
+			//free(attachPnts[i].path);
+		}
 	}
 	free(fcnt);
 }

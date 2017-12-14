@@ -133,28 +133,29 @@ void DrawOOBM()
 				SetMatrices(o->scale, -o->orientation, o->position);
 				Matrix mWorldCopy = mWorld;
 
+				uint tm = (int)(current_time*1000.0f) - o->animtimeref;
+				// If the current task has SYNCH_ANIMATION_TO_FRACTION, use it.
+				if(md != md->mesh) if(o->ordercfg.order.len)
+				{
+					STask *st = &o->ordercfg.order.first->value.task.first->value;
+					if(st->type->satf)
+					{
+						SequenceEnv env; env.self = o;
+						tm = st->type->satf->get(&env) * ((Anim*)md)->dur;
+						tm = st->lastsatf + (tm - st->lastsatf) * elapsed_time * 0.5f;
+						if(tm >= ((Anim*)md)->dur) tm = ((Anim*)md)->dur - 1;
+						st->lastsatf = tm;
+					}
+				}
+				if(o->animlooping) if(md != md->mesh)
+					tm %= ((Anim*)md)->dur;
+
 				for(int g = 0; g < msh->ngrp; g++)
 					if((msh->lstmatflags[g] == a) && (msh->lstmattid[g] == t))
 					{
 						if(!txset) {txset = 1; SetTexture(0, msh->lstmattex[g]);}
 						if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
 
-						uint tm = (int)(current_time*1000.0f) - o->animtimeref;
-						// If the current task has SYNCH_ANIMATION_TO_FRACTION, use it.
-						if(md != md->mesh) if(o->ordercfg.order.len)
-						{
-							STask *st = &o->ordercfg.order.first->value.task.first->value;
-							if(st->type->satf)
-							{
-								SequenceEnv env; env.self = o;
-								tm = st->type->satf->get(&env) * ((Anim*)md)->dur;
-								tm = st->lastsatf + (tm - st->lastsatf) * elapsed_time * 0.5f;
-								if(tm >= ((Anim*)md)->dur) tm = ((Anim*)md)->dur - 1;
-								st->lastsatf = tm;
-							}
-						}
-						if(o->animlooping) if(md != md->mesh)
-							tm %= ((Anim*)md)->dur;
 						(animsEnabled?md:md->mesh)->drawInBatch(mshbatch, g, o->color, dif, tm);
 					}
 
@@ -168,14 +169,17 @@ void DrawOOBM()
 							{
 								if(!txset) {txset = 1; SetTexture(0, apms->lstmattex[g]);}
 								if(!afset) {afset = 1; if(a) renderer->EnableAlphaTest(); else renderer->DisableAlphaTest();}
-								Vector3 p;
-								TransformVector3(&p, &msh->attachPnts[j].staticState.position, &mWorldCopy);
+
+								uint aptm = current_time * 1000;
+								if(apmd != apmd->mesh)
+									aptm %= ((Anim*)apmd)->dur;
+
+								Vector3 p, s;
+								md->getAttachPointPos(&s, j, tm);
+								TransformVector3(&p, &s, &mWorldCopy);
 								SetMatrices(Vector3(1,1,1), Vector3(0,0,0), p);
 
-								uint tm = current_time * 1000;
-								if(apmd != apmd->mesh)
-									tm %= ((Anim*)apmd)->dur;
-								(animsEnabled?apmd:apms)->drawInBatch(mshbatch, g, o->color, dif, tm);
+								(animsEnabled?apmd:apms)->drawInBatch(mshbatch, g, o->color, dif, aptm);
 							}
 					}
 			}

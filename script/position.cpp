@@ -326,7 +326,7 @@ CPosition *ReadCPosition(char ***wpnt)
 			CFinder *f = ReadFinder(wpnt);
 			return new PositionNearestValidPositionFor(f, ReadCPosition(wpnt));}
 		case POSITION_NEAREST_ATTACHMENT_POINT:
-			{int t = 0; //strAttachPointType.find(word[1]);
+			{int t = strAttachPointType.find(word[1]);
 			*wpnt += 2;
 			CFinder *f = ReadFinder(wpnt);
 			CPosition *p = ReadCPosition(wpnt);

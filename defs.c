@@ -1,4 +1,4 @@
-char *CLASS_str[66] = {
+char *CLASS_str[67] = {
 "DECLARE_ITEM",
 "DEFINE_VALUE",
 "APPEARANCE_TAG",
@@ -65,6 +65,7 @@ char *CLASS_str[66] = {
 "CONDITION",
 "INDIVIDUAL_ITEM",
 "FOOTPRINT",
+"DECLARE_ATTACHMENT_POINT_TYPE",
 };
 char *CCOMMAND_str[5] = {
 "BUTTON_ENABLED",

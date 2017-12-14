@@ -42,6 +42,39 @@ void Anim::loadMin()
 	mesh = (Mesh*)GetModel(mshname);
 	assert(mesh == mesh->mesh);
 
+	dur = *(uint*)fp; fp += 4;
+	fp += 16;
+	int nverts = *(uint*)fp; fp += 4;
+
+	// Skip mesh animation
+	for(int i = 0; i < 3; i++)
+	{
+		int nframes = *(uint*)fp; fp += 4;
+		fp += 4*nframes*(1 + (2 + (nverts/3) + ((nverts%3)?1:0)) );
+		//__asm int 3
+	}
+
+	// Load attachment point animations
+	nAttachPnts = *(uint*)fp; fp += 4;
+	apnt = new Anim3AttachPnt[nAttachPnts];
+	for(int i = 0; i < nAttachPnts; i++)
+	{
+		int nf = apnt[i].nframes = *(uint*)fp; fp += 4;
+		apnt[i].ft = new uint[nf];
+		apnt[i].states = new AttachmentPointState[nf];
+		for(int j = 0; j < nf; j++)
+			{apnt[i].ft[j] = *(uint*)fp; fp += 4;}
+		for(int j = 0; j < nf; j++)
+		{
+			apnt[i].states[j].position.x = *(float*)fp; fp += 4;
+			apnt[i].states[j].position.y = *(float*)fp; fp += 4;
+			apnt[i].states[j].position.z = *(float*)fp; fp += 4;
+			for(int k = 0; k < 4; k++)
+				{apnt[i].states[j].orientation[k] = *(float*)fp; fp += 4;}
+			apnt[i].states[j].on = *fp; fp++;
+		}
+	}
+
 	free(fcnt);
 }
 
@@ -95,6 +128,7 @@ void Anim::prepare()
 			}
 		}
 	}
+
 	free(fcnt);
 	ready = 1;
 }
@@ -169,5 +203,11 @@ void Anim::drawInBatch(RBatch *batch, int grp, int uvl, int dif, int tm)
 
 void Anim::getAttachPointPos(Vector3 *vout, int apindex, int tm)
 {
-	mesh->getAttachPointPos(vout, apindex, tm);
+	//mesh->getAttachPointPos(vout, apindex, tm);
+	Anim3AttachPnt *ap = &(apnt[apindex]);
+	int f = ap->nframes-1;
+	for(int i = 0; i < ap->nframes; i++)
+		if(ap->ft[i] >= tm)
+			{f = i; break;}
+	*vout = ap->states[f].position;
 }
