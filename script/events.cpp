@@ -152,7 +152,7 @@ void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 		if(re->events.has(ev))
 			{re->seq.run(&ctx); executed.add(re); if(!gr.valid()) return;}
 	}
-
+/*
 	// 2. Get a list of PACKAGE_RECEIPT_TRIGGERs triggerable by "ev" and whose
 	//    assessments are true.
 	GrowList<CPRTrigger*> trueprts;
@@ -193,5 +193,35 @@ void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 		for(int j = 0; j < trueprts.len; j++)
 			if(re->prts.has(trueprts[j]))
 				{re->seq.run(&ctx); executed.add(re); if(!gr.valid()) return; else break;}
+	}
+*/
+	GrowList<CPRTrigger*> trueprts;
+
+	auto f = [&trueprts,&executed,&ctx,ev](CReaction *re) -> boolean
+	{
+		if(executed.has(re)) return 0;
+		boolean s = 0;
+		for(int j = 0; j < re->prts.len; j++)
+		{
+			if(trueprts.has(re->prts[j]))
+				{s = 1; break;}
+			if(re->prts[j]->events.has(ev))
+				if(IsPRTTrue(&ctx, re->prts[j]))
+					{trueprts.add(re->prts[j]); s = 1; break;}
+		}
+		if(s) {re->seq.run(&ctx); executed.add(re);}
+		return s;
+	};
+
+	for(DynListEntry<uint> *e = o->iReaction.first; e; e = n)
+	{
+		n = e->next;
+		CReaction *re = &(reaction[e->value]);
+		if(f(re)) if(!gr.valid()) return;
+	}
+	for(uint i = 0; i < o->objdef->ireact.len; i++)
+	{
+		CReaction *re = o->objdef->ireact[i];
+		if(f(re)) if(!gr.valid()) return;
 	}
 }

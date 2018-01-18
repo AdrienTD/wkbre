@@ -179,6 +179,7 @@ extern GrowList<GameObject*> msellist;
 extern float walkstep;
 extern int playMode;
 
+void QuitApp();
 CObjectDefinition *AskObjDef(char *head = 0);
 void Test7();
 void RunTest();

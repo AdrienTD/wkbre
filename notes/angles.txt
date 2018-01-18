@@ -1,0 +1,21 @@
+Conversion of object orientation angles to vectors:
+
+			(180°)
+
+			+Z
+
+
+(270°)		-X	0	+X		(90°)
+			|
+			V	^
+			-Z   ---/
+
+			(0°)
+
+A	X	Z
+-----------------------
+0°	0	-1
+90°	1	0
+180°	0	1
+270°	-1	0
+	sin A	-cos A

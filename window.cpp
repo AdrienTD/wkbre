@@ -29,6 +29,7 @@ voidfunc onClickWindow = 0;
 int winMinimized = 0;
 int fullscreen = 0;
 boolean lostdev = 0;
+float mouseWheel = 0.0f;
 
 IRenderer *renderer;
 
@@ -140,6 +141,7 @@ void GUIMouseWheel(int w)
 {
 	ImGuiIO &io = ImGui::GetIO();
 	io.MouseWheel += w / 120.0f;
+	if(!io.WantCaptureMouse) mouseWheel += w / 120.0f;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -197,6 +199,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			else	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		case WM_MOUSEWHEEL:
 			GUIMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam)); break;
+		case WM_CLOSE:
+			QuitApp(); break;
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}

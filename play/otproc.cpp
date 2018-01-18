@@ -118,7 +118,6 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				return;
 			case TASKTRIGGER_ANIMATION_LOOP:
 			case TASKTRIGGER_UNINTERRUPTIBLE_ANIMATION_LOOP:
-			case TASKTRIGGER_ATTACHMENT_POINT:
 				env.self = o;
 				if(t->type->satf)
 				{
@@ -126,6 +125,26 @@ void CheckCurrentTaskTriggers(GameObject *o)
 						break;
 				}
 				else
+				{
+					Model *md = GetObjectModel(o);
+					if(md == md->mesh) break; // Ignore static models.
+					float ad = ((Anim*)md)->dur / 1000.0f;
+					if((g->referenceTime + ad) > current_time)
+						break;
+					g->referenceTime += ad;
+				}
+				c->seq->run(&env);
+				return;
+			case TASKTRIGGER_ATTACHMENT_POINT:
+				env.self = o;
+			/*
+				if(t->type->satf)
+				{
+					if(t->type->satf->get(&env) < 1.0f)
+						break;
+				}
+				else
+			*/
 				{
 					if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
 						break;
@@ -190,6 +209,11 @@ void ProcessCurrentTask(GameObject *o)
 					{
 						if(c->playAnim) SetObjectAnimationIfNotPlayed(o, GetBestPlayAnimationTag(c->playAnim, o), !c->playAnimOnce);
 						else SetObjectAnimationIfNotPlayed(o, 0, 1);
+						if((v.x != 0.0f) || (v.z != 0.0f))
+						{
+							o->orientation.x = o->orientation.z = 0;
+							o->orientation.y = M_PI - atan2(v.x, v.z);
+						}
 						StartCurrentTaskTriggers(o);
 						CheckCurrentTaskTriggers(o);
 					}

@@ -20,6 +20,7 @@
 #include <mbstring.h>
 #include <direct.h>
 #include "imgui/imgui.h"
+#include <functional>
 
 HINSTANCE hInstance;
 GEContainer *actualpage = 0;
@@ -38,6 +39,7 @@ GrowList<GameObject*> msellist;
 bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0, swTest = 0;
 bool mapeditmode = 0;
 int mousetool = 0;
+bool playAfterLoading = 0;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -139,6 +141,90 @@ boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
 int brushsize = 1, brushshape = 0; bool randommaptex = 0;
 bool himapautowater = 0;
 goref newmanorplayer; int nmc_size = 3; int nmc_npeasants = 4; bool nmc_flags = 0;
+
+// ImGui dialog boxes replacing Win32-based ones.
+
+bool IGGSLItemsGetter(void *data, int idx, const char **out);
+
+int ndlgmode = 0; // 0=closed, 1=Listbox, 2=String
+char *ndlgheader = 0;
+GrowStringList *nlstdlggsl = 0; //int nlstdlgfirstsel = 0;
+char *nstrdlgout = 0;
+std::function<void()> dlgOkPress = []() {printf("OK pressed.\n");};
+bool ndlgfirsttime = false;
+
+int nlstdlgsel = 0;
+
+void OpenListDlgBox(GrowStringList *gsl, char *hs, int fsel, std::function<void()> f)
+{
+	ndlgheader = hs ? hs : "Select something from this list.";
+	nlstdlggsl = gsl;
+	nlstdlgsel = fsel;
+	ndlgmode = 1;
+	ndlgfirsttime = true;
+	dlgOkPress = f;
+}
+
+void OpenStrDlgBox(char *out, char *hs, std::function<void()> f)
+{
+	ndlgheader = hs ? hs : "Type a string.";
+	nstrdlgout = out;
+	ndlgmode = 2;
+	ndlgfirsttime = true;
+	dlgOkPress = f;
+}
+
+void IGNDlgBox()
+{
+	bool q = true;
+	static ImGuiTextFilter filter;
+	if(!ndlgmode) return;
+	if(ndlgfirsttime)
+	{
+		ImGui::SetNextWindowSize(ImVec2(400,(ndlgmode==2)?100:300), ImGuiSetCond_Always);
+		ImGui::SetNextWindowPosCenter(ImGuiSetCond_Always);
+	}
+	if(!ImGui::Begin("NDlgBox", &q)) {ImGui::End(); return;}
+	ImGui::PushItemWidth(-1);
+	if(!q) ndlgmode = 0;
+	ImGui::TextWrapped(ndlgheader);
+	switch(ndlgmode)
+	{
+		case 1:
+			//ImGui::ListBox("##ListBox", &nlstdlgsel, IGGSLItemsGetter, nlstdlggsl, nlstdlggsl->len);
+			filter.Draw();
+			ImGui::ListBoxHeader("##ListBox", ImVec2(0,200));
+			for(int i = 0; i < nlstdlggsl->len; i++)
+				if(filter.PassFilter(nlstdlggsl->getdp(i)))
+					if(ImGui::Selectable(nlstdlggsl->getdp(i), nlstdlgsel == i))
+						nlstdlgsel = i;
+			ImGui::ListBoxFooter();
+			break;
+		case 2:
+			if(ndlgfirsttime) {ImGui::SetKeyboardFocusHere();}
+			if(ImGui::InputText("##InputText", nstrdlgout, 80, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+				{ndlgmode = 0; dlgOkPress();}
+			break;
+	}
+	if(ImGui::Button("OK"))
+		{ndlgmode = 0; dlgOkPress();}
+	ImGui::SameLine();
+	if(ImGui::Button("Cancel") || ImGui::IsKeyDown(VK_ESCAPE))
+		ndlgmode = 0;
+	ImGui::PopItemWidth();
+	ImGui::End();
+	ndlgfirsttime = 0;
+}
+
+bool askBeforeExit = 0;
+
+void QuitApp()
+{
+	if(askBeforeExit)
+		if(MessageBox(hWindow, "Do you really want to quit wkbre?\nUnsaved changes will be lost!", appName, 52) != IDYES)
+			return;
+	exit(0);
+}
 
 void DrawTooltip()
 {
@@ -285,6 +371,30 @@ CObjectDefinition *AskObjDef(char *head)
 	else return &objdef[r];
 }
 
+void NAskObjDef(char *head, std::function<void(CObjectDefinition*)> f)
+{
+	static GrowStringList l; char ts[256];
+	l.clear();
+	for(int i = 0; i < strObjDef.len; i++)
+	{
+		if((objdef[i].type == 0) || (objdef[i].name == 0))
+			{l.add("?"); continue;}
+		strcpy(ts, CLASS_str[objdef[i].type]);
+		strcat(ts, " ");
+		strcat(ts, objdef[i].name);
+		l.add(ts);
+	}
+	//static std::function<void(CObjectDefinition*)> f = g;
+	OpenListDlgBox(&l, head?head:"Select an object definition.", 0, 
+		   [f]() {
+			CObjectDefinition *cod;
+			if(nlstdlgsel == -1) cod = 0;
+			else cod = &objdef[nlstdlgsel];
+			f(cod);
+		   }
+		);
+}
+
 GameObject *AskPlayer(char *head = 0)
 {
 	GrowStringList l; char ts[512]; int x = 0;
@@ -297,6 +407,24 @@ GameObject *AskPlayer(char *head = 0)
 	int r = ListDlgBox(&l, head?head:"Select a player.", (l.len >= 2) ? 1 : 0);
 	if(r == -1) return 0;
 	else return &levelobj->children.getEntry(r)->value;
+}
+
+void NAskPlayer(char *head, std::function<void(GameObject*)> f)
+{
+	static GrowStringList l; char ts[512]; int x = 0;
+	l.clear();
+	for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
+	{
+		if(e->value.objdef->type != CLASS_PLAYER) break; // TODO: Something better.
+		sprintf(ts, "%u: %S (obj. id %u)", x++, e->value.name ? e->value.name : L"(null)", e->value.id);
+		l.add(ts);
+	}
+	OpenListDlgBox(&l, head?head:"Select a player.", (l.len >= 2) ? 1 : 0,
+		[f]() {
+			if(nlstdlgsel != -1)
+				f(&levelobj->children.getEntry(nlstdlgsel)->value);
+		});
+
 }
 
 void RandomizeObjAppear(GameObject *o)
@@ -530,21 +658,48 @@ void CallCommand(int cmd)
 		} break;
 		case CMD_DELETEOBJTYPE:
 		{
+		/*
 			CObjectDefinition *d = AskObjDef("Select the type of objects you want to delete.");
 			if(d)
 				RemoveObjOfType(levelobj, d); //&objdef[FindObjDef(CLASS_CHARACTER, "Peasant")]);
+		*/
+			NAskObjDef("Select the type of objects you want to delete.",
+				[](CObjectDefinition *d) {
+					RemoveObjOfType(levelobj, d);
+				});
 		} break;
+/*
 		case CMD_CONVERTOBJTYPE:
 		{
 			CObjectDefinition *a, *b;
 			if(a = AskObjDef("What type of object do you want to convert?")) if(b = AskObjDef("Which object type should they be converted to?"))
 				ReplaceObjsType(levelobj, a, b);
 		} break;
+*/
+		case CMD_CONVERTOBJTYPE:
+		{
+			NAskObjDef("What type of object do you want to convert?", 
+				[](CObjectDefinition *a) {
+					NAskObjDef("Which object type should they be converted to?",
+						[a](CObjectDefinition *b) {
+							ReplaceObjsType(levelobj, a, b);
+						});
+				});
+		} break;
 		case CMD_GIVEOBJTYPE:
 		{
+		/*
 			CObjectDefinition *d; GameObject *p;
 			if(d = AskObjDef("What type of objects do you want to give?")) if(p = AskPlayer("Give the objects to:"))
 				SetObjsCtrl(levelobj, d, p);
+		*/
+			NAskObjDef("What type of objects do you want to give?",
+				[](CObjectDefinition *d) {
+					NAskPlayer("Give the objects to:",
+						[d](GameObject *p) {
+							SetObjsCtrl(levelobj, d, p);
+						});
+				});
 		} break;
 		case CMD_CREATEOBJ:
 		{
@@ -634,7 +789,7 @@ void CallCommand(int cmd)
 		case CMD_SHOWHIDELANDSCAPE:
 			enableMap = !enableMap; break;
 		case CMD_QUIT:
-			exit(0); break;
+			QuitApp(); //exit(0); break;
 
 		case CMD_DELETESELOBJECT:
 			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
@@ -735,6 +890,7 @@ void CallCommand(int cmd)
 			CancelAllObjsOrders(levelobj); break;
 		case CMD_SELECT_OBJECT_ID:
 		{
+/*
 			char s[256];
 			if(StrDlgBox(s, "Enter the ID of the object you'd like to select."))
 			{
@@ -742,6 +898,14 @@ void CallCommand(int cmd)
 				if(!o) GiveNotification("Object with specified ID not found."); //MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
 				else {DeselectAll(); SelectObject(o);}
 			}
+*/
+			static char s[256];
+			auto f = []() {
+				GameObject *o = FindObjID(atoi(s));
+				if(!o) GiveNotification("Object with specified ID not found."); //MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
+				else {DeselectAll(); SelectObject(o);}
+			};
+			OpenStrDlgBox(s, "Enter the ID of the object you'd like to select.", f);
 		} break;
 		case CMD_CHANGE_SG_WKVER:
 		{
@@ -1138,6 +1302,13 @@ void ApplyBrush(boolean rclick)
 	int cx = mapstdownpos.x / 5 + mapedge, cz = mapheight - (mapstdownpos.z / 5 + mapedge);
 	int m = brushsize/2;
 
+	uchar *oldhm_byte;
+	if(mousetool == 10)
+	{
+		oldhm_byte = new uchar[(mapwidth+1)*(mapheight+1)];
+		memcpy(oldhm_byte, himap_byte, (mapwidth+1)*(mapheight+1));
+	}
+
 	for(int z = cz-m; z < cz-m+brushsize; z++)
 	if((z >= 0) && (z < mapheight+1))
 	for(int x = cx-m; x < cx-m+brushsize; x++)
@@ -1174,6 +1345,19 @@ void ApplyBrush(boolean rclick)
 				himap[i] = (float)himap_byte[i] * maphiscale;
 				break;
 			}
+			case 10:
+			{
+				int i = z * (mapwidth+1) + x;
+				uchar nn = oldhm_byte[i-mapwidth-1];
+				uchar ns = oldhm_byte[i+mapwidth+1];
+				uchar nw = oldhm_byte[i-1];
+				uchar ne = oldhm_byte[i+1];
+				uint a = (nn + ns + nw + ne) / 4;
+				if(himap_byte[i] > a) if(himap_byte[i] > 0) himap_byte[i]--;
+				if(himap_byte[i] < a) if(himap_byte[i] < 255) himap_byte[i]++;
+				himap[i] = (float)himap_byte[i] * maphiscale;
+				break;
+			}
 		}
 		else switch(mousetool)
 		{
@@ -1186,6 +1370,8 @@ void ApplyBrush(boolean rclick)
 			}
 		}
 	}
+
+	if(mousetool == 10) delete [] oldhm_byte;
 
 	if((mousetool == 2) || (mousetool == 6 && !rclick))
 		if(himapautowater) FloodfillWater();
@@ -2438,8 +2624,11 @@ saveend:	;
 		ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
 		ImGui::RadioButton("Autotiles##Mode", &mousetool, 47);
 		ImGui::Text("Vertex:"); ImGui::SameLine();
+		//ImGui::BeginGroup();
 		ImGui::RadioButton("Elevate##Mode", &mousetool, 2); ImGui::SameLine();
-		ImGui::RadioButton("Flatten##Mode", &mousetool, 6);
+		ImGui::RadioButton("Flatten##Mode", &mousetool, 6); ImGui::SameLine();
+		ImGui::RadioButton("Equalize##Mode", &mousetool, 10);
+		//ImGui::EndGroup();
 		ImGui::Text("Lake:"); ImGui::SameLine();
 		ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
 		ImGui::RadioButton("Move##Mode", &mousetool, 5); ImGui::SameLine();
@@ -2640,6 +2829,97 @@ void MoveKeyPress(Vector3 &m)
 		}
 }
 
+void IGMainMenuBar()
+{
+	ImGui::BeginMainMenuBar();
+
+	if(ImGui::BeginMenu("File"))
+	{
+		if(ImGui::MenuItem("Save as...", "F3")) CallCommand(CMD_SAVE);
+		if(ImGui::MenuItem("Change WK version")) CallCommand(CMD_CHANGE_SG_WKVER);
+		if(ImGui::MenuItem("Quit", "Esc")) CallCommand(CMD_QUIT);
+		ImGui::EndMenu();
+	}
+	if(ImGui::BeginMenu("Object"))
+	{
+		if(ImGui::MenuItem("Create object...")) CallCommand(CMD_CREATEOBJ);
+		if(ImGui::MenuItem("Duplicate selected objects", "N")) CallCommand(CMD_DUPLICATESELOBJECT);
+		if(ImGui::MenuItem("Give selected objects to...", "Home")) CallCommand(CMD_GIVESELOBJECT);
+		if(ImGui::MenuItem("Delete selected objects", "Del")) CallCommand(CMD_DELETESELOBJECT);
+		//if(ImGui::MenuItem("Delete last created object")) CallCommand(CMD_DELETELASTCREATEDOBJ);
+		if(ImGui::MenuItem("Scale selected objects by 1.5", "*")) CallCommand(CMD_SELOBJSCALEBIGGER);
+		if(ImGui::MenuItem("Scale selected objects by 1/1.5", "/")) CallCommand(CMD_SELOBJSCALESMALLER);
+		if(ImGui::MenuItem("Rotate selected objects by 90°", "R")) CallCommand(CMD_ROTATEOBJQP);
+		ImGui::Separator();
+		if(ImGui::MenuItem("Convert type...")) CallCommand(CMD_CONVERTOBJTYPE);
+		if(ImGui::MenuItem("Give type...")) CallCommand(CMD_GIVEOBJTYPE);
+		if(ImGui::MenuItem("Delete type...")) CallCommand(CMD_DELETEOBJTYPE);
+		if(ImGui::MenuItem("Delete class...")) CallCommand(CMD_DELETEOBJCLASS);
+		ImGui::Separator();
+		if(ImGui::MenuItem("Randomize subtypes", "F11")) CallCommand(CMD_RANDOMSUBTYPE);
+		if(ImGui::MenuItem("Reset objects' heights", "F2")) CallCommand(CMD_RESETOBJPOS);
+		//if(ImGui::MenuItem("Rename player object...")) CallCommand(CMD_CHANGE_PLAYER_NAME);
+		//if(ImGui::MenuItem("Change player color...")) CallCommand(CMD_CHANGE_PLAYER_COLOR);
+		if(ImGui::MenuItem("Select object by ID...", "O")) CallCommand(CMD_SELECT_OBJECT_ID);
+		if(ImGui::MenuItem("Enable aligned movement", "Tab", objmovalign)) CallCommand(CMD_CHANGE_OBJMOVALIGN);
+		ImGui::EndMenu();
+	}
+	if(ImGui::BeginMenu("Game"))
+	{
+		if(ImGui::MenuItem("Pause", "P", !playMode)) CallCommand(CMD_PAUSE);
+		if(ImGui::MenuItem("Increase game speed", "+")) CallCommand(CMD_GAME_SPEED_FASTER);
+		if(ImGui::MenuItem("Decrease game speed", "-")) CallCommand(CMD_GAME_SPEED_SLOWER);
+		if(ImGui::MenuItem("Start level", "S")) CallCommand(CMD_START_LEVEL);
+		if(ImGui::MenuItem("Control client...", "F")) CallCommand(CMD_CONTROL_CLIENT);
+		if(ImGui::MenuItem("Execute command...", "A")) CallCommand(CMD_EXECUTE_COMMAND);
+		if(ImGui::MenuItem("Execute command with target...", "Y")) CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);
+		if(ImGui::MenuItem("Execute action sequence...", "X")) CallCommand(CMD_RUNACTSEQ);
+		if(ImGui::MenuItem("Send event...", "J")) CallCommand(CMD_SEND_EVENT);
+		if(ImGui::MenuItem("Cancel all objects' orders")) CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);
+		if(ImGui::MenuItem("Remove battles delayed sequences")) CallCommand(CMD_REMOVE_BATTLES_DELAYED_SEQS);
+		//if(ImGui::MenuItem("Quick stampdown...")) CallCommand(CMD_STAMPDOWN_OBJECT);
+		//if(ImGui::MenuItem("Open game text window...")) CallCommand(CMD_ENABLE_GTW);
+		//if(ImGui::MenuItem("Enable gameplay shortcuts")) CallCommand(CMD_TOGGLEEXPERIMENTALKEYS);
+		ImGui::EndMenu();
+	}
+	if(ImGui::BeginMenu("View"))
+	{
+		if(ImGui::MenuItem("Move to...", "6")) CallCommand(CMD_CAMPOS);
+		if(ImGui::MenuItem("Move to down-left corner", "1")) CallCommand(CMD_CAMDOWNLEFT);
+		if(ImGui::MenuItem("Move to down-right corner", "2")) CallCommand(CMD_CAMDOWNRIGHT);
+		if(ImGui::MenuItem("Move to up-left corner", "3")) CallCommand(CMD_CAMUPLEFT);
+		if(ImGui::MenuItem("Move to up-right corner", "4")) CallCommand(CMD_CAMUPRIGHT);
+		if(ImGui::MenuItem("Move to player's manor...", "5")) CallCommand(CMD_CAMMANOR);
+		if(ImGui::MenuItem("Move to client's position...", "8")) CallCommand(CMD_CAMCLISTATE);
+		if(ImGui::MenuItem("Reset orientation", "7")) CallCommand(CMD_CAMRESETORI);
+		ImGui::Separator();
+		if(ImGui::MenuItem("Show terrain", "M", enableMap)) CallCommand(CMD_SHOWHIDELANDSCAPE);
+		if(ImGui::MenuItem("Show representations", NULL, showrepresentations)) CallCommand(CMD_TOGGLEREPRENSATIONS);
+		if(ImGui::MenuItem("Show object tooltips", NULL, enableObjTooltips)) CallCommand(CMD_TOGGLEOBJTOOLTIPS);
+		if(ImGui::MenuItem("Show time & object information", "L", showTimeObjInfo)) CallCommand(CMD_TOGGLE_TIMEOBJINFO);
+		if(ImGui::MenuItem("Show grid", "K", showMapGrid)) CallCommand(CMD_TOGGLEGRID);
+		ImGui::EndMenu();
+	}
+	if(ImGui::BeginMenu("Window"))
+	{
+		if(ImGui::MenuItem("Open all")) CallCommand(CMD_SWOPENALL);
+		if(ImGui::MenuItem("Close all")) CallCommand(CMD_SWCLOSEALL);
+		if(ImGui::MenuItem("Selected object information", "F4", swSelObj)) CallCommand(CMD_SWSELOBJ);
+		if(ImGui::MenuItem("Level information", "F5", swLevInfo)) CallCommand(CMD_SWLEVINFO);
+		if(ImGui::MenuItem("Level tree", "F6", swLevTree)) CallCommand(CMD_SWLEVTREE);
+		if(ImGui::MenuItem("Object creation", "F7", swObjCrea)) CallCommand(CMD_SWOBJCREA);
+		if(ImGui::MenuItem("Map editor", "F8", swMapEditor)) CallCommand(CMD_SWMAPEDITOR);
+		if(ImGui::MenuItem("City creator", "F9", swCityCreator)) CallCommand(CMD_SWCITYCREATOR);
+		ImGui::EndMenu();
+	}
+	if(ImGui::BeginMenu("Help"))
+	{
+		if(ImGui::MenuItem("About...", "F1", swAbout)) CallCommand(CMD_ABOUT);
+		ImGui::EndMenu();
+	}
+	ImGui::EndMainMenuBar();
+}
+
 void Test7()
 {
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
@@ -2660,8 +2940,58 @@ void Test7()
 	GrowStringList *gsl = new GrowStringList;
 	gsl->add("<New empty level>");
 	ListFiles("Save_Games", gsl);
+
+/*
 	int lx = ListDlgBox(gsl, "Select a saved game you want to load. The list begins with files from data.bcp and ends with your personal saved games in the \"saved\" directory.");
 	if(lx == -1) return;
+*/
+	int lx = 0;
+	bool levselected = 0;
+	char gaben[64] = {0};
+	bool lwfirsttime = 1;
+	static ImGuiTextFilter tf;
+	while(!levselected)
+	{
+		ImGuiImpl_NewFrame();
+		ImGui::Begin("Load level/savegame");
+		ImGui::PushItemWidth(-1);
+		ImGui::TextWrapped("Select a saved game you want to load. The list begins with files from data.bcp and ends with your personal saved games in the \"saved\" directory.");
+		if(lwfirsttime) {ImGui::SetKeyboardFocusHere(); lwfirsttime = 0;}
+		//ImGui::InputText("###Gaben", gaben, 63);
+		//ImGui::ListBox("###FileList", &lx, IGGSLItemsGetter, gsl, gsl->len);
+		tf.Draw();
+		ImGui::ListBoxHeader("###FileList");
+		for(int i = 0; i < gsl->len; i++)
+			if(tf.PassFilter(gsl->getdp(i)))
+				if(ImGui::Selectable(gsl->getdp(i), lx == i))
+				{
+					lx = i;
+					if(ImGui::IsMouseDoubleClicked(0))
+						levselected = 1;
+				}
+		ImGui::ListBoxFooter();
+		if(ImGui::Button("Edit"))
+			levselected = 1;
+		ImGui::SameLine();
+		if(ImGui::Button("Play"))
+		{
+			levselected = 1;
+			playAfterLoading = 1;
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("Exit"))
+			return;
+		ImGui::PopItemWidth();
+		ImGui::End();
+
+		BeginDrawing();
+		DrawGfxConsoleInCurrentFrame();
+		renderer->InitImGuiDrawing();
+		ImGui::Render();
+		EndDrawing();
+		HandleWindow();
+	}
+
 	char sgn[384] = "Save_Games\\\0";
 	strcat(sgn, gsl->getdp(lx));
 	delete gsl;
@@ -2692,6 +3022,19 @@ void Test7()
 	InitOOBMList();
 
 	IGInit();
+
+	if(playAfterLoading)
+	{
+		char *e;
+		if(e = strrchr(sgn, '.'))
+			if(!stricmp(e+1, "lvl"))
+				SendEventToObjAndSubord(levelobj, PDEVENT_ON_LEVEL_START);
+		if(clistates.len > 0)
+			curclient = clistates.getpnt(0);
+		playMode = 1;
+	}
+
+	askBeforeExit = 1;
 
 	while(!appexit)
 	{
@@ -2756,7 +3099,7 @@ void Test7()
 			if(enableObjTooltips) DrawTooltip();
 
 			ImGuiImpl_NewFrame();
-			if(menuVisible) IGMainMenu();
+			if(menuVisible) IGMainMenuBar();
 			IGSelectedObject();
 			IGLevelTree();
 			IGLevelInfo();
@@ -2765,6 +3108,7 @@ void Test7()
 			IGMapEditor();
 			IGCityCreator();
 			IGTest();
+			IGNDlgBox();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
@@ -2946,6 +3290,12 @@ void Test7()
 		}
 		else mouseRot = 0;
 
+		if(mouseWheel != 0.0f)
+		{
+			DisplaceCurCamera(Vector3(0.0f,  mouseWheel*2.0f, 0.0f));
+			mouseWheel = 0.0f;
+		}
+
 		if(!lmbPressed)
 		if(multiSel)
 		{
@@ -2963,6 +3313,7 @@ void Test7()
 			case 1:
 			case 2:
 			case 6:
+			case 10:
 				ApplyBrush(0);
 				break;
 			case 3:

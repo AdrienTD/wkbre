@@ -34,10 +34,9 @@ void InitGfxConsole()
 	gfxconon = 1;
 }
 
-void DrawGfxConsole()
+void DrawGfxConsoleInCurrentFrame()
 {
 	if(!gfxconon) return;
-	BeginDrawing();
 	InitRectDrawing();
 	if(cbav) SetTexture(0, conbgnd);
 	else     NoTexture(0);
@@ -45,6 +44,13 @@ void DrawGfxConsole()
 	for(uint i = 0; i < 128; i++)
 		if(conbuf[i])
 			DrawFont(0, i * 20, conbuf[i]);
+}
+
+void DrawGfxConsole()
+{
+	if(!gfxconon) return;
+	BeginDrawing();
+	DrawGfxConsoleInCurrentFrame();
 	EndDrawing();
 }
 

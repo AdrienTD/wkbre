@@ -1010,6 +1010,7 @@ boolean IsTileCorcernedByBrush(int tx, int tz)
 		case 1:
 		case 2:
 		case 6:
+		case 10:
 			if(tz >= cz-m && tz < cz-m+brushsize)
 			if(tx >= cx-m && tx < cx-m+brushsize)
 			{
@@ -1045,7 +1046,7 @@ void DrawTileHighlights()
 	if(!usemaptexdb) return;
 
 	if(!(mousetool == 1 || mousetool == 2 || mousetool == 6 ||
-	     mousetool == 7 || mousetool == 47))
+	     mousetool == 7 || mousetool == 47 || mousetool == 10))
 		return;
 
 	renderer->BeginLakeDrawing();
@@ -1083,7 +1084,7 @@ void DrawTileHighlights()
 			batchVertex *bv; ushort *bi; uint fi;
 			mapbatch->next(4, 6, &bv, &bi, &fi);
 
-			if(!(mousetool == 2 || mousetool == 6))
+			if(!(mousetool == 2 || mousetool == 6 || mousetool == 10))
 			{
 				bv[0].x = c->x;
 				bv[0].y = himap[(c->z+0)*(mapwidth+1)+c->x+0];

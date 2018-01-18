@@ -507,9 +507,10 @@ extern char *SORDER_str[6];
 #define PDEVENT_ON_SHARE_TILE 7
 #define PDEVENT_ON_IDLE 8
 #define PDEVENT_ON_BUSY 9
-#define PDEVENT_NUM 10
-extern char *PDEVENT_str[10];
-extern char* PDEVENT_tab0[10];
+#define PDEVENT_ON_OBJECT_ENTERS 10
+#define PDEVENT_NUM 11
+extern char *PDEVENT_str[11];
+extern char* PDEVENT_tab0[11];
 #define ORDTSKTYPE_OBJECT_REFERENCE 0
 #define ORDTSKTYPE_SPAWN 1
 #define ORDTSKTYPE_UPGRADE 2

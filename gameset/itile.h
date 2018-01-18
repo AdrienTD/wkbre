@@ -18,6 +18,7 @@ struct ITile
 {
 	//CTerrain *terrain;
 	DynList<goref> objs;
+	DynList<goref> zones;
 };
 
 extern ITile *itiles;

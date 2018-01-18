@@ -57,8 +57,21 @@ Mesh *LoadAnim(char *fn)
 GrowStringList alModelFn;
 GrowList<Model*> alModel;
 
-Model *GetModel(char *fn)
+Model *GetModel(char *fno)
 {
+	// Remove "xxx\..\" in the paths.
+	char *fn = strdup(fno);
+	char *pd;
+	while(pd = strstr(fn, "\\..\\"))
+	{
+		//char *dtr = (pd == fn) ? pd : (pd - 1);
+		char *dtr = pd - 1;
+		while((dtr > fn) && (*dtr != '\\'))
+			dtr--;
+		dtr++;
+		strcpy(dtr, pd+4);
+	}
+
 	int x = alModelFn.find(fn);
 	if(x != -1)
 		return alModel[x];
@@ -75,6 +88,7 @@ Model *GetModel(char *fn)
 		ferr("Invalid model file name extension.");
 	alModelFn.add(fn);
 	alModel.add(m);
+	free(fn);
 	return m;
 }
 
@@ -165,7 +179,7 @@ void Mesh::prepare()
 	memcpy(&sphere, fp, 16);
 	fp += 16;
 
-	// Remapper
+	// Position remapper
 	int nremap;
 	if(ver < 4)
 	{
@@ -182,7 +196,7 @@ void Mesh::prepare()
 			remapper[i] = i;
 	}
 
-	// Normals
+	// Normals construction from triangles (unused)
 	int nnorm = *(ushort*)fp; fp += 2;
 	fp += (*(uint*)fp) * 2 + 4;
 	dbg(3);
@@ -264,6 +278,40 @@ void Mesh::prepare()
 		for(i = 0; i < sgrp; i++)
 			for(int j = 0; j < 3; j++)
 				{mindices.add(*(ushort*)fp + mgrpindex[n]); fp += 2;}
+	}
+
+	// Ignore next polygon lists (at the moment)
+	for(int a = 1; a < ntrilist; a++)
+	{
+		fp += 2 + 2 + 2 + 4;
+		for(int n = 0; n < nmat; n++)
+		{
+			int sgrp = *(ushort*)fp; fp += 2;
+			fp += 4 + sgrp * 3 * 2;
+		}
+	}
+
+	// Normals
+	nNormals = nnorm;
+	normals = new char[nNormals];
+	memcpy(normals, fp, nNormals);
+	fp += nNormals;
+
+	// Normal remapper
+	int nnormremap;
+	if(ver < 4)
+	{
+		nnormremap = *(ushort*)fp; fp += 2;
+		normalRemapper = new uint[nnormremap];
+		for(int i = 0; i < nnormremap; i++)
+			{normalRemapper[*(ushort*)fp] = i; fp += 2;}
+	}
+	else
+	{
+		nnormremap = nnorm;
+		normalRemapper = new uint[nnormremap];
+		for(int i = 0; i < nnormremap; i++)
+			normalRemapper[i] = i;
 	}
 
 	free(fcnt);

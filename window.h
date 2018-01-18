@@ -30,6 +30,7 @@ extern voidfunc onClickWindow;
 extern int winMinimized;
 extern int fullscreen;
 extern boolean lostdev;
+extern float mouseWheel;
 
 struct IRenderer;
 extern IRenderer *renderer;

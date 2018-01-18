@@ -497,7 +497,7 @@ char *SORDER_str[6] = {
 "UNIQUE_TASK_ID",
 "CURRENT_TASK",
 };
-char *PDEVENT_str[10] = {
+char *PDEVENT_str[11] = {
 "ON_STAMPDOWN",
 "ON_LEVEL_START",
 "ON_CONTROL_TRANSFERRED",
@@ -508,8 +508,9 @@ char *PDEVENT_str[10] = {
 "ON_SHARE_TILE",
 "ON_IDLE",
 "ON_BUSY",
+"ON_OBJECT_ENTERS",
 };
-char* PDEVENT_tab0[10] = {
+char* PDEVENT_tab0[11] = {
 "On Stampdown",
 "On Level Start",
 "On Control Transferred",
@@ -520,6 +521,7 @@ char* PDEVENT_tab0[10] = {
 "On Share Tile",
 "On Idle",
 "On Busy",
+"On Object Enters",
 };
 char *ORDTSKTYPE_str[10] = {
 "OBJECT_REFERENCE",

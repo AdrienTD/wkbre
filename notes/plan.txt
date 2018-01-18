@@ -1,0 +1,163 @@
+struct CPlanNode
+{
+	/// Execute the plan node. Returns false if the plan node has completed, or returns true if suspended.
+	virtual bool run(SequenceEnv *ctx) = 0;
+};
+
+struct SPlanNode
+{
+	/// Execute the plan node. Returns false if the plan node has completed, or returns true if suspended.
+	virtual bool run(SequenceEnv *ctx) = 0;
+};
+
+/*
+struct PNSequence : public CPlanNode
+{
+	GrowList<CPlanNode*> pn;
+	bool first;
+	int curpn;
+	PNSequence() : first(1), curpn(0) {}
+	bool run(SequenceEnv *ctx)
+	{
+		for(; curpn < pn.len; curpn++)
+		{
+			bool r = pn[curpn]->run(ctx);
+			if(r) return 1;
+		}
+		curpn = 0; return 0;
+};
+*/
+
+struct PNAction : public CPlanNode
+{
+	CAction *action;
+	bool run()
+	{
+		action->run(ctx);
+		return 0;
+	}
+};
+
+struct PNIf : public CPlanNode
+{
+	
+
+struct PNWaitFor : public CPlanNode
+{
+	CValue *val;
+	float waitdelay; float waitstart;
+	bool first;
+	bool run(SequenceEnv *ctx)
+	{
+		if(first)
+		{
+			waitstart = current_time;
+			waitdelay = val->get(ctx);
+			first = 0;
+		}
+		if((waitstart + waitdelay) >= current_time)
+			{first = 1; return 0;}
+		else return 1;
+	}
+};
+
+/***************************************************************/
+
+struct CPlanNode
+{
+	virtual SPlanNode *createInstance() = 0;
+};
+
+struct SPlanNode
+{
+	/// Pointer to "blueprint".
+	CPlanNode *gs;
+	/// Constructor
+	SPlanNode(CPlanNode *a) : gs(a) {}
+	/// Execute the plan node. Returns false if the plan node has completed, or returns true if suspended.
+	virtual bool run(SequenceEnv *ctx) = 0;
+};
+
+struct CPNExample : public CPlanNode
+{
+	CValue *val;
+	SPlanNode *createInstance(); // {return new SPNExample(this);}
+};
+
+struct SPNExample : public SPlanNode
+{
+	CPNExample *gs;
+	int state;
+	bool run(SequenceEnv *env)
+	{
+		return (int)(current_time * gs->val->get(env)) & 1;
+	}
+};
+
+SPlanNode* CPNExample::createInstance() {return new SPNExample(this);}
+
+struct CPNAction : public CPlanNode
+{
+	CAction *action;
+	SPlanNode *createInstance();
+};
+
+struct SPNAction : public SPlanNode
+{
+	CPNAction *gs;
+	bool run(SequenceEnv *ctx)
+	{
+		gs->action->run(ctx);
+		return 0;
+	}
+};
+
+struct CPNIf : public CPlanNode
+{
+	CValue *cond; CPlanNode *pn;
+	SPlanNode *createInstance();
+};
+
+struct SPNIf : public SPlanNode
+{
+	CPNIf *gs;
+	SPlanNode *spn;
+	bool first;
+	SPNIf(CPlanNode *a) : gs(a) {spn = a->createInstance();}
+	bool run(SequenceEnv *ctx)
+	{
+		if(first)
+			if(gs->cond->get(ctx) <= 0)
+				return 0;
+		bool r = spn->run(ctx);
+		if(r) {first = 0; return 1;}
+		else  {first = 1; return 0;}
+	}
+};
+
+struct CPNSequence : public CPlanNode
+{
+	GrowList<CPlanNode*> pn;
+	SPlanNode* createInstance();
+};
+
+struct SPNSequence : public SPlanNode
+{
+	CPNSequence* gs;
+	GrowList<SPlanNode*> spn;
+	int curpn;
+	SPNSequence(CPlanNode *a) : gs(a), curpn(0)
+	{
+		for(int i = 0; i < a->pn.len; i++)
+			spn.add(a->pn[i]->createInstance());
+	}
+	bool run(SequenceEnv* ctx)
+	{
+		for(; curpn < spn.len; curpn++)
+		{
+			bool r = spn[curpn]->run(ctx);
+			if(r) return 1;
+		}
+		curpn = 0; return 0;
+	}
+};

@@ -74,6 +74,7 @@ public:
 	AttachmentPoint *attachPnts;
 	int nNormals;
 	char *normals;
+	uint *normalRemapper;
 
 	Mesh(char *fn);
 

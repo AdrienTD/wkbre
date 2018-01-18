@@ -59,6 +59,19 @@ void PutObjsInITiles(GameObject *o)
 		t->objs.last->value = o;
 		o->itile = t; o->itileole = t->objs.last;
 	}
+
+	if(o->objdef->type == CLASS_TERRAIN_ZONE)
+	if(o->tiles)
+	{
+		for(int i = 0; i < o->tiles->len; i++)
+		{
+			couple<uint> *p = o->tiles->getpnt(i);
+			ITile *t = &(itiles[p->y * numTilesX + p->x]);
+			t->zones.add();
+			t->zones.last->value = o;
+			//printf(".");
+		}
+	}	
 }
 
 void ResetITiles()
@@ -97,6 +110,7 @@ void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
 	if(!itiles) return;
 	int x, z;
 	x = o->position.x / 5; z = o->position.z / 5;
+	// If the object is outside the playable area, move it into the oobobjs list (Out Of Bounds OBJectS)
 	if((z < 0) || (z >= numTilesZ) || (x < 0) || (x >= numTilesX))
 	{
 		if(o->itile)
@@ -106,6 +120,7 @@ void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
 		}
 		return;
 	}
+	// Otherwise, if the object is inside the playable area, move it into the objects list of the tile on which the object is.
 	ITile *nt = &(itiles[z*numTilesX+x]);
 	if(nt != o->itile)
 	{
@@ -125,6 +140,14 @@ void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
 				if(e->value.valid())
 				if(e->value.get() != o)
 					SendGameEvent(&senv, e->value.get(), PDEVENT_ON_SHARE_TILE);
+			}
+
+			for(DynListEntry<goref> *e = nt->zones.first; e; e = n)
+			{
+				n = e->next;
+				if(e->value.valid())
+				if(e->value.get() != o)
+					SendGameEvent(&senv, e->value.get(), PDEVENT_ON_OBJECT_ENTERS);
 			}
 		}
 	}

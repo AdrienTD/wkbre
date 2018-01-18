@@ -1116,10 +1116,12 @@ void ConvertObject(GameObject *o, CObjectDefinition *d)
 	//o->appearance = 0;
 	SetRandomSubtypeAndAppearance(o);
 
-	// If the new objtype has a similar subtype, then keep it.
-	for(int i = 0; i < d->numsubtypes; i++)
-		if(d->subtypes[i].id == os)
-			{o->subtype = i; break;}
+	// If the new objtype has a similar subtype, then keep it,
+        // except if it's "Default" (to avoid converted peasants getting the "Default" subtype).
+	if(os != 0)
+		for(int i = 0; i < d->numsubtypes; i++)
+			if(d->subtypes[i].id == os)
+				{o->subtype = i; break;}
 
 	SetObjectAnimationIfNotPlayed(o, 0, 1);
 }

@@ -88,6 +88,7 @@ extern GrowStringList strCondition; extern CCondition *gscondition;
 extern GrowStringList strAnimationTag;
 extern GrowStringList strSubtype;
 extern GrowStringList strFootprint; extern CFootprint *gsfootprint;
+extern GrowStringList strAttachPointType;
 
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);

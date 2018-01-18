@@ -84,27 +84,11 @@ struct PositionOutAtAngle : public CPosition
 	PositionOutAtAngle(CFinder *a, CValue *b, CValue *c) : f(a), u(b), v(c) {}
 	void get(SequenceEnv *env, PosOri *po)
 	{
-/*
-		// depends on finder result's orientation?
-		GameObject *o;
-		f->begin(env);
-		if(!(o = f->getnext())) {*po = nullpo; return;}
-		valuetype a = u->get(env) * 2 * M_PI / 360, b = v->get(env);
-		float x = cos(a), z = sin(a);
-		po->pos.x = o->position.x + (x * b);
-		po->pos.z = o->position.z + (z * b);
-		po->pos.y = GetHeight(po->pos.x, po->pos.z);
-		po->ori = nullVec3;
-*/
 		FinderToPosOri(po, f, env);
-		po->ori.y += u->get(env) * M_PI / 180;
+		po->ori.y -= u->get(env) * M_PI / 180;
 		float l = v->get(env);
-		// Either
-		//po->pos.x += l * cos(M_PI + po->ori.y);
-		//po->pos.z += l * sin(M_PI + po->ori.y);
-		// or simply
-		po->pos.x -= l * cos(po->ori.y);
-		po->pos.z -= l * sin(po->ori.y);
+		po->pos.x += l * sin(po->ori.y);
+		po->pos.z -= l * cos(po->ori.y);
 	}
 };
 
@@ -125,10 +109,43 @@ struct PositionNearestAttachmentPoint : public CPosition
 	PositionNearestAttachmentPoint(int a, CFinder *b, CPosition *c, CValue *d) : t(a), f(b), p(c), v(d) {}
 	void get(SequenceEnv *env, PosOri *po)
 	{
+/*
 		// TO IMPLEMENT
 		GameObject *o = f->getfirst(env);
 		po->pos = o->position;
 		po->ori = o->orientation;
+*/
+		GameObject *o = f->getfirst(env);
+		PosOri ip;
+		p->get(env, &ip);
+		int tag = strAttachPntTags.find(strAttachPointType.getdp(t));
+		if(tag == -1)
+		{
+			printf("AP not found in model.\n");
+			po->pos = o->position;
+			po->ori = o->orientation;
+			return;
+		}
+		Model *mdl = GetObjectModel(o);
+		Mesh *msh = mdl->mesh;
+		boolean first = 1; float lenscore;
+		for(int i = 0; i < msh->nAttachPnts; i++)
+		{
+			AttachmentPoint *ap = &(msh->attachPnts[i]);
+			if(ap->tag == tag)
+			{
+				Vector3 appos;
+				mdl->getAttachPointPos(&appos, i, 0);
+				appos += o->position;
+				if(!first)
+					if((appos - ip.pos).sqlen3() > lenscore)
+						continue;
+				else	first = 0;
+				po->pos = appos;
+				po->ori = o->orientation;
+				lenscore = (appos - ip.pos).sqlen3();
+			}
+		}
 	}
 };
 

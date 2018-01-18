@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 void InitGfxConsole();
+void DrawGfxConsoleInCurrentFrame();
 void DrawGfxConsole();
 void WriteGfxConsole(char *s);
 void WriteAndDrawGfxConsole(char *s);

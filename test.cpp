@@ -637,12 +637,14 @@ void Test23()
 
 void DrawAnim(Anim *anim, RBatch *batch, int uvl, int tm)
 {
+	anim->prepare();
+	anim->mesh->prepare();
 	for(int i = 0; i < anim->mesh->ngrp; i++)
 	{
 		SetTexture(0, anim->mesh->lstmattex[i]);
 		if(anim->mesh->lstmatflags[i]&1) renderer->EnableAlphaTest();
 		else renderer->DisableAlphaTest();
-		anim->drawInBatch(batch, 0, uvl, -1, tm);
+		anim->drawInBatch(batch, 0, uvl, -1, tm % anim->dur);
 		batch->flush();
 	}
 }
