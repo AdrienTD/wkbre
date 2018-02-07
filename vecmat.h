@@ -153,3 +153,4 @@ struct Vector3
 #endif
 
 void TransformBackFromViewMatrix(Vector3 *r, Vector3 *o, Matrix *m);
+void CreateWorldMatrix(Matrix *mWorld, Vector3 is, Vector3 ir, Vector3 it);

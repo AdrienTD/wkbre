@@ -74,7 +74,7 @@ char *CCOMMAND_str[5] = {
 "BLUEPRINT_TOOLTIP",
 "START_SEQUENCE",
 };
-char *CBLUEPRINT_str[22] = {
+char *CBLUEPRINT_str[23] = {
 "ITEM",
 "STARTS_WITH_ITEM",
 "BLUEPRINT_TOOLTIP",
@@ -97,6 +97,7 @@ char *CBLUEPRINT_str[22] = {
 "DISPLAYS_ITEM",
 "USE_FOOTPRINT",
 "FLOATS_ON_WATER",
+"SIGHT_RANGE_EQUATION",
 };
 char *VALUE_str[47] = {
 "CONSTANT",
@@ -176,7 +177,7 @@ char *ENODE_str[27] = {
 "NEGATE",
 "ROUND",
 };
-char *FINDER_str[38] = {
+char *FINDER_str[39] = {
 "SPECIFIC_ID",
 "SELF",
 "SEQUENCE_EXECUTOR",
@@ -215,6 +216,7 @@ char *FINDER_str[38] = {
 "FILTER_FIRST",
 "FILTER_CANDIDATES",
 "NEAREST_CANDIDATE",
+"RANDOM_SELECTION",
 };
 char *POSITION_str[17] = {
 "CENTRE_OF_MAP",
@@ -497,7 +499,7 @@ char *SORDER_str[6] = {
 "UNIQUE_TASK_ID",
 "CURRENT_TASK",
 };
-char *PDEVENT_str[11] = {
+char *PDEVENT_str[12] = {
 "ON_STAMPDOWN",
 "ON_LEVEL_START",
 "ON_CONTROL_TRANSFERRED",
@@ -509,8 +511,9 @@ char *PDEVENT_str[11] = {
 "ON_IDLE",
 "ON_BUSY",
 "ON_OBJECT_ENTERS",
+"ON_SUBORDINATE_RECEIVED",
 };
-char* PDEVENT_tab0[11] = {
+char* PDEVENT_tab0[12] = {
 "On Stampdown",
 "On Level Start",
 "On Control Transferred",
@@ -522,6 +525,7 @@ char* PDEVENT_tab0[11] = {
 "On Idle",
 "On Busy",
 "On Object Enters",
+"On Subordinate Received",
 };
 char *ORDTSKTYPE_str[10] = {
 "OBJECT_REFERENCE",
@@ -658,7 +662,7 @@ char *BUILDINGTYPE_str[12] = {
 "TOWER_CORNER_IN",
 "TOWER_CORNER_OUT",
 };
-char *PDITEM_str[8] = {
+char *PDITEM_str[9] = {
 "FOOD",
 "WOOD",
 "GOLD",
@@ -667,8 +671,9 @@ char *PDITEM_str[8] = {
 "HPC",
 "HP_OF_OBJ_BEING_SPAWNED",
 "HPC_OF_OBJ_BEING_SPAWNED",
+"ACTUAL_SIGHT_RANGE",
 };
-char* PDITEM_tab0[8] = {
+char* PDITEM_tab0[9] = {
 "Food",
 "Wood",
 "Gold",
@@ -677,6 +682,7 @@ char* PDITEM_tab0[8] = {
 "Hit Point Capacity",
 "Hit Points Of Object Being Spawned",
 "Hit Point Capacity Of Object Being Spawned",
+"Actual Sight Range",
 };
 char *MAPTEXDIR_str[4] = {
 "NORTH",

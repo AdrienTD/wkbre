@@ -19,6 +19,7 @@ struct CTrigger
 	int type;
 	ActionSeq *seq;
 	CValue *period;
+	int aptype;
 };
 
 struct CPlayAnimation;
@@ -46,7 +47,7 @@ struct COrder
 	char *name;
 	uint type;
 	int cat;
-	boolean cycle;
+	bool cycle, cannotInterrupt;
 	GrowList<CTask *> tasks;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq;

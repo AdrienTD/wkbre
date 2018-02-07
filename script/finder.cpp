@@ -1081,6 +1081,45 @@ struct FinderUser : public CFinder
 	}
 };
 
+struct FinderRandomSelection : public CFinder
+{
+	CValue *nobjvd; CFinder *fnd;
+	int nobj;
+	DynList<goref> objlist;
+
+	FinderRandomSelection(CValue *a, CFinder *b) : nobjvd(a), fnd(b) {}
+	CFinder *clone() {return new FinderRandomSelection(nobjvd, fnd->clone());}
+	void begin(SequenceEnv *env)
+	{
+		objlist.clear();
+		nobj = nobjvd->get(env);
+		fnd->begin(env);
+		GameObject *o;
+		while(o = fnd->getnext())
+		{
+			objlist.add();
+			objlist.last->value = o;
+		}
+	}
+	GameObject *_getnext()
+	{
+		if(objlist.len == 0) return 0;
+		if(nobj < 1) return 0;
+
+		int x = rand() % objlist.len;
+		DynListEntry<goref> *e = objlist.getEntry(x);
+		if(!e->value.valid())
+		{
+			objlist.remove(e);
+			return this->_getnext();
+		}
+		GameObject *o = e->value.get();
+		objlist.remove(e);
+		nobj--;
+		return o;
+	}
+};
+
 //////////////////////////////////////////////////////////////////////////
 
 int IsObjQualifiedByOFCond(GameObject *o, CObjFindCond *c, SequenceEnv *env)
@@ -1321,7 +1360,9 @@ CFinder *ReadOFDLine(char **pntfp)
 				char **w = word + 2;
 				CValue *a = ReadValue(&w);
 				return new FinderGradeSelectCandidates(m, -1, a, ReadValue(&w), ReadOFDLine(pntfp));}
-			
+			case FINDER_RANDOM_SELECTION:
+				{char **w = word + 1;
+				return new FinderRandomSelection(ReadValue(&w), ReadOFDLine(pntfp));}
 		}
 		char **pw = word;
 		return ReadFinder(&pw);

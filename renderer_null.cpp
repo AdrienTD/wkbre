@@ -56,6 +56,7 @@ struct NULLRenderer : public IRenderer
 	// Textures management
 	texture CreateTexture(Bitmap *bm, int mipmaps) {return (texture)0;}
 	void FreeTexture(texture t) {}
+	void UpdateTexture(texture t, Bitmap *bmp) {}
 
 	// State changes
 	void SetTransformMatrix(Matrix *m) {}

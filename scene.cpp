@@ -161,6 +161,7 @@ void DrawOOBM()
 
 				for(int j = 0; j < msh->nAttachPnts; j++)
 					if(msh->attachPnts[j].model)
+					if(md->isAttachPointOn(j, tm))
 					{
 						Model *apmd = msh->attachPnts[j].model;
 						Mesh *apms = apmd->mesh;

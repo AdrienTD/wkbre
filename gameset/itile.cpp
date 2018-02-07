@@ -92,7 +92,7 @@ void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
 	if(o->position.z < 0) o->position.z = 0;
 	else if(o->position.z >= lh) o->position.z = lh-0.01;
 
-	if(autoHeight)
+	if(autoHeight) if(o->objdef->type != CLASS_MISSILE)
 	{
 		o->position.y = GetHeight(o->position.x, o->position.z);
 		if((o->objdef->type != CLASS_CHARACTER) || o->objdef->floatsOnWater)

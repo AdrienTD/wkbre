@@ -639,6 +639,15 @@ int ConvertColor(int c)
 	return c;
 }
 
+void UpdateTexture(texture t, Bitmap *bmp)
+{
+	D3DLOCKED_RECT lr;
+	t.dd->LockRect(0, &lr, NULL, 0);
+	assert(lr.Pitch == bmp->w * 4);
+	memcpy(lr.pBits, bmp->pix, bmp->w * bmp->h * 4);
+	t.dd->UnlockRect(0);
+}
+
 };
 
 IRenderer *CreateD3D9Renderer() {return new D3D9Renderer;}

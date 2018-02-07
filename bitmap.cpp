@@ -247,7 +247,8 @@ Bitmap *ConvertBitmapToB8G8R8A8(Bitmap *sb)
 
 void FreeBitmap(Bitmap *bm)
 {
-	free(bm->pix); free(bm->pal);
+	if(bm->pix) free(bm->pix);
+	if(bm->pal) free(bm->pal);
 	delete bm;
 }
 

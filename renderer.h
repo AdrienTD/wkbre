@@ -66,6 +66,7 @@ struct IRenderer
 	// Textures management
 	virtual texture CreateTexture(Bitmap *bm, int mipmaps) = 0;
 	virtual void FreeTexture(texture t) = 0;
+	virtual void UpdateTexture(texture t, Bitmap *bmp) = 0;
 
 	// State changes
 	virtual void SetTransformMatrix(Matrix *m) = 0;

@@ -361,3 +361,8 @@ void Mesh::getAttachPointPos(Vector3 *vout, int apindex, int tm)
 {
 	*vout = attachPnts[apindex].staticState.position;
 }
+
+bool Mesh::isAttachPointOn(int apindex, int tm)
+{
+	return attachPnts[apindex].staticState.on;
+}

@@ -694,6 +694,12 @@ int ConvertColor(int c)
 	return BGRA_TO_RGBA(c);
 }
 
+void UpdateTexture(texture t, Bitmap *bmp)
+{
+	glBindTexture(GL_TEXTURE_2D, t.gl);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bmp->w, bmp->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, bmp->pix);
+}
+
 };
 
 IRenderer *CreateOGL1Renderer() {return new OGL1Renderer;}

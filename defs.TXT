@@ -73,6 +73,7 @@ CBLUEPRINT_ {
 	DISPLAYS_ITEM
 	USE_FOOTPRINT
 	FLOATS_ON_WATER
+	SIGHT_RANGE_EQUATION
 }
 
 VALUE_ {
@@ -196,6 +197,7 @@ FINDER_ {
 	FILTER_FIRST
 	FILTER_CANDIDATES
 	NEAREST_CANDIDATE
+	RANDOM_SELECTION
 }
 
 POSITION_ {
@@ -478,6 +480,7 @@ PDEVENT_ | char* {
 	ON_IDLE "On Idle"
 	ON_BUSY "On Busy"
 	ON_OBJECT_ENTERS "On Object Enters"
+	ON_SUBORDINATE_RECEIVED "On Subordinate Received"
 }
 
 ORDTSKTYPE_ {
@@ -640,6 +643,7 @@ PDITEM_ | char* {
 	HPC "Hit Point Capacity"
 	HP_OF_OBJ_BEING_SPAWNED "Hit Points Of Object Being Spawned"
 	HPC_OF_OBJ_BEING_SPAWNED "Hit Point Capacity Of Object Being Spawned"
+	ACTUAL_SIGHT_RANGE "Actual Sight Range"
 }
 
 MAPTEXDIR_ {

@@ -237,13 +237,15 @@ struct PositionInFrontOf : public CPosition
 	}
 };
 
+extern Vector3 firingAttachmentPointPos;
 struct PositionFiringAttachmentPoint : public CPosition
 {
 	void get(SequenceEnv *env, PosOri *po)
 	{
 		if(!env->self.valid())
 			{*po = nullpo; return;}
-		po->pos = env->self->position + Vector3(0, 1, 0);
+		//po->pos = env->self->position + Vector3(0, 1, 0);
+		po->pos = firingAttachmentPointPos;
 		po->ori = env->self->orientation;
 	}
 };

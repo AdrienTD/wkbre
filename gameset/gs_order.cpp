@@ -22,7 +22,7 @@ void ReadCOrder(char **pntfp, char **fstline)
 	COrder *co = &(gsorder[strdex = strOrder.find(fstline[1])]);
 	co->name = strOrder.getdp(strdex);
 	co->cat = -2;
-	co->cycle = 0;
+	co->cycle = co->cannotInterrupt = 0;
 	co->initSeq = co->startSeq = co->suspendSeq = co->resumeSeq = co->cancelSeq = co->terminateSeq = 0;
 	co->spawnBlueprint = 0;
 	while(**pntfp)
@@ -53,6 +53,8 @@ void ReadCOrder(char **pntfp, char **fstline)
 			case CORDER_FLAG:
 				if(!stricmp(word[1], "CYCLE_ORDER"))
 					co->cycle = 1;
+				else if(!stricmp(word[1], "CANNOT_INTERRUPT_ORDER"))
+					co->cannotInterrupt = 1;
 				break;
 			case CORDER_INITIALISATION_SEQUENCE:
 				co->initSeq = ReadActSeq(pntfp); break;
@@ -81,6 +83,8 @@ void ReadCTrigger(char **pntfp, char **fstline, CTask *s)
 		char **w = fstline + 2;
 		g->period = ReadValue(&w);
 	}
+	else if(g->type == TASKTRIGGER_ATTACHMENT_POINT)
+		g->aptype = strAttachPointType.find(fstline[2]);
 	g->seq = ReadActSeq(pntfp);
 }
 

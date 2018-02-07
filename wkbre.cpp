@@ -36,10 +36,11 @@ Cursor *defcursor;
 boolean mouseRot = 0; int msrotx, msroty;
 boolean multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
-bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0, swTest = 0;
+bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0, swTest = 0, swMinimap = 0;
 bool mapeditmode = 0;
 int mousetool = 0;
 bool playAfterLoading = 0;
+texture minimapTexture; Bitmap *minimapBitmap;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 0;
@@ -122,6 +123,7 @@ MenuEntry menucmds[] = {
 {"Object creation", CMD_SWOBJCREA},
 {"Map editor", CMD_SWMAPEDITOR},
 {"City creator", CMD_SWCITYCREATOR},
+{"Minimap", CMD_SWMINIMAP},
 {0,0},
 {"About...", CMD_ABOUT},
 {0,0},
@@ -141,6 +143,42 @@ boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
 int brushsize = 1, brushshape = 0; bool randommaptex = 0;
 bool himapautowater = 0;
 goref newmanorplayer; int nmc_size = 3; int nmc_npeasants = 4; bool nmc_flags = 0;
+
+// Minimap drawing...
+
+Bitmap *doom_bmp; int doom_w, doom_h; bool doom_edge;
+int doom_mmw, doom_mmh, doom_sx, doom_sy;
+extern int colortable[8];
+
+void DrawObjOnMinimapBmp(GameObject *o)
+{
+	float fx = o->position.x / 5;
+	float fy = o->position.z / 5;
+	if(doom_edge) {fx += mapedge; fy += mapedge;}
+	int x = doom_sx + floor(fx * doom_mmw / doom_w);
+	int y = doom_bmp->h - 1 - doom_sy - floor(fy * doom_mmh / doom_h);
+	if(x >= 0 && x < doom_bmp->w && y >= 0 && y < doom_bmp->h)
+	{
+		int c = colortable[o->color];
+		//c = ((c&0xFF0000)>>16) | (c&0xFF00) | ((c&0xFF)<<16);
+		((uint*)doom_bmp->pix)[y*doom_bmp->w + x] = c | 0xFF000000;
+	}
+	for(DynListEntry<GameObject> *e = o->children.first; e; e = e->next)
+		DrawObjOnMinimapBmp(&e->value);
+}
+
+void DrawObjectsOnMinimapBmp(Bitmap *bmp, bool edge)
+{
+	doom_bmp = bmp;
+	doom_edge = edge;
+	doom_w = edge ? mapwidth : (mapwidth - 2 * mapedge);
+	doom_h = edge ? mapheight : (mapheight - 2 * mapedge);
+	if(doom_w > doom_h) {doom_mmw = bmp->w; doom_mmh = doom_h * bmp->w / doom_w;}
+	else                {doom_mmh = bmp->h; doom_mmw = doom_w * bmp->h / doom_h;}
+	doom_sx = bmp->w/2 - doom_mmw/2;
+	doom_sy = bmp->h/2 - doom_mmh/2;
+	DrawObjOnMinimapBmp(levelobj);
+}
 
 // ImGui dialog boxes replacing Win32-based ones.
 
@@ -176,13 +214,14 @@ void OpenStrDlgBox(char *out, char *hs, std::function<void()> f)
 
 void IGNDlgBox()
 {
-	bool q = true;
+	bool q = true, ok = false;
 	static ImGuiTextFilter filter;
 	if(!ndlgmode) return;
 	if(ndlgfirsttime)
 	{
 		ImGui::SetNextWindowSize(ImVec2(400,(ndlgmode==2)?100:300), ImGuiSetCond_Always);
 		ImGui::SetNextWindowPosCenter(ImGuiSetCond_Always);
+		filter.Clear();
 	}
 	if(!ImGui::Begin("NDlgBox", &q)) {ImGui::End(); return;}
 	ImGui::PushItemWidth(-1);
@@ -191,29 +230,37 @@ void IGNDlgBox()
 	switch(ndlgmode)
 	{
 		case 1:
-			//ImGui::ListBox("##ListBox", &nlstdlgsel, IGGSLItemsGetter, nlstdlggsl, nlstdlggsl->len);
+			if(ndlgfirsttime) ImGui::SetKeyboardFocusHere();
 			filter.Draw();
 			ImGui::ListBoxHeader("##ListBox", ImVec2(0,200));
 			for(int i = 0; i < nlstdlggsl->len; i++)
 				if(filter.PassFilter(nlstdlggsl->getdp(i)))
+				{
 					if(ImGui::Selectable(nlstdlggsl->getdp(i), nlstdlgsel == i))
 						nlstdlgsel = i;
+					if(ImGui::IsItemHovered())
+						if(ImGui::IsMouseDoubleClicked(0))
+							{nlstdlgsel = i;
+							ok = 1;}
+				}
 			ImGui::ListBoxFooter();
 			break;
 		case 2:
-			if(ndlgfirsttime) {ImGui::SetKeyboardFocusHere();}
+			if(ndlgfirsttime) ImGui::SetKeyboardFocusHere();
 			if(ImGui::InputText("##InputText", nstrdlgout, 80, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
-				{ndlgmode = 0; dlgOkPress();}
+				ok = 1;
 			break;
 	}
 	if(ImGui::Button("OK"))
-		{ndlgmode = 0; dlgOkPress();}
+		ok = 1;
 	ImGui::SameLine();
 	if(ImGui::Button("Cancel") || ImGui::IsKeyDown(VK_ESCAPE))
 		ndlgmode = 0;
 	ImGui::PopItemWidth();
 	ImGui::End();
 	ndlgfirsttime = 0;
+	if(ok)
+		{ndlgmode = 0; dlgOkPress();}
 }
 
 bool askBeforeExit = 0;
@@ -1047,10 +1094,12 @@ void CallCommand(int cmd)
 			swMapEditor = !swMapEditor; break;
 		case CMD_SWCITYCREATOR:
 			swCityCreator = !swCityCreator; break;
+		case CMD_SWMINIMAP:
+			swMinimap = !swMinimap; break;
 		case CMD_SWOPENALL:
-			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = swCityCreator = 1; break;
+			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = swCityCreator = swMinimap = 1; break;
 		case CMD_SWCLOSEALL:
-			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = swCityCreator = 0; break;
+			swSelObj = swLevInfo = swLevTree = swObjCrea = swMapEditor = swCityCreator = swMinimap = 0; break;
 		case CMD_TOGGLEGRID:
 			showMapGrid = !showMapGrid; break;
 	}
@@ -1373,7 +1422,7 @@ void ApplyBrush(boolean rclick)
 
 	if(mousetool == 10) delete [] oldhm_byte;
 
-	if((mousetool == 2) || (mousetool == 6 && !rclick))
+	if((mousetool == 2) || (mousetool == 6 && !rclick) || (mousetool == 10 && !rclick))
 		if(himapautowater) FloodfillWater();
 }
 
@@ -1625,9 +1674,15 @@ void T7RightClick(void *param)
 	}
 
 	if(objtypeToStampdown)
-	if(playerToGiveStampdownObj.valid())
 	{
-		GameObject *o = CreateObject(objtypeToStampdown, playerToGiveStampdownObj.get());
+		GameObject *papa;
+		if((objtypeToStampdown->type == CLASS_PLAYER) || (objtypeToStampdown->type == CLASS_TERRAIN_ZONE))
+			papa = levelobj;
+		else if(playerToGiveStampdownObj.valid())
+			papa = playerToGiveStampdownObj.get();
+		else goto nopapa;
+
+		GameObject *o = CreateObject(objtypeToStampdown, papa);
 		o->position = stdownpos;
 		o->orientation = Vector3(0, stampdownRot, 0);
 		GOPosChanged(o, 0);
@@ -1639,7 +1694,7 @@ void T7RightClick(void *param)
 		if(!keypressed[VK_SHIFT]) objtypeToStampdown = 0;
 		return;
 	}
-
+nopapa:
 	if(!experimentalKeys) return;
 	//if(!currentSelection.valid()) return;
 	if(!targetcmd) return;
@@ -1882,6 +1937,8 @@ void IGwcharPntTextBox(char *id, wchar_t **txt)
 	}
 }
 
+bool IGPlayerChooser(char *popupid, goref *p);
+
 int igcurod = 0;
 int igliCurrentAssoCat = -1;
 
@@ -1927,6 +1984,13 @@ void IGSelectedObject()
 			ImGui::EndPopup();
 		}
 		ImGui::Text("Type: %s \"%s\"", CLASS_str[o->objdef->type], o->objdef->name);
+		if((o != levelobj) && (o->parent != levelobj))
+		{
+			ImGui::Text("Player:"); ImGui::SameLine();
+			goref pl = o->player;
+			if(IGPlayerChooser("SetObjectPlayer", &pl))
+				SetObjectParent(o, pl.get());
+		}
 		ImGui::PushItemWidth(-1);
 		if(o->objdef->type == CLASS_LEVEL || o->objdef->type == CLASS_PLAYER ||
 			o->objdef->type == CLASS_TERRAIN_ZONE)
@@ -2239,6 +2303,7 @@ void IGLevelTree()
 
 bool IGPlayerChooser(char *popupid, goref *p)
 {
+	ImGui::PushID(popupid);
 	bool r = 0;
 	if(ImGui::Selectable("##PlayerSelButton"))
 		ImGui::OpenPopup(popupid);
@@ -2273,6 +2338,7 @@ bool IGPlayerChooser(char *popupid, goref *p)
 		ImGui::SameLine();
 		ImGui::Text("%S (%u)", o->name, o->id);
 	}
+	ImGui::PopID();
 	return r;
 }
 
@@ -2807,6 +2873,68 @@ void IGTest()
 		for(int i = 0; i < strAttachPntTags.len; i++)
 			ImGui::Text("%s", strAttachPntTags.getdp(i));
 	}
+	if(ImGui::CollapsingHeader("Rendering settings"))
+	{
+		ImGui::DragFloat("farzvalue", &farzvalue);
+		ImGui::DragFloat("occlurate", &occlurate);
+		ImGui::DragFloat("verticalfov", &verticalfov);
+	}
+	ImGui::End();
+}
+
+bool mmshowedge = true, mmshowobjs = true;
+int mmbmplen = 128;
+
+void IGMinimap()
+{
+	static char* cbstr[4] = {"64", "128", "256", "512"};
+	static int cbint[4] = {64, 128, 256, 512};
+	static int cbindex = 1;
+	static int viewsize = 128;
+	if(!swMinimap) return;
+	ImGui::Begin("Minimap", &swMinimap);
+	//if(ImGui::InputInt("Resolution", &mmbmplen))
+	if(ImGui::Combo("Size", &cbindex, (const char**)cbstr, 4))
+	{
+		mmbmplen = viewsize = cbint[cbindex];
+		if(mmbmplen <= 0) mmbmplen = 1;
+		FreeTexture(minimapTexture);
+		minimapBitmap = new Bitmap;
+		minimapBitmap->w = minimapBitmap->h = mmbmplen;
+		minimapBitmap->form = BMFORMAT_B8G8R8A8;
+		minimapBitmap->pix = new uchar[mmbmplen*mmbmplen*4];
+		memset(minimapBitmap->pix, '0', mmbmplen*mmbmplen*4);
+		minimapBitmap->pal = 0;
+		minimapTexture = CreateTexture(minimapBitmap, 1);
+		FreeBitmap(minimapBitmap);
+	}
+	//ImGui::InputInt("Zoom", &viewsize);
+	ImGui::Checkbox("Edge", &mmshowedge); ImGui::SameLine();
+	ImGui::Checkbox("Objects", &mmshowobjs);
+	ImGui::BeginChild("MinimapRegion", ImVec2(0,0), true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	ImVec2 imgpos = ImGui::GetCursorScreenPos();
+	ImGui::Image(minimapTexture, ImVec2(viewsize,viewsize));
+	if(ImGui::IsMouseDown(0) && ImGui::IsItemHoveredRect() && ImGui::IsWindowHovered())
+	{
+		ImVec2 v;
+		v.x = ImGui::GetMousePos().x - imgpos.x;
+		v.y = ImGui::GetMousePos().y - imgpos.y;
+
+		int w = mmshowedge ? mapwidth : (mapwidth - 2*mapedge);
+		int h = mmshowedge ? mapheight : (mapheight - 2*mapedge);
+		int mmw, mmh;
+		if(w > h) {mmw = mmbmplen; mmh = h * mmbmplen / w;}
+		else      {mmh = mmbmplen; mmw = w * mmbmplen / h;}
+		int sx = mmbmplen/2 - mmw/2;
+		int sy = mmbmplen/2 - mmh/2;
+		int re = mmshowedge ? (mapedge*5) : 0;
+		v.x = (v.x - sx) * w * 5 / mmw - re;
+		v.y = 5*h - (v.y - sy) * h * 5 / mmh - re;
+
+		//printf("Minimap click: x=%f, y=%f\n", v.x, v.y);
+		SetCurCameraPosXZ(v.x, v.y);
+	}
+	ImGui::EndChild();
 	ImGui::End();
 }
 
@@ -2842,7 +2970,7 @@ void IGMainMenuBar()
 	}
 	if(ImGui::BeginMenu("Object"))
 	{
-		if(ImGui::MenuItem("Create object...")) CallCommand(CMD_CREATEOBJ);
+		if(ImGui::MenuItem("Create object...")) CallCommand(CMD_SWOBJCREA); //CallCommand(CMD_CREATEOBJ);
 		if(ImGui::MenuItem("Duplicate selected objects", "N")) CallCommand(CMD_DUPLICATESELOBJECT);
 		if(ImGui::MenuItem("Give selected objects to...", "Home")) CallCommand(CMD_GIVESELOBJECT);
 		if(ImGui::MenuItem("Delete selected objects", "Del")) CallCommand(CMD_DELETESELOBJECT);
@@ -2910,6 +3038,7 @@ void IGMainMenuBar()
 		if(ImGui::MenuItem("Object creation", "F7", swObjCrea)) CallCommand(CMD_SWOBJCREA);
 		if(ImGui::MenuItem("Map editor", "F8", swMapEditor)) CallCommand(CMD_SWMAPEDITOR);
 		if(ImGui::MenuItem("City creator", "F9", swCityCreator)) CallCommand(CMD_SWCITYCREATOR);
+		if(ImGui::MenuItem("Minimap", 0, swMinimap)) CallCommand(CMD_SWMINIMAP);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Help"))
@@ -2953,22 +3082,23 @@ void Test7()
 	while(!levselected)
 	{
 		ImGuiImpl_NewFrame();
+		ImGui::SetNextWindowSize(ImVec2(450,320), ImGuiSetCond_Once);
+		ImGui::SetNextWindowPosCenter(ImGuiSetCond_Once);
 		ImGui::Begin("Load level/savegame");
 		ImGui::PushItemWidth(-1);
 		ImGui::TextWrapped("Select a saved game you want to load. The list begins with files from data.bcp and ends with your personal saved games in the \"saved\" directory.");
 		if(lwfirsttime) {ImGui::SetKeyboardFocusHere(); lwfirsttime = 0;}
-		//ImGui::InputText("###Gaben", gaben, 63);
-		//ImGui::ListBox("###FileList", &lx, IGGSLItemsGetter, gsl, gsl->len);
 		tf.Draw();
-		ImGui::ListBoxHeader("###FileList");
+		ImGui::ListBoxHeader("###FileList", ImVec2(0,200));
 		for(int i = 0; i < gsl->len; i++)
 			if(tf.PassFilter(gsl->getdp(i)))
+			{
 				if(ImGui::Selectable(gsl->getdp(i), lx == i))
-				{
 					lx = i;
+				if(ImGui::IsItemHovered())
 					if(ImGui::IsMouseDoubleClicked(0))
-						levselected = 1;
-				}
+						{lx = i; levselected = 1;}
+			}
 		ImGui::ListBoxFooter();
 		if(ImGui::Button("Edit"))
 			levselected = 1;
@@ -2978,6 +3108,7 @@ void Test7()
 			levselected = 1;
 			playAfterLoading = 1;
 		}
+		if(ImGui::IsItemHovered()) ImGui::SetTooltip("Load and start/unpause the game.");
 		ImGui::SameLine();
 		if(ImGui::Button("Exit"))
 			return;
@@ -3023,14 +3154,32 @@ void Test7()
 
 	IGInit();
 
+	Bitmap minimapTempBmp;
+	CreateMinimap(minimapTempBmp, mmbmplen);
+	minimapBitmap = ConvertBitmapToB8G8R8A8(&minimapTempBmp);
+	//DrawObjectsOnMinimapBmp(minimapBitmap, false);
+	minimapTexture = CreateTexture(minimapBitmap, 1);
+	FreeBitmap(minimapBitmap);
+	free(minimapTempBmp.pix);
+
 	if(playAfterLoading)
 	{
-		char *e;
+		char *e; bool islvl = 0;
 		if(e = strrchr(sgn, '.'))
 			if(!stricmp(e+1, "lvl"))
-				SendEventToObjAndSubord(levelobj, PDEVENT_ON_LEVEL_START);
+				islvl = 1;
+		if(islvl)
+			SendEventToObjAndSubord(levelobj, PDEVENT_ON_LEVEL_START);
 		if(clistates.len > 0)
+		{
 			curclient = clistates.getpnt(0);
+			if(islvl)
+			 if(curclient->obj.valid())
+			{
+				curclient->camerapos = curclient->obj->startcampos;
+				curclient->cameraori = curclient->obj->startcamori;
+			}
+		}
 		playMode = 1;
 	}
 
@@ -3058,6 +3207,15 @@ void Test7()
 
 		if(!winMinimized)
 		{
+			if(swMinimap)
+			{
+				CreateMinimap(minimapTempBmp, mmbmplen, mmshowedge);
+				minimapBitmap = ConvertBitmapToB8G8R8A8(&minimapTempBmp);
+				if(mmshowobjs) DrawObjectsOnMinimapBmp(minimapBitmap, mmshowedge);
+				renderer->UpdateTexture(minimapTexture, minimapBitmap);
+				FreeBitmap(minimapBitmap);
+				free(minimapTempBmp.pix);
+			}
 			objsdrawn = 0;
 			BeginDrawing();
 			DrawScene();
@@ -3109,6 +3267,7 @@ void Test7()
 			IGCityCreator();
 			IGTest();
 			IGNDlgBox();
+			IGMinimap();
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();
@@ -3134,8 +3293,11 @@ void Test7()
 			}
 
 			if(mousetool) ChangeCursor(defcursor);
-			else if(objtypeToStampdown && playerToGiveStampdownObj.valid()) ChangeCursor(buildcursor);
+			else if(!objtypeToStampdown) SetTargetCursor();
+			else if((objtypeToStampdown->type == CLASS_PLAYER) || (objtypeToStampdown->type == CLASS_TERRAIN_ZONE) || playerToGiveStampdownObj.valid())
+				ChangeCursor(buildcursor);
 			else SetTargetCursor();
+			
 			DrawCursor();
 			EndDrawing();
 		}
@@ -3233,7 +3395,7 @@ void Test7()
 		if(keypressed[VK_F11])
 			{keypressed[VK_F11] = 0; CallCommand(CMD_RANDOMSUBTYPE);}
 
-		if(keypressed['6']) {keypressed['6'] = 0; CallCommand(CMD_CAMPOS);}
+		if(keypressed['6']) {keypressed['6'] = 0; CallCommand(CMD_SWMINIMAP);}
 
 		if(keypressed[VK_F1])
 			{keypressed[VK_F1] = 0; CallCommand(CMD_ABOUT);}
@@ -3273,7 +3435,7 @@ void Test7()
 
 		if(keypressed['K']) {keypressed['K'] = 0; CallCommand(CMD_TOGGLEGRID);}
 
-		if(keypressed[VK_NUMPAD0])
+		if(keypressed[VK_NUMPAD0] || mmbPressed)
 		{
 			if(!mouseRot)
 			{
@@ -3292,7 +3454,7 @@ void Test7()
 
 		if(mouseWheel != 0.0f)
 		{
-			DisplaceCurCamera(Vector3(0.0f,  mouseWheel*2.0f, 0.0f));
+			DisplaceCurCamera(Vector3(0.0f,  mouseWheel*3.0f, 0.0f));
 			mouseWheel = 0.0f;
 		}
 

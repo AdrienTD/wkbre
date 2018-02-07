@@ -227,6 +227,7 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 		objdef[x].buildingType = -1;
 		objdef[x].movSpeedEq = -1;
 		objdef[x].footprint = 0;
+		objdef[x].sightRangeEq = -1;
 	}
 
 	while(*fp)
@@ -352,6 +353,9 @@ char *CreateObjDef(char *fp, char **fstline, int fwords, char *cppname, int t, i
 				break;}
 			case CBLUEPRINT_FLOATS_ON_WATER:
 				objdef[x].floatsOnWater = 1; break;
+			case CBLUEPRINT_SIGHT_RANGE_EQUATION:
+				objdef[x].sightRangeEq = strEquation.find(word[1]);
+				break;
 		}
 	}
 	ferr("Unexpected end of file in class definition.");

@@ -46,4 +46,6 @@ struct Anim : public Model
 	void draw(int iwtcolor = 0);
 	void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0);
 	void getAttachPointPos(Vector3 *vout, int apindex, int tm = 0);
+	bool isAttachPointOn(int apindex, int tm = 0);
+	int hasAttachPointTurnedOn(int apindex, int tma, int tmb);
 };

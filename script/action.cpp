@@ -92,7 +92,7 @@ struct ActionCreateObject : public CAction
 		PosOri po;
 		pos->get(c, &po);
 		o->position = po.pos;
-		o->position.y = GetHeight(o->position.x, o->position.z);
+		//o->position.y = GetHeight(o->position.x, o->position.z);
 		GOPosChanged(o);
 		o->orientation = po.ori;
 	}
@@ -464,6 +464,8 @@ struct ActionTransferControl : public CAction
 			o = g->get();
 			SetObjectParent(o, p);
 			SendGameEvent(env, o, PDEVENT_ON_CONTROL_TRANSFERRED);
+			SequenceEnv ne; env->copyAll(&ne); ne.self = o;
+			SendGameEvent(&ne, p, PDEVENT_ON_SUBORDINATE_RECEIVED);
 		}
 	}
 };
@@ -1089,7 +1091,7 @@ struct ActionTeleport : public CAction
 		while(o = f->getnext())
 		{
 			o->position = p.pos;
-			o->position.y = GetHeight(o->position.x, o->position.z);
+			o->position.y = GetHeight(o->position.x, o->position.z); // disable this too?
 			o->orientation = p.ori;
 			GOPosChanged(o);
 			CancelAllOrders(o);

@@ -355,6 +355,7 @@ char *LoadGameObjectP1(char *fp, char **fline, int fwords, GameObject *parent)
 				{
 					// 16-bit string
 					int nn = atoi(word[1]);
+					if(nn > nwords-2) nn = nwords - 2; // fix for strange long player name in "6 Player Great River.lvl" in Battles that uses multiple lines
 					go->name = new wchar_t[nn+1];
 					for(int i = 0; i < nn; i++)
 						go->name[i] = atoi(word[2+i]);
@@ -1093,6 +1094,12 @@ GameObject *CreateObject(CObjectDefinition *def, GameObject *parent, int id)
 	go->animtag = 0; go->animvar = 0;
 	go->animtimeref = current_time * 1000;
 	go->animlooping = 1; go->animlooped = 0;
+
+	if(def->sightRangeEq != -1)
+	{
+		SequenceEnv env; env.self = go;
+		go->setItem(PDITEM_ACTUAL_SIGHT_RANGE, equation[def->sightRangeEq]->get(&env));
+	}
 
 	return go;
 }

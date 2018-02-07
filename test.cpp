@@ -942,10 +942,112 @@ void Test27()
 	}
 }
 
-#define NUMTESTS 27
+void Test28()
+{
+	InitWindow();
+
+	static Bitmap bm;
+	bm.w = bm.h = 256; bm.form = BMFORMAT_B8G8R8A8; bm.pal = 0;
+	bm.pix = (uchar*)malloc(bm.w * bm.h * 4);
+	memset(bm.pix, 127, bm.w * bm.h * 4);
+
+	static int px = 61, py = 89, vx = 2, vy = -3;
+	*(uint*)(bm.pix + (py*bm.w + px) * 4) = -1;
+
+	static texture t = CreateTexture(&bm, 1);
+	while(!appexit)
+	{
+		px += vx; if(px < 0 || px >= 256) {px -= vx; vx = -vx;}
+		py += vy; if(py < 0 || py >= 256) {py -= vy; vy = -vy;}
+		*(uint*)(bm.pix + (py*bm.w + px) * 4) = -1;
+		renderer->UpdateTexture(t, &bm);
+		BeginDrawing();
+		InitRectDrawing();
+		SetTexture(0, t);
+		DrawRect(0, 0, 256, 256, -1);
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+char t29curdir[512] = ".";
+GrowStringList *t29curfiles = 0;
+
+void T29_UpdateFiles()
+{
+	if(t29curfiles) delete t29curfiles;
+	t29curfiles = ListFiles(t29curdir, 0);
+}
+
+void T29_TreeDir(char *s)
+{
+	GrowStringList *dirs = ListDirectories(s);
+	for(int i = 0; i < dirs->len; i++)
+	{
+		if(ImGui::TreeNodeEx(dirs->getdp(i), ImGuiTreeNodeFlags_OpenOnArrow))
+		{
+			char tb[512];
+			strcpy(tb, s);
+			strcat(tb, "\\");
+			strcat(tb, dirs->getdp(i));
+			T29_TreeDir(tb);
+			ImGui::TreePop();
+		}
+		if(ImGui::IsItemClicked())
+		{
+			strcpy(t29curdir, s);
+			strcat(t29curdir, "\\");
+			strcat(t29curdir, dirs->getdp(i));
+			T29_UpdateFiles();
+		}
+	}
+	delete dirs;
+}
+
+void Test29()
+{
+	LoadBCP("data.bcp"); InitWindow();
+	ImGuiImpl_Init();
+
+	while(!appexit)
+	{
+		ImGuiImpl_NewFrame();
+		ImGui::Begin("File explorer");
+		ImGui::Columns(2, "DirsFilesCols", true);
+
+		ImGui::Text("Directory");
+		ImGui::NextColumn();
+		ImGui::Text(t29curdir);
+		ImGui::Separator();
+
+		ImGui::NextColumn();
+		ImGui::BeginChild("DirCol");
+		T29_TreeDir(".");
+		ImGui::EndChild();
+
+		ImGui::NextColumn();
+		ImGui::BeginChild("FileCol");
+		if(t29curfiles)
+		 for(int i = 0; i < t29curfiles->len; i++)
+			ImGui::Text(t29curfiles->getdp(i));
+		ImGui::EndChild();
+
+		ImGui::Columns(1);
+		ImGui::End();
+
+		BeginDrawing();
+		renderer->InitImGuiDrawing();
+		ImGui::Render();
+		EndDrawing();
+		HandleWindow();
+	}
+}
+
+#define NUMTESTS 29
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
- Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25, Test26, Test27};
+ Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25, Test26, Test27,
+ Test28, Test29};
 
 void RunTest()
 {

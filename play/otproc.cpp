@@ -18,6 +18,7 @@
 
 DynList<goref> workingObjs;
 float gravit = 9.81, halfgravit = 4.905;
+Vector3 firingAttachmentPointPos;
 
 void CheckIfObjIdle(GameObject *o)
 {
@@ -74,8 +75,12 @@ void StartCurrentTaskTriggers(GameObject *o)
 			t->trigger.last->value.period = c->period->get(&env);
 		}
 		t->trigger.last->value.referenceTime = current_time;
-		//if(c->type == TASKTRIGGER_ATTACHMENT_POINT)
+		if(c->type == TASKTRIGGER_ATTACHMENT_POINT)
+		{
+			t->trigger.last->value.oldon = 0;
+			t->trigger.last->value.lastanitm = 0.0f;
 		//	t->trigger.last->value.referenceTime -= 0.5f;
+		}
 	}
 }
 
@@ -145,13 +150,51 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				}
 				else
 			*/
-				{
+			/*	{
 					if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
 						break;
 					g->referenceTime += ANIMATION_LOOP_TRIGGER_SPEED;
 				}
 				c->seq->run(&env);
-				return;
+			*/
+			///
+			{
+				Model *md = GetObjectModel(o);
+				if(md == md->mesh) break;
+
+				float ad = ((Anim*)md)->dur / 1000.0f;
+				if((g->referenceTime + ad) <= current_time)
+					g->referenceTime += ad;
+
+				//int apt = strAttachPntTags.find(strAttachPointType.getdp(c->aptype));
+				//if(apt == -1) break;
+				char *apt = strAttachPointType.getdp(c->aptype);
+				int ax = -1;
+				for(int i = 0; i < md->mesh->nAttachPnts; i++)
+				{
+					//if(md->mesh->attachPnts[i].tag == apt)
+					char *s = strAttachPntTags.getdp(md->mesh->attachPnts[i].tag);
+					if(strstr(s, apt) == s) // Does the string s begin with apt?
+						{ax = i; break;}
+				}
+				if(ax == -1) break;
+				bool newon = md->isAttachPointOn(ax, (current_time - g->referenceTime)*1000);
+				if(newon && !g->oldon)
+				{
+					int tm = (int)((current_time - g->referenceTime)*1000);
+					printf("ax=%i @ %i / ", ax, tm);
+					Vector3 utfapp; Matrix mat;
+					md->getAttachPointPos(&utfapp, ax, tm);
+					printf("pos(%f, %f, %f)\n", utfapp.x, utfapp.y, utfapp.z);
+					CreateWorldMatrix(&mat, o->scale, -o->orientation, o->position);
+					TransformVector3(&firingAttachmentPointPos, &utfapp, &mat);
+					c->seq->run(&env);
+					g->oldon = newon;
+					return;
+				}
+				g->oldon = newon;
+			}
+				break;
 			case TASKTRIGGER_STRUCK_FLOOR:
 				if(o->position.y >= GetHeight(o->position.x, o->position.z))
 					break;
@@ -595,6 +638,8 @@ void AssignOrder(GameObject *go, COrder *ord, uint mode, GameObject *tg)
 	SOrder *so;
 	if(!go->ordercfg.order.len)
 		SendGameEvent(0, go, PDEVENT_ON_BUSY);
+	else if(go->ordercfg.order.first->value.type->cannotInterrupt && (mode != ORDERASSIGNMODE_DO_LAST))
+		return;
 	switch(mode)
 	{
 		case ORDERASSIGNMODE_DO_FIRST:

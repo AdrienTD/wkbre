@@ -237,3 +237,12 @@ void TransformBackFromViewMatrix(Vector3 *r, Vector3 *o, Matrix *m)
 	r->y = determinant33(xa.x, ex, xa.z, ya.x, ey, ya.z, za.x, ez, za.z) / dt;
 	r->z = determinant33(xa.x, xa.y, ex, ya.x, ya.y, ey, za.x, za.y, ez) / dt;
 }
+
+void CreateWorldMatrix(Matrix *mWorld, Vector3 is, Vector3 ir, Vector3 it)
+{
+	Matrix mscale, mrot, mtrans;
+	CreateScaleMatrix(&mscale, is.x, is.y, is.z);
+	CreateRotationYXZMatrix(&mrot, ir.y, ir.x, ir.z);
+	CreateTranslationMatrix(&mtrans, it.x, it.y, it.z);
+	*mWorld = mscale*mrot*mtrans;
+}

@@ -731,25 +731,26 @@ void DrawLakes()
 	mapbatch->end();
 }
 
-void CreateMinimap(Bitmap &bhm)
+void CreateMinimap(Bitmap &bhm, int bmpwh, bool drawedge)
 {
-	bhm.w = bhm.h = 128; bhm.form = BMFORMAT_R8G8B8;
-	bhm.pix = (uchar*)malloc(128*128*3); bhm.pal = 0;
-	memset(bhm.pix, 0, 128*128*3);
-	int ltw = mapwidth - 2*mapedge;  int lvw = ltw + 1;
-	int lth = mapheight - 2*mapedge; int lvh = lth + 1;
+	bhm.w = bhm.h = bmpwh; bhm.form = BMFORMAT_R8G8B8;
+	bhm.pix = (uchar*)malloc(bmpwh*bmpwh*3); bhm.pal = 0;
+	memset(bhm.pix, 0, bmpwh*bmpwh*3);
+	int ltw = drawedge ? mapwidth : (mapwidth - 2*mapedge);   int lvw = ltw + 1;
+	int lth = drawedge ? mapheight : (mapheight - 2*mapedge); int lvh = lth + 1;
 	int mmw, mmh;
-	if(ltw > lth) {mmw = 128; mmh = lth * 128 / ltw;}
-	else          {mmh = 128; mmw = ltw * 128 / lth;}
-	int sx = 64-mmw/2, sy = 64-mmh/2;
+	if(ltw > lth) {mmw = bmpwh; mmh = lth * bmpwh / ltw;}
+	else          {mmh = bmpwh; mmw = ltw * bmpwh / lth;}
+	int sx = bmpwh/2-mmw/2, sy = bmpwh/2-mmh/2;
+	int mmedge = drawedge ? 0 : mapedge;
 	for(int y = sy; y < sy+mmh; y++)
 	for(int x = sx; x < sx+mmw; x++)
 	{
-		int v = ((y-sy) * lvh / mmh + mapedge) * (mapwidth+1) + (x-sx) * lvw / mmw + mapedge;
-		int t = ((y-sy) * lth / mmh + mapedge) * mapwidth     + (x-sx) * ltw / mmw + mapedge;
-		bhm.pix[3*(y*128+x)+0] = 0;
-		bhm.pix[3*(y*128+x)+1] = himap_byte[v] * 3 / 4 + 64;
-		bhm.pix[3*(y*128+x)+2] = maptiles[t].lake ? 255 /*bhm.pix[3*(y*128+x)+1]*/ : 0;
+		int v = ((y-sy) * lvh / mmh + mmedge) * (mapwidth+1) + (x-sx) * lvw / mmw + mmedge;
+		int t = ((y-sy) * lth / mmh + mmedge) * mapwidth     + (x-sx) * ltw / mmw + mmedge;
+		bhm.pix[3*(y*bmpwh+x)+0] = 0;
+		bhm.pix[3*(y*bmpwh+x)+1] = himap_byte[v] * 3 / 4 + 64;
+		bhm.pix[3*(y*bmpwh+x)+2] = maptiles[t].lake ? 255 /*bhm.pix[3*(y*bmpwh+x)+1]*/ : 0;
 	}
 }
 

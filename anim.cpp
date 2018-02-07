@@ -205,9 +205,47 @@ void Anim::getAttachPointPos(Vector3 *vout, int apindex, int tm)
 {
 	//mesh->getAttachPointPos(vout, apindex, tm);
 	Anim3AttachPnt *ap = &(apnt[apindex]);
+	int f = ap->nframes-2;
+	for(int i = 0; i < ap->nframes; i++)
+		if(ap->ft[i] > tm)
+			{f = i-1; break;}
+	Vector3 v1 = ap->states[f].position;
+	Vector3 v2 = ap->states[f+1].position;
+	*vout = v1 + (v2-v1) * (tm - ap->ft[f]) / (ap->ft[f+1] - ap->ft[f]);
+}
+
+bool Anim::isAttachPointOn(int apindex, int tm)
+{
+	Anim3AttachPnt *ap = &(apnt[apindex]);
 	int f = ap->nframes-1;
 	for(int i = 0; i < ap->nframes; i++)
-		if(ap->ft[i] >= tm)
-			{f = i; break;}
-	*vout = ap->states[f].position;
+		if(ap->ft[i] > tm)
+			{f = i-1; break;}
+	return ap->states[f].on;
+}
+
+int FrameFloor(Anim3AttachPnt *ap, int tm)
+{
+	int f = ap->nframes-1;
+	for(int i = 0; i < ap->nframes; i++)
+		if(ap->ft[i] > tm)
+			{f = i-1; break;}
+	return f;
+}
+
+int Anim::hasAttachPointTurnedOn(int apindex, int tma, int tmb)
+{
+	int ntriggers = 0;
+	Anim3AttachPnt *ap = &(apnt[apindex]);
+	int fa = FrameFloor(ap, tma), fb = FrameFloor(ap, tmb);
+	int nf = fb-fa+1;
+	if(nf < 2) return 0;
+	bool laston = true;
+	for(int f = fa; f <= fb; f++)
+	{
+		if(ap->states[f].on && !laston)
+			ntriggers++;
+		laston = ap->states[f].on;
+	}
+	return ntriggers;
 }

@@ -63,3 +63,4 @@ void SaveMapSNR(char *filename);
 void CreateEmptyMap(int w, int h);
 void SaveMapBCM(char *filename);
 void DrawTileHighlights();
+void CreateMinimap(Bitmap &bhm, int bmpwh = 128, bool drawedge = false);

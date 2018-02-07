@@ -89,6 +89,11 @@ void GUIMouseRightClick()
 		actualpage->onMouseRightClick(mouseX, mouseY);
 }
 
+void GUIMouseMiddleClick()
+{
+	mmbPressed = 1;
+}
+
 void GUIMouseRelease()
 {
 	ImGuiIO &io = ImGui::GetIO();
@@ -109,6 +114,11 @@ void GUIMouseRightRelease()
 	if(io.WantCaptureMouse) return;
 
 	rmbPressed = 0;
+}
+
+void GUIMouseMiddleRelease()
+{
+	mmbPressed = 0;
 }
 
 void GUIKeyDown(int key)
@@ -167,6 +177,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_RBUTTONUP:
 			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
 			GUIMouseRightRelease();
+			break;
+		case WM_MBUTTONDOWN:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseMiddleClick();
+			break;
+		case WM_MBUTTONUP:
+			mouseX = LOWORD(lParam); mouseY = HIWORD(lParam);
+			GUIMouseMiddleRelease();
 			break;
 		case WM_KEYDOWN:
 			if(wParam & 0xFFFFFF00) break;
