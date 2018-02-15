@@ -257,7 +257,7 @@ void WriteOrderConfiguration(FILE *f, GameObject *o, char *strtab)
 					fprintf(f, "%s\t\t\t\t\tPERIOD %.2f\n", strtab, g->value.period);
 					fprintf(f, "%s\t\t\t\t\tREFERENCE_TIME %.2f\n", strtab, g->value.referenceTime);
 				} else {
-					if(wkver >= WKVER_BATTLES)
+					if(sg_ver >= WKVER_BATTLES)
 						fprintf(f, "%s\t\t\t\t\tREFERENCE_TIME %u\n", strtab, (uint)(g->value.referenceTime * 1000.0f));
 				}
 				fprintf(f, "%s\t\t\t\tEND_TRIGGER\n", strtab);

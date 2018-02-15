@@ -91,6 +91,8 @@ void ReadSettingsFile()
 				allowDataDirectory = atoi(word[1]); break;
 			case SETTING_R_OGL1_USE_BUFFER_OBJECTS:
 				rglUseBufferObjects = atoi(word[1]); break;
+			case SETTING_GAME_SET_VERSION:
+				gs_ver = atoi(word[1]); break;
 		}
 	}
 

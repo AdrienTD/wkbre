@@ -20,6 +20,7 @@ void ReadCFootprint(char **pntfp, char **fstline)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
 	CFootprint *c = &(gsfootprint[strFootprint.find(fstline[1])]);
+	c->origin_x = c->origin_z = 0.0f;
 	while(**pntfp)
 	{
 		*pntfp = GetLine(*pntfp, wwl);

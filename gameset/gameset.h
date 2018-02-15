@@ -90,5 +90,8 @@ extern GrowStringList strSubtype;
 extern GrowStringList strFootprint; extern CFootprint *gsfootprint;
 extern GrowStringList strAttachPointType;
 
+extern int gs_ver;
+
 void LoadGameSet(char *filename);
 char *SkipClass(char *fp, char *end);
+void AutodetectGameSetVersion();

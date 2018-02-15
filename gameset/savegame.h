@@ -114,7 +114,9 @@ struct SequenceOverPeriodEntry
 
 extern GameObject *gameobj[MAX_GAMEOBJECTS];
 extern GameObject *levelobj;
-extern uint wkver;
+extern uint sg_ver;
+extern char lastsavegamename[384];
+extern bool isLevelStarted;
 
 extern float current_time, previous_time, elapsed_time; extern uint lock_count;
 
@@ -149,7 +151,7 @@ inline void goref::set(GameObject *a)
 inline goref &goref::operator=(uint a) {set(FindObjID(a)); return *this;}
 
 void LoadSaveGame(char *fn);
-void SaveSaveGame(char *fn);
+bool SaveSaveGame(char *fn);
 
 void RemoveObjReference(GameObject *o);
 void SetObjReference(GameObject *o, GameObject *t);

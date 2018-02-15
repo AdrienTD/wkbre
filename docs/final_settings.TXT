@@ -1,0 +1,39 @@
+// This is the settings file.
+// See help.htm for help.
+
+// Change the following value to the path where WK(B) is installed.
+GAME_DIR "C:\Program Files (x86)\Empire Interactive\Warrior Kings - Battles"
+
+// If wkbre fails to detect the version of the game (WK1 or WKBattles)
+// correctly, then change the following value to force the version:
+GAME_SET_VERSION 0
+// 0 = autodetect, 1 = Warrior Kings 1/Original, 2 = Warrior Kings Battles
+
+MULTI_BCP 1
+DATA_DIRECTORY 0
+
+SCREEN_SIZE 800 600
+FULLSCREEN 0
+VSYNC 1
+RENDERER 1
+HARDWARE_VERTEX_PROCESSING 1
+TEXTURE_COMPRESSION 1
+HARDWARE_CURSOR 1
+R_OGL1_USE_BUFFER_OBJECTS 0
+
+FAR_Z_VALUE 250
+OCCLUSION_RATE 0.5
+MAP_MAX_PART_SIZE 32 32
+FOG 1
+FONT "Fonts\Proportional\20\Proportional - 20.font"
+VERTICAL_FOV 51.5662
+
+USE_MAP_TEXTURE_DATABASE 1
+MESH_BATCHING 1
+ANIMATED_MODELS 1
+PRELOAD_ALL_MODELS 0
+
+ENABLE_GAMEPLAY_SHORTCUTS 1
+SHOW_TIME_OBJ_INFO 0
+
+ENABLE_GAMESET_TRACING 0

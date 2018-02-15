@@ -27,7 +27,7 @@ struct COrder;
 struct STrigger
 {
 	uint id; float period, referenceTime;
-	bool oldon; float lastanitm;
+	//bool oldon; float lastanitm;
 };
 
 struct STask

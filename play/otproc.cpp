@@ -75,12 +75,13 @@ void StartCurrentTaskTriggers(GameObject *o)
 			t->trigger.last->value.period = c->period->get(&env);
 		}
 		t->trigger.last->value.referenceTime = current_time;
-		if(c->type == TASKTRIGGER_ATTACHMENT_POINT)
+	/*	if(c->type == TASKTRIGGER_ATTACHMENT_POINT)
 		{
-			t->trigger.last->value.oldon = 0;
-			t->trigger.last->value.lastanitm = 0.0f;
+			//t->trigger.last->value.oldon = 0;
+			//t->trigger.last->value.lastanitm = 0.0f;
 		//	t->trigger.last->value.referenceTime -= 0.5f;
 		}
+	*/
 	}
 }
 
@@ -132,6 +133,7 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				else
 				{
 					Model *md = GetObjectModel(o);
+					if (!md) break;
 					if(md == md->mesh) break; // Ignore static models.
 					float ad = ((Anim*)md)->dur / 1000.0f;
 					if((g->referenceTime + ad) > current_time)
@@ -142,32 +144,16 @@ void CheckCurrentTaskTriggers(GameObject *o)
 				return;
 			case TASKTRIGGER_ATTACHMENT_POINT:
 				env.self = o;
-			/*
-				if(t->type->satf)
-				{
-					if(t->type->satf->get(&env) < 1.0f)
-						break;
-				}
-				else
-			*/
-			/*	{
-					if((g->referenceTime + ANIMATION_LOOP_TRIGGER_SPEED) > current_time)
-						break;
-					g->referenceTime += ANIMATION_LOOP_TRIGGER_SPEED;
-				}
-				c->seq->run(&env);
-			*/
-			///
+				// TODO: What happens if task uses sync animation to fraction?
 			{
 				Model *md = GetObjectModel(o);
+				if (!md) break;
 				if(md == md->mesh) break;
 
 				float ad = ((Anim*)md)->dur / 1000.0f;
 				if((g->referenceTime + ad) <= current_time)
 					g->referenceTime += ad;
 
-				//int apt = strAttachPntTags.find(strAttachPointType.getdp(c->aptype));
-				//if(apt == -1) break;
 				char *apt = strAttachPointType.getdp(c->aptype);
 				int ax = -1;
 				for(int i = 0; i < md->mesh->nAttachPnts; i++)
@@ -178,21 +164,26 @@ void CheckCurrentTaskTriggers(GameObject *o)
 						{ax = i; break;}
 				}
 				if(ax == -1) break;
-				bool newon = md->isAttachPointOn(ax, (current_time - g->referenceTime)*1000);
-				if(newon && !g->oldon)
+
+				//bool newon = md->isAttachPointOn(ax, (current_time - g->referenceTime)*1000);
+				//if(newon && !g->oldon)
+
+				float pt = (previous_time >= g->referenceTime) ? previous_time : g->referenceTime;
+				bool newon = md->hasAttachPointTurnedOn(ax, (pt-g->referenceTime)*1000, (current_time - g->referenceTime) * 1000);
+				if(newon)
 				{
 					int tm = (int)((current_time - g->referenceTime)*1000);
-					printf("ax=%i @ %i / ", ax, tm);
+					//printf("ax=%i @ %i / ", ax, tm);
 					Vector3 utfapp; Matrix mat;
 					md->getAttachPointPos(&utfapp, ax, tm);
-					printf("pos(%f, %f, %f)\n", utfapp.x, utfapp.y, utfapp.z);
+					//printf("pos(%f, %f, %f)\n", utfapp.x, utfapp.y, utfapp.z);
 					CreateWorldMatrix(&mat, o->scale, -o->orientation, o->position);
 					TransformVector3(&firingAttachmentPointPos, &utfapp, &mat);
 					c->seq->run(&env);
-					g->oldon = newon;
+					//g->oldon = newon;
 					return;
 				}
-				g->oldon = newon;
+				//g->oldon = newon;
 			}
 				break;
 			case TASKTRIGGER_STRUCK_FLOOR:

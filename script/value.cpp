@@ -790,7 +790,7 @@ CValue *ReadValue(char ***wpnt)
 			return new ValueObjectType(&objdef[d], ReadFinder(wpnt));}
 		case VALUE_OBJECT_ID:
 			{*wpnt += 1;
-			if(1) return new ValueObjectID_WKB(ReadFinder(wpnt));
+			if(gs_ver >= WKVER_BATTLES) return new ValueObjectID_WKB(ReadFinder(wpnt));
 			// else
 			CFinder *f = ReadFinder(wpnt);
 			return new ValueObjectID_WKO(f, ReadFinder(wpnt));}

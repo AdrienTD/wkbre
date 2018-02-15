@@ -55,6 +55,20 @@ CObjectDefinition *objdef;
 DynList<goref> *alias;
 GrowStringList glone;
 
+int gs_ver = 0;
+
+void AutodetectGameSetVersion()
+{
+	// Determine gameset version
+	if ((gs_ver != WKVER_ORIGINAL) && (gs_ver != WKVER_BATTLES))
+	{
+		if (FileExists("version.txt"))
+			gs_ver = WKVER_ORIGINAL;
+		else
+			gs_ver = WKVER_BATTLES;
+	}
+}
+
 char *SkipClass(char *fp, char *end)
 {
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
@@ -444,6 +458,8 @@ void BeginLooking()
 
 void LoadGameSet(char *filename)
 {
+	AutodetectGameSetVersion();
+
 	strAppearTag.add("Default");
 	strAnimationTag.add("Default"); strAnimationTag.add("Idle");
 	glone.add("Default");

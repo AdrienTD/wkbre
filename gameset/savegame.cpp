@@ -34,11 +34,13 @@ GrowList<PredecEntry> predec;
 GameObject *levelobj;
 char sggameset[384] = "\0";
 GrowList<RSAssociationListEntry> toassolist;
+char lastsavegamename[384] = "\0";
+bool isLevelStarted = 0;
 
 uint game_type = 0, update_id, random_seed; float next_update_time_stamp;
 float current_time, previous_time, elapsed_time; uint paused, lock_count;
 DynList<goref> humanplayers;
-uint wkver = 0;
+uint sg_ver = 0;
 DynList<DelayedSequenceEntry> delayedSeq;
 DynList<SequenceOverPeriodEntry> exePeriodSeq, repPeriodSeq;
 wchar_t *campaignName = 0, *serverName = 0;
@@ -198,7 +200,7 @@ char *LoadGameObjectP0(char *fp, char **fline, int fwords, GameObject *parent)
 			case GAMEOBJ_MAP:
 				LoadMap(word[1]); break;
 			case GAMEOBJ_NEXT_UNIQUE_ID:
-				nextgoid = atoi(word[1]); wkver = WKVER_ORIGINAL; break;
+				nextgoid = atoi(word[1]); sg_ver = WKVER_ORIGINAL; break;
 			case GAMEOBJ_COLOUR_INDEX:
 				go->color = atoi(word[1]); break;
 			case GAMEOBJ_PLAYER:
@@ -350,7 +352,7 @@ char *LoadGameObjectP1(char *fp, char **fline, int fwords, GameObject *parent)
 			{
 				if(go->name)
 					delete [] go->name;
-				if(wkver == WKVER_BATTLES)
+				if(sg_ver == WKVER_BATTLES)
 				if(objdef[od].type == CLASS_PLAYER)
 				{
 					// 16-bit string
@@ -455,6 +457,15 @@ void LoadSaveGame(char *fn)
 	gline = 0;
 	memset(gameobj, 0, sizeof(gameobj));
 
+	char *lsgn = strrchr(fn, '\\');
+	if (!lsgn) lsgn = fn;
+	else lsgn++;
+	strcpy(lastsavegamename, lsgn);
+	char *extn = strrchr(lastsavegamename, '.');
+	if (!strcmp(extn, ".sav")) isLevelStarted = 1;
+	else if (!strcmp(extn, ".lvl")) isLevelStarted = 0;
+	if(extn) *extn = 0;
+
 	// 1st pass
 	loadinginfo("Savegame pass 0");
 	fp = fcnt;
@@ -469,7 +480,7 @@ void LoadSaveGame(char *fn)
 				LoadGameSet(word[1]); strcpy(sggameset, word[1]);
 				gline = 0; break;
 			case SAVEGAME_NEXT_UNIQUE_ID:
-				nextgoid = atoi(word[1]); wkver = WKVER_BATTLES; break;
+				nextgoid = atoi(word[1]); sg_ver = WKVER_BATTLES; break;
 			case SAVEGAME_PREDEC:
 				fp = ProcessPredec(fp); break;
 
@@ -492,7 +503,7 @@ void LoadSaveGame(char *fn)
 				game_type = atoi(word[1]); break;
 			case SAVEGAME_PART_OF_CAMPAIGN:
 				// NOTE: WKO does support PART_OF_CAMPAIGN
-				{if(wkver < WKVER_BATTLES) break;
+				{if(sg_ver < WKVER_BATTLES) break;
 				if(campaignName) delete [] campaignName;
 				int nc = atoi(word[1]);
 				campaignName = new wchar_t[nc+1];
@@ -501,7 +512,7 @@ void LoadSaveGame(char *fn)
 				campaignName[nc] = 0;
 				break;}
 			case SAVEGAME_SERVER_NAME:
-				{if(wkver < WKVER_BATTLES) break;
+				{if(sg_ver < WKVER_BATTLES) break;
 				if(serverName) delete [] serverName;
 				int nc = atoi(word[1]);
 				serverName = new wchar_t[nc+1];
@@ -636,7 +647,7 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	fprintf(f, "\n%s%s %i \"%s\"\n", strtab, CLASS_str[o->objdef->type], o->id, o->objdef->name);
 	if(o->name)
 	{
-		if((wkver == WKVER_BATTLES) && (o->objdef->type == CLASS_PLAYER))
+		if((sg_ver == WKVER_BATTLES) && (o->objdef->type == CLASS_PLAYER))
 		{
 			uint n = wcslen(o->name);
 			fprintf(f, "%s\tNAME %u", strtab, n);
@@ -646,7 +657,7 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 		}
 		else fprintf(f, "%s\tNAME \"%S\"\n", strtab, o->name);
 	}
-	if(o->objdef->type == CLASS_LEVEL) if(wkver < WKVER_BATTLES)
+	if(o->objdef->type == CLASS_LEVEL) if(sg_ver < WKVER_BATTLES)
 		fprintf(f, "\tNEXT_UNIQUE_ID %u\n", nextgoid);
 
 	if(o->param) WriteParamBlock(f, o, strtab);
@@ -654,7 +665,7 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	fprintf(f, "%s\tORIENTATION %.2f %.2f %.2f\n", strtab, o->orientation.x, o->orientation.y, o->orientation.z);
 	if(o->scale != o->objdef->scale)
 		fprintf(f, "%s\tSCALE %.2f %.2f %.2f\n", strtab, o->scale.x, o->scale.y, o->scale.z);
-	if(wkver == WKVER_BATTLES)
+	if(sg_ver == WKVER_BATTLES)
 	{
 		if(o->appearance)
 			fprintf(f, "%s\tAPPEARANCE \"%s\" \"%s\"\n", strtab, o->objdef->subtypes[o->subtype].name, strAppearTag.getdp(o->appearance));
@@ -765,16 +776,16 @@ void WriteGameObject(GameObject *o, FILE *f, int tabs)
 	fprintf(f, "%sEND_%s\n", strtab, CLASS_str[o->objdef->type]);
 }
 
-void SaveSaveGame(char *fn)
+bool SaveSaveGame(char *fn)
 {
-	FILE *f = fopen(fn, "w"); if(!f) ferr("Cannot open file for saving.");
+	FILE *f = fopen(fn, "w"); if (!f) return false;
 	fprintf(f, "FORMAT SCENARIO\nVERSION 1.0\nMODE TEXT\n\n"); // otherwise WKO won't load the savegame.
 	fprintf(f, "GAME_SET \"%s\"\n", sggameset);
-	if(wkver >= WKVER_BATTLES)
+	if(sg_ver >= WKVER_BATTLES)
 		fprintf(f, "NEXT_UNIQUE_ID %u\n", nextgoid);
 	if(game_type)
 		fprintf(f, "GAME_TYPE %u\n", game_type);
-	if(campaignName) if(wkver >= WKVER_BATTLES)
+	if(campaignName) if(sg_ver >= WKVER_BATTLES)
 	{
 		int nc = wcslen(campaignName);
 		fprintf(f, "PART_OF_CAMPAIGN %u", nc);
@@ -782,7 +793,7 @@ void SaveSaveGame(char *fn)
 			fprintf(f, " %u", campaignName[i]);
 		fprintf(f, "\n");
 	}
-	if(serverName) if(wkver >= WKVER_BATTLES)
+	if(serverName) if(sg_ver >= WKVER_BATTLES)
 	{
 		int nc = wcslen(serverName);
 		fprintf(f, "SERVER_NAME %u", nc);
@@ -834,6 +845,7 @@ void SaveSaveGame(char *fn)
 	}
 	WriteClientStates(f);
 	fclose(f);
+	return true;
 }
 
 //**********************/

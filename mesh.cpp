@@ -366,3 +366,8 @@ bool Mesh::isAttachPointOn(int apindex, int tm)
 {
 	return attachPnts[apindex].staticState.on;
 }
+
+int Mesh::hasAttachPointTurnedOn(int apindex, int tma, int tmb)
+{
+	return 0;
+}

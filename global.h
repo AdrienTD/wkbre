@@ -123,6 +123,7 @@ enum AppCommand
 	CMD_SWOPENALL,
 	CMD_SWCLOSEALL,
 	CMD_TOGGLEGRID,
+	CMD_HELP,
 };
 
 extern "C" {

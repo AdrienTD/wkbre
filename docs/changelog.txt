@@ -1,5 +1,24 @@
 wkbre changelog:
 
+[0.0.9]  15/02/2017
+Highlights:
+ - Attachment points (they are rendererd and also do task triggers)
+ - Terrain Vertex Equalize tool (allows smoothing the terrain)
+ - Minimap window
+ - Middle mouse button/wheel can be used for camera rotation and up/down movement.
+ - '0' key will do a game "step" (if paused)
+ - Campaign & server name text box in Level information
+ - Player and parent displayed in (Selected) Object information
+ - The menu has been redesigned
+ - Some windows were renamed (Map editor -> Terrain editor, ...).
+ - Some dialog boxes use ImGui instead of Win32.
+ - Stamping down PLAYER and TERRAIN_ZONE objects will be given to the level object,
+   regardless of the player chosen.
+ - "Play" button in level select to quickly play a game.
+ - Warnings when quitting, when saving level with unsaved new terrain, ...
+ - Improvements, bug fixes...
+For more changes, see the git commit log (https://github.com/AdrienTD/wkbre/commits/master).
+
 [0.0.8]  12/09/2017
 - Added Map (terrain) editor!
   - Modify height, texture, lakes, properties.

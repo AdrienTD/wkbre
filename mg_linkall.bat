@@ -1,1 +1,1 @@
-@g++ %* -g -o wkbre_mg.exe *.o -ld3d9 -lgdi32 -lwinmm -lopengl32 -lglu32 -Lbzip2 -lbz2 -limm32
+@g++ %* -g -o wkbre_mg.exe *.o -ld3d9 -lgdi32 -lwinmm -lopengl32 -lglu32 -Lbzip2 -lbz2 -limm32 -lshell32
