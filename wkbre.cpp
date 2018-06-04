@@ -141,7 +141,7 @@ float stampdownRot = 0;
 MapTextureGroup *curtexgrp = 0; MapTexture *curtex = 0;
 int men_rot = 0; bool men_xflip = 0, men_zflip = 0;
 boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
-int brushsize = 1, brushshape = 0; bool randommaptex = 0;
+int brushsize = 1, brushshape = 0; bool randommaptex = 0, randommaptiletransform = 0;
 bool himapautowater = 0;
 goref newmanorplayer; int nmc_size = 3; int nmc_npeasants = 4; bool nmc_flags = 0;
 
@@ -1341,20 +1341,166 @@ void FindAutotileC(int tx, int tz, boolean we, boolean star, MapTextureGroup *ag
 	}
 }
 
+GrowList<MapTextureEdge> *GetMatchingTilesList(int tx, int tz, int edge)
+{
+	MapTile *tile = &(maptiles[tz * mapwidth + tx]);
+	int te = edge;
+	if (tile->xflip) if (!(te & 1)) te ^= 2; // if north or south then swith to south or north respectively
+	if (tile->zflip) if (te & 1) te ^= 2; // if east or west then swith to west or east respectively
+	if (tile->xflip ^ tile->zflip) te += tile->rot; else te -= tile->rot;
+	GrowList<MapTextureEdge> *texedgelist = &tile->mt->atdir[te & 3];
+	GrowList<MapTextureEdge> *mtlist = new GrowList<MapTextureEdge>;
+	for (int i = 0; i < texedgelist->len; i++)
+	{
+		MapTextureEdge *e = mtlist->addp();
+		*e = *texedgelist->getpnt(i);
+		e->rot += tile->rot;
+		e->xflip ^= tile->xflip;
+		e->zflip ^= tile->zflip;
+	}
+	return mtlist;
+}
+
+void FindAutotileWE(int tx, int tz)
+{
+	GrowList<MapTextureEdge> *m, *n, *r;
+	m = GetMatchingTilesList(tx - 1, tz, MAPTEXDIR_EAST);
+	n = GetMatchingTilesList(tx + 1, tz, MAPTEXDIR_WEST);
+	r = new GrowList<MapTextureEdge>;
+	for (int i = 0; i < m->len; i++)
+	{
+		MapTextureEdge *a = m->getpnt(i);
+		for (int j = 0; j < n->len; j++)
+		{
+			MapTextureEdge *b = n->getpnt(j);
+			if (!memcmp(a, b, sizeof(MapTextureEdge)))
+			{
+				MapTextureEdge *c = r->addp();
+				*c = *a;
+			}
+		}
+	}
+	delete m, n;
+	if (r->len > 0)
+	{
+		int c = rand() % r->len;
+		MapTextureEdge *e = r->getpnt(c);
+		MapTile *tile = &(maptiles[tz * mapwidth + tx]);
+		ChangeTileTexture(tile, e->tex);
+		tile->rot = e->rot;
+		tile->xflip = e->xflip;
+		tile->zflip = e->zflip;
+	}
+	delete r;
+}
+
+void FindAutotileF(int tx, int tz, bool edge_n, bool edge_e, bool edge_s, bool edge_w, MapTextureGroup *grp = 0)
+{
+	int nedges = (edge_n ? 1 : 0) + (edge_e ? 1 : 0) + (edge_s ? 1 : 0) + (edge_w ? 1 : 0);
+	GrowList<MapTextureEdge> *m[4], *r;
+	int k = 0;
+	if (edge_n) m[k++] = GetMatchingTilesList(tx, tz - 1, MAPTEXDIR_SOUTH);
+	if (edge_e) m[k++] = GetMatchingTilesList(tx + 1, tz, MAPTEXDIR_WEST);
+	if (edge_s) m[k++] = GetMatchingTilesList(tx, tz + 1, MAPTEXDIR_NORTH);
+	if (edge_w) m[k++] = GetMatchingTilesList(tx - 1, tz, MAPTEXDIR_EAST);
+	if (k == 0) return;
+	r = new GrowList<MapTextureEdge>;
+	// Place smallest list in first position
+	int smlist = 0, smlen = m[0]->len;
+	for (int i = 0; i < nedges; i++)
+		if (m[i]->len < smlen)
+		{
+			smlist = i; smlen = m[i]->len;
+		}
+	auto t = m[0];
+	m[0] = m[smlist];
+	m[smlist] = t;
+	for (int i = 0; i < m[0]->len; i++)
+	{
+		MapTextureEdge *a = m[0]->getpnt(i);
+		bool inalledges = true;
+		for (int n = 1; n < nedges; n++)
+		{
+			bool fnd = false;
+			for (int j = 0; j < m[n]->len; j++)
+			{
+				MapTextureEdge *b = m[n]->getpnt(j);
+				if (!memcmp(a, b, sizeof(MapTextureEdge)))
+				{
+					fnd = true; break;
+				}
+			}
+			inalledges = inalledges && fnd;
+			if (!inalledges) break;
+		}
+		if(inalledges)
+		{
+			MapTextureEdge *c = r->addp();
+			*c = *a;
+		}
+	}
+	for (int i = 0; i < nedges; i++)
+		delete m[i];
+	if (r->len > 0)
+	{
+		int c = rand() % r->len;
+		MapTextureEdge *e = r->getpnt(c);
+		MapTile *tile = &(maptiles[tz * mapwidth + tx]);
+		if (tile->mt->grp != grp)
+		{
+			ChangeTileTexture(tile, e->tex);
+			tile->rot = e->rot;
+			tile->xflip = e->xflip;
+			tile->zflip = e->zflip;
+		}
+	}
+	delete r;
+}
+
+void SelectNextRandomMapTile()
+{
+	if (randommaptex)
+		curtex = curtexgrp->tex->getpnt(rand() % curtexgrp->tex->len);
+	if (randommaptiletransform)
+	{
+		men_rot = rand() & 3;
+		men_xflip = rand() & 1;
+		men_zflip = rand() & 1;
+	}
+}
+
 void DrawATS(int x, int z)
 {
 	MapTile *mt = &(maptiles[z * mapwidth + x]);
-	if(curtex) ChangeTileTexture(mt, curtex);
-	mt->rot = 0; mt->xflip = 0; mt->zflip = 0;
+	if (curtex) ChangeTileTexture(mt, curtex);
+	//mt->rot = 0; mt->xflip = 0; mt->zflip = 0;
+	mt->rot = men_rot;
+	mt->xflip = men_xflip; mt->zflip = men_zflip;
+	MapTextureGroup *grp = mt->mt->grp;
+	/*
+	FindAutotileC(x - 1, z, 1, 1, mt->mt->grp);
+	FindAutotileC(x + 1, z, 1, 0, mt->mt->grp);
+	FindAutotileC(x, z - 1, 0, 1, mt->mt->grp);
+	FindAutotileC(x, z + 1, 0, 0, mt->mt->grp);
+	FindAutotileC(x - 1, z - 1, 0, 1, mt->mt->grp);
+	FindAutotileC(x + 1, z - 1, 0, 1, mt->mt->grp);
+	FindAutotileC(x - 1, z + 1, 0, 0, mt->mt->grp);
+	FindAutotileC(x + 1, z + 1, 0, 0, mt->mt->grp);
+	*/
+	//FindAutotileWE(x - 1, z);
+	//FindAutotileWE(x + 1, z);
+	FindAutotileF(x - 1, z, 0, 1, 0, 1, grp);
+	FindAutotileF(x + 1, z, 0, 1, 0, 1, grp);
+	//
+	FindAutotileF(x, z - 1, 1, 0, 1, 0, grp);
+	FindAutotileF(x, z + 1, 1, 0, 1, 0, grp);
+	//
+	FindAutotileF(x - 1, z - 1, 1, 1, 1, 1, grp);
+	FindAutotileF(x + 1, z - 1, 1, 1, 1, 1, grp);
+	FindAutotileF(x - 1, z + 1, 1, 1, 1, 1, grp);
+	FindAutotileF(x + 1, z + 1, 1, 1, 1, 1, grp);
 
-	FindAutotileC(x-1, z, 1, 1, mt->mt->grp);
-	FindAutotileC(x+1, z, 1, 0, mt->mt->grp);
-	FindAutotileC(x, z-1, 0, 1, mt->mt->grp);
-	FindAutotileC(x, z+1, 0, 0, mt->mt->grp);
-	FindAutotileC(x-1, z-1, 0, 1, mt->mt->grp);
-	FindAutotileC(x+1, z-1, 0, 1, mt->mt->grp);
-	FindAutotileC(x-1, z+1, 0, 0, mt->mt->grp);
-	FindAutotileC(x+1, z+1, 0, 0, mt->mt->grp);
+	SelectNextRandomMapTile();
 }
 
 int lakemove_mousey_ref; float lakemove_waterlev_ref; Vector3 *lakemove_sellake = 0;
@@ -1390,8 +1536,7 @@ void ApplyBrush(boolean rclick)
 				ChangeTileTexture(mt, curtex);
 				mt->rot = men_rot;
 				mt->xflip = men_xflip; mt->zflip = men_zflip;
-				if(randommaptex)
-					curtex = curtexgrp->tex->getpnt(rand() % curtexgrp->tex->len);
+				SelectNextRandomMapTile();
 				break;
 			}
 			case 2:
@@ -2825,6 +2970,7 @@ saveend:	;
 		ImGui::Checkbox("X", &men_xflip); ImGui::SameLine();
 		ImGui::Checkbox("Z", &men_zflip);
 		ImGui::Checkbox("Randomize textures", &randommaptex);
+		ImGui::Checkbox("Randomize transformation", &randommaptiletransform);
 		ImGui::PopItemWidth();
 	}
 	if(ImGui::CollapsingHeader("Lakes"))

@@ -447,9 +447,10 @@ if(experimentalKeys) {
 			stdownpos.z = (int)(stdownpos.z / 5) * 5.0f + 2.5f;
 			if(objtypeToStampdown->footprint)
 			{
-				// Add or sub?
-				stdownpos.x += objtypeToStampdown->footprint->origin_x;
-				stdownpos.z += objtypeToStampdown->footprint->origin_z;
+				int ogx = objtypeToStampdown->footprint->origin_x;
+				int ogy = objtypeToStampdown->footprint->origin_z;
+				stdownpos.x += ogx * cos(stampdownRot) - ogy * sin(stampdownRot);
+				stdownpos.z += ogx * sin(stampdownRot) + ogy * cos(stampdownRot);
 			}
 			stdownpos.y = GetHeight(stdownpos.x, stdownpos.z);
 		}
