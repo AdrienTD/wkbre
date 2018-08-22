@@ -138,6 +138,8 @@ char *TranslateEscapeSequences(char *str)
 					*(o++) = '\r'; break;
 				case '\\':
 					*(o++) = '\\'; break;
+				case 0:
+					*o = 0; return r;
 				default:
 					*(o++) = '\\';
 					*(o++) = *p; break;

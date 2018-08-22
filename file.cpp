@@ -133,12 +133,11 @@ BCPack::BCPack(char *fn)
 	strcat(abuf, fn);
 	bcpfile = fopen(abuf, "rb");
 	if(!bcpfile) ferr("Cannot load BCP file.");
-	while(1) {c = fgetc(bcpfile); if((c == 0xFF) || (c == 0)) break;}
-	fseek(bcpfile, 2, SEEK_CUR);
-	fentof = readInt(bcpfile);
-	ftsize = readInt(bcpfile);
 	fseek(bcpfile, 9, SEEK_SET);
 	bcpver = fgetc(bcpfile) - '0';
+	fseek(bcpfile, 0x30, SEEK_SET);
+	fentof = readInt(bcpfile);
+	ftsize = readInt(bcpfile);
 
 	fseek(bcpfile, fentof, SEEK_SET);
 	nfiles = readInt(bcpfile);

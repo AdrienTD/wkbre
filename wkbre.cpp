@@ -44,7 +44,7 @@ bool playAfterLoading = 0;
 texture minimapTexture; Bitmap *minimapBitmap;
 
 #ifdef WKBRE_RELEASE
-int experimentalKeys = 0;
+int experimentalKeys = 1;
 boolean showTimeObjInfo = 0;
 #else
 int experimentalKeys = 1;
@@ -1343,6 +1343,12 @@ void FindAutotileC(int tx, int tz, boolean we, boolean star, MapTextureGroup *ag
 
 GrowList<MapTextureEdge> *GetMatchingTilesList(int tx, int tz, int edge)
 {
+	//if (tx < 0 || tx >= mapwidth || tz < 0 || tz >= mapheight)
+	//	return new GrowList<MapTextureEdge>; // empty list
+
+	if (tx < 0) tx = 0; if (tx >= mapwidth) tx = mapwidth - 1;
+	if (tz < 0) tz = 0; if (tz >= mapheight) tz = mapheight - 1;
+
 	MapTile *tile = &(maptiles[tz * mapwidth + tx]);
 	int te = edge;
 	if (tile->xflip) if (!(te & 1)) te ^= 2; // if north or south then swith to south or north respectively
@@ -1357,6 +1363,13 @@ GrowList<MapTextureEdge> *GetMatchingTilesList(int tx, int tz, int edge)
 		e->rot += tile->rot;
 		e->xflip ^= tile->xflip;
 		e->zflip ^= tile->zflip;
+		e->rot &= 3;
+		if (e->rot & 2)
+		{
+			e->rot &= 1;
+			e->xflip ^= 1;
+			e->zflip ^= 1;
+		}
 	}
 	return mtlist;
 }
@@ -1396,6 +1409,9 @@ void FindAutotileWE(int tx, int tz)
 
 void FindAutotileF(int tx, int tz, bool edge_n, bool edge_e, bool edge_s, bool edge_w, MapTextureGroup *grp = 0)
 {
+	if (tx < 0 || tx >= mapwidth || tz < 0 || tz >= mapheight)
+		return;
+
 	int nedges = (edge_n ? 1 : 0) + (edge_e ? 1 : 0) + (edge_s ? 1 : 0) + (edge_w ? 1 : 0);
 	GrowList<MapTextureEdge> *m[4], *r;
 	int k = 0;

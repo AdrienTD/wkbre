@@ -156,6 +156,12 @@ void LookAtFile(char *filename, int ipass)
 
 	alf.add(filename);
 
+	if (!FileExists(filename))
+	{
+		printf("WARNING: Linked game set file \"%s\" doesn't exist.\n", filename);
+		return;
+	}
+
 	LoadFile(filename, &fcnt, &fsize, 1);
 
 	fcnt[fsize] = 0;
