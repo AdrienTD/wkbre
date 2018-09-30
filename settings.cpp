@@ -93,6 +93,8 @@ void ReadSettingsFile()
 				rglUseBufferObjects = atoi(word[1]); break;
 			case SETTING_GAME_SET_VERSION:
 				gs_ver = atoi(word[1]); break;
+			case SETTING_MAC_FILENAME_FALLBACK:
+				macFileNamesFallbackEnabled = atoi(word[1]); break;
 		}
 	}
 

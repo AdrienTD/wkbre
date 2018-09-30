@@ -504,6 +504,11 @@ void LoadGameSet(char *filename)
 		objdef[i].tooltip = 0; objdef[i].shadowtype = 0;
 		objdef[i].subtypes = nullPS;
 		objdef[i].name = "Standard";
+		objdef[i].representation = 0;
+		objdef[i].buildingType = -1;
+		objdef[i].movSpeedEq = -1;
+		objdef[i].footprint = 0;
+		objdef[i].sightRangeEq = -1;
 	}
 
 	equation = (CValue**)malloc(sizeof(CValue*) * strEquation.len);

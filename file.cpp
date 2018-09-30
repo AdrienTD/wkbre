@@ -66,7 +66,7 @@ struct BCPack
 };
 
 char gamedir[384] = ".";
-boolean allowBCPPatches = 1, allowDataDirectory = 0;
+bool allowBCPPatches = 1, allowDataDirectory = 0, macFileNamesFallbackEnabled = 1;
 GrowList<BCPack*> bcpacks;
 
 char *BCPack::BCPReadString()
@@ -373,6 +373,31 @@ BCPack *GetBCPWithMostRecentFile(char *fn)
 	return bestpack;
 }
 
+char *GetMacName(char *fn)
+{
+	if (char *sh = strrchr(fn, '\\'))
+	{
+		sh += 1;
+		if (strlen(sh) > 31)
+		{
+			char nsh[32];
+			char *ext = strrchr(sh, '.');
+			int mmplen = 31 - (ext ? strlen(ext) : 0) - 1;
+			if (mmplen < 0) mmplen = 0;
+			strncpy(nsh, sh, mmplen);
+			nsh[mmplen] = 0;
+			strcat(nsh, "_");
+			strcat(nsh, ext);
+			char *nfn = strdup(fn);
+			nsh[31] = 0;
+			*(strrchr(nfn, '\\') + 1) = 0;
+			strcat(nfn, nsh);
+			return nfn;
+		}
+	}
+	return 0;
+}
+
 void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
 {
 	BCPack *bp = GetBCPWithMostRecentFile(fn);
@@ -400,6 +425,13 @@ void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
 		strcat(sn, fn);
 		sf = fopen(sn, "rb");
 	}
+	if (!sf && macFileNamesFallbackEnabled)
+		if (char *nfn = GetMacName(fn))
+		{
+			LoadFile(nfn, out, outsize, extraBytes);
+			free(nfn);
+			return;
+		}
 	if(!sf)
 		ferr("The file \"%s\" could not be found in the game directories/archives (data.bcp, saved, redata, data, ...).\n\nIf it is the first time you use this program, be sure that you have configured the GAME_DIR parameter in settings.txt . See help.htm for more details.", fn);
 		//ferr("File cannot be found in data.bcp, in the \"saved\" folder and the \"redata\" directory.");
@@ -420,6 +452,14 @@ int FileExists(char *fn)
 	for(int i = 0; i < bcpacks.len; i++)
 		if(bcpacks[i]->fileExists(fn))
 			return 1;
+
+	// TODO: Check for Mac filenames at the END of this function.
+	if (macFileNamesFallbackEnabled)
+		if (char *nfn = GetMacName(fn)) {
+			int ret = FileExists(nfn);
+			free(nfn);
+			return ret;
+		}
 
 	// File not found in the BCPs. Find it in the "saved" and "redata" folder.
 	char sn[384];

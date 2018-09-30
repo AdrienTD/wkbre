@@ -419,11 +419,6 @@ void InitTask(GameObject *o)
 		if(!t->target.valid()) if(t->type->terminateEntireOrderIfNoTarget)
 			{TerminateOrder(o); return;}
 
-		if(t->target.valid()) SetObjReference(o, t->target.get());
-		t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
-		if(t->type->startSeq)
-			t->type->startSeq->run(&env);
-
 		if(t->type->type == ORDTSKTYPE_MISSILE)
 		{
 			t->startTime = current_time;
@@ -446,6 +441,11 @@ void InitTask(GameObject *o)
 			o->setItem(PDITEM_HP_OF_OBJ_BEING_SPAWNED, 0.0f);
 			o->setItem(PDITEM_HPC_OF_OBJ_BEING_SPAWNED, t->spawnBlueprint->startItems[PDITEM_HPC]);
 		}
+
+		if (t->target.valid()) SetObjReference(o, t->target.get());
+		t->flags |= FSTASK_START_SEQUENCE_EXECUTED;
+		if (t->type->startSeq)
+			t->type->startSeq->run(&env);
 	}
 }
 

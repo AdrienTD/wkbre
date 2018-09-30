@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern char gamedir[384];
-extern boolean allowBCPPatches, allowDataDirectory;
+extern bool allowBCPPatches, allowDataDirectory, macFileNamesFallbackEnabled;
 
 void LoadBCP(char *fn);
 void LoadFile(char *fn, char **out, int *outsize, int extraBytes = 0);

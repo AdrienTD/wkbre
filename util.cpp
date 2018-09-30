@@ -57,23 +57,31 @@ char *GetLine(char *f, char *str)
 	while(1)
 	{
 		if((*frp == 0) || (*frp == 255)) break;
-		if(*frp == '\r') {frp++; continue;}
+		if (*frp == '\r') {
+			frp++;
+			if (*frp == '\n') frp++;
+			break;
+		}
 		if(*frp == '\n') {frp++; break;}
 		if(*frp == '/')
 		{
 			if(*(frp+1) == '*')
 			{
 				frp += 2;
-				while(!((*frp == '*') && (*(frp+1) == '/')))
-					{if((*(frp+1) == 0) || (*(frp+1) == 255)) {frp++; goto glend;} frp++;}
+				while(!((*frp == '*') && (*(frp+1) == '/'))) {
+					if((*(frp+1) == 0) || (*(frp+1) == 255)) {frp++; goto glend;}
+					frp++;
+				}
 				frp += 2;
+				continue;
 			}
 			if(*(frp+1) == '/')
 			{
 				frp += 2;
-				while(*frp != '\n')
+				while((*frp != '\n') && (*frp != '\r'))
 					{if(*frp == 0) goto glend; frp++;}
-				frp++; goto glend;
+				//frp++; goto glend;
+				continue; // This will check the newline.
 			}
 		}
 		*o = *frp; o++; frp++;
