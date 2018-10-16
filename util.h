@@ -45,6 +45,31 @@ typedef void (*vfwa)(void*);
 typedef void (*voidfunc)();
 template <class T> struct couple {T x, y;};
 
+template <class T> struct strbase
+{
+	T* pnt;
+	strbase() : pnt(0) {}
+	strbase(T* i) { pnt = strdup(i); }
+	~strbase() { if (pnt) free(pnt); }
+	void operator=(const strbase<T>& rhs)
+	{
+		if (pnt) free(pnt);
+		if (rhs.pnt)
+			pnt = strdup(rhs.pnt);
+		else
+			pnt = 0;
+	}
+	void operator=(const char* rhs)
+	{
+		if (pnt) free(pnt);
+		if (rhs)
+			pnt = strdup(rhs);
+		else
+			pnt = 0;
+	}
+	T* operator*() { return pnt; }
+};
+
 extern int gline;
 
 int stfind_cs(char **t, int len, char *f);

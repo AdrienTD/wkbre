@@ -115,6 +115,7 @@ struct SequenceOverPeriodEntry
 extern GameObject *gameobj[MAX_GAMEOBJECTS];
 extern GameObject *levelobj;
 extern uint sg_ver;
+extern char* lastsavegamepath;
 extern char lastsavegamename[384];
 extern bool isLevelStarted;
 

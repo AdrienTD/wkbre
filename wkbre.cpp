@@ -22,6 +22,8 @@
 #include "imgui/imgui.h"
 #include <functional>
 #include <shellapi.h>
+#include <string>
+#include <commdlg.h>
 
 HINSTANCE hInstance;
 GEContainer *actualpage = 0;
@@ -687,7 +689,7 @@ void CallCommand(int cmd)
 			}
 #endif
 			if(!strlen(lastmap))
-				{MessageBox(hWindow, "The savegame is not linked to a terrain file.\nEither save the current terrain in \"Window > Terrain editor\",\nor set the path of the terrain file in \"Window > Level information > Properties > Map\", then try again.", appName, 48);
+				{MessageBox(hWindow, "The savegame is not linked to a terrain file.\nEither save the current terrain in \"Window > Terrain editor > Save SNR/BCM\",\nor set the path of the terrain file in \"Window > Level information > Properties > Map\", then try again.", appName, 48);
 				break;}
 		/*
 			char s[256];
@@ -702,12 +704,15 @@ void CallCommand(int cmd)
 				strcat(t, s);
 				if(FileExists(t))
 					if(MessageBox(hWindow, "The file name already exists. Do you want to replace/overwrite this file?", appName, 48 | MB_YESNO) != IDYES)
-						return; //break;
-				strcpy(t, gamedir);
-				strcat(t, "\\saved\\Save_Games\\");
-				strcat(t, s);
-				if (SaveSaveGame(t))
+						return;
+				//strcpy(t, gamedir);
+				//strcat(t, "\\saved\\Save_Games\\");
+				//strcat(t, s);
+				if (SaveSaveGame((char*)(std::string(gamedir) + "\\saved\\" + t).c_str())) {
 					GiveNotification("Savegame saved!");
+					if (lastsavegamepath) free(lastsavegamepath);
+					lastsavegamepath = strdup(t);
+				}
 				else
 					MessageBox(hWindow, "wkbre was not able to create the file for your savegame.\n\nBe sure that the filename doesn't contain special characters and that the \"saved\\Save_Games\" folder exists and is not write-protected.", appName, 48);
 			};
@@ -1116,6 +1121,50 @@ void CallCommand(int cmd)
 		case CMD_HELP:
 			ShellExecute(hWindow, "open", "help.htm", NULL, NULL, SW_SHOWNORMAL);
 			break;
+		case CMD_EXPORT_BCP:
+		{
+			if (!strlen(lastmap))
+			{
+				MessageBox(hWindow, "Your new terrain is not saved. You have to first save the terrain (Window > Terrain editor > Save SNR/BCM) and the level (File > Save as...) before you can export a BCP file.", appName, 48);
+				break;
+			}
+			if (!stricmp(lastsavegamepath, "newlevel.lvl"))
+			{
+				MessageBox(hWindow, "Your new level is not saved. You have to first save the level (File > Save as...) and the terrain (Window > Terrain editor > Save SNR/BCM) before you can export a BCP file.", appName, 48);
+				break;
+			}
+			OPENFILENAMEA ofa; char bcpfn[MAX_PATH]; bcpfn[0] = 0;
+			memset(&ofa, 0, sizeof(OPENFILENAMEA));
+			ofa.lStructSize = sizeof(OPENFILENAMEA);
+			ofa.hwndOwner = hWindow;
+			ofa.hInstance = hInstance;
+			ofa.lpstrFilter = "BCP\0*.bcp\0\0\0";
+			ofa.lpstrFile = bcpfn;
+			ofa.nMaxFile = MAX_PATH;
+			ofa.lpstrTitle = "Export map as BCP";
+			ofa.Flags = OFN_NOCHANGEDIR | OFN_OVERWRITEPROMPT;
+			ofa.lpstrDefExt = "bcp";
+			if (!GetSaveFileNameA(&ofa)) {
+				printf("Save dialog error: %X\n", CommDlgExtendedError()); break;
+			}
+
+			BCPWriter bcp(ofa.lpstrFile);
+			bcp.copyFile(lastsavegamepath);
+			char *lmnam = strdup(lastmap);
+			bcp.copyFile(lmnam);
+			if(char *lmext = strrchr(lmnam, '.'))
+				if (!stricmp(lmext + 1, "snr"))
+				{
+					*lmext = 0;
+					std::string slmn(lmnam);
+					bcp.copyFile((char*)(slmn + std::string(".trn")).c_str());
+					bcp.copyFile((char*)(slmn + std::string("_heightmap.pcx")).c_str());
+					bcp.copyFile((char*)(slmn + std::string("_minimap.pcx")).c_str());
+				}
+			free(lmnam);
+			bcp.finalize();
+			break;
+		}
 	}
 }
 
@@ -3166,6 +3215,7 @@ void IGMainMenuBar()
 	{
 		if(ImGui::MenuItem("Save as...", "F3")) CallCommand(CMD_SAVE);
 		if(ImGui::MenuItem("Change WK version")) CallCommand(CMD_CHANGE_SG_WKVER);
+		if (ImGui::MenuItem("Export map as BCP...")) CallCommand(CMD_EXPORT_BCP);
 		if(ImGui::MenuItem("Quit", "Esc")) CallCommand(CMD_QUIT);
 		ImGui::EndMenu();
 	}

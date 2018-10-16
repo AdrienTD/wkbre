@@ -37,10 +37,10 @@ struct BCPDirectory
 	BCPDirectory *parent;
 };
 
-typedef struct
-{
-	uint offset, endos, size, unk, form;
-} fileentry;
+//typedef struct
+//{
+//	uint offset, endos, size, unk, form;
+//} fileentry;
 
 struct BCPack
 {
@@ -528,4 +528,140 @@ GrowStringList *ListDirectories(char *dn)
 	for(int i = 0; i < bcpacks.len; i++)
 		bcpacks[i]->listDirectories(dn, gsl);
 	return gsl;
+}
+
+BCPWriter::WDirectory* BCPWriter::WDirectory::addDir(char *name)
+{
+	WDirectory* nwd = new WDirectory;
+	nwd->writer = writer;
+	nwd->name = name;
+	dirs.add(nwd);
+	return nwd;
+}
+
+void BCPWriter::WDirectory::insertFile(uint id, char *name)
+{
+	WFile* wf = files.addp();
+	wf->id = id;
+	wf->name = strdup(name);
+	wf->time = 0;
+}
+
+BCPWriter::WDirectory::~WDirectory()
+{
+	for (uint i = 0; i < dirs.len; i++)
+		delete dirs[i];
+	for (uint i = 0; i < files.len; i++)
+		free(files.getpnt(i)->name);
+}
+
+BCPWriter::BCPWriter(char *fn)
+{
+	file = fopen(fn, "wb");
+	if (!file) ferr("Failed to create BCP for writing.");
+
+	// Every mod is owned by BC
+	fwrite("PAK File 2.01 (c) Black Cactus Games Limited \xAD\x91\xE4", 48, 1, file);
+
+	// Placeholder, will be overwritten at the end
+	write32(0); write32(0);
+
+	root.writer = this;
+}
+
+uint BCPWriter::createFile(void *pnt, size_t siz)
+{
+	uint id = ftable.len;
+	fileentry *e = ftable.addp();
+	e->offset = ftell(file);
+	e->size = siz;
+	e->unk = 0;
+
+	uchar *lzws = (uchar*)malloc(MEM_REQ);
+	size_t slz = siz + COMPRESS_OVERRUN; //4 + siz + (siz / 16) * 2 + 4;
+	void *cplz = malloc(slz);
+	compress(COMPRESS_ACTION_COMPRESS, lzws, (uchar*)pnt, siz, (uchar*)cplz, &slz);
+	free(lzws);
+
+	if (slz < siz) {
+		e->form = 4;
+		fwrite(cplz, slz, 1, file);
+	}
+	else {
+		e->form = 1;
+		fwrite(pnt, siz, 1, file);
+	}
+	free(cplz);
+
+	e->endos = ftell(file);
+	return id;
+}
+
+void BCPWriter::finalize()
+{
+	uint ftoff = ftell(file);
+	write32(ftable.len);
+	for (uint i = 0; i < ftable.len; i++)
+	{
+		fileentry* e = ftable.getpnt(i);
+		write32(e->offset);
+		write32(e->endos);
+		write32(e->size);
+		write32(e->unk);
+		write32(e->form);
+	}
+	root.write();
+	uint eof = ftell(file);
+	fseek(file, 48, SEEK_SET);
+	write32(ftoff);
+	write32(eof - ftoff);
+	fclose(file);
+}
+
+void BCPWriter::WDirectory::write()
+{
+	writer->write32(files.len);
+	for (uint i = 0; i < files.len; i++)
+	{
+		WFile *f = files.getpnt(i);
+		writer->write32(f->id);
+		writer->write32(f->time);
+		writer->write32(f->time >> 32);
+		uint sl = strlen(f->name);
+		writer->write8(sl);
+		for (uint j = 0; j < sl; j++)
+			writer->write16((uchar)f->name[j]);
+	}
+	writer->write32(dirs.len);
+	for (uint i = 0; i < dirs.len; i++)
+	{
+		WDirectory *d = dirs[i];
+		uint sl = strlen(*d->name);
+		writer->write8(sl);
+		for (uint j = 0; j < sl; j++)
+			writer->write16((*d->name)[j]);
+		dirs[i]->write();
+	}
+}
+
+void BCPWriter::copyFile(char *fn)
+{
+	BCPWriter::WDirectory *d = &root;
+	char *fncopy = strdup(fn);
+	char *p = fncopy;
+	while (char *s = strchr(p, '\\')) {
+		*s = 0;
+		for (uint i = 0; i < d->dirs.len; i++)
+			if (!stricmp(*(d->dirs[i]->name), p)) {
+				d = d->dirs[i];
+				goto dirfnd;
+			}
+		d = d->addDir(p);
+	dirfnd:
+		p = s + 1;
+	}
+	char *fdat; int fsiz;
+	LoadFile(fn, &fdat, &fsiz);
+	uint id = createFile(fdat, fsiz);
+	d->insertFile(id, p);
 }

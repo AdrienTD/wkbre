@@ -124,6 +124,7 @@ enum AppCommand
 	CMD_SWCLOSEALL,
 	CMD_TOGGLEGRID,
 	CMD_HELP,
+	CMD_EXPORT_BCP,
 };
 
 extern "C" {

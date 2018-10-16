@@ -1043,11 +1043,28 @@ void Test29()
 	}
 }
 
-#define NUMTESTS 29
+void Test30()
+{
+	BCPWriter bcp("writetest.bcp");
+	uint id = bcp.createFile("Adrien", 6);
+	uint id2 = bcp.createFile("^('o')>", 7);
+	char* txt = "This fabulous text file will be compressed to not waste some precious space in the BCP file. I will be unimpressed if it won't.";
+	char* txt2 = "Repeat repeat repeat repeat repeat repeat again and again and again and repeat again and again and repeat again.";
+	uint id3 = bcp.createFile(txt, strlen(txt));
+	uint id4 = bcp.createFile(txt2, strlen(txt2));
+	bcp.root.insertFile(id, "author.txt");
+	auto fd = bcp.root.addDir("Folder");
+	fd->insertFile(id2, "cool.txt");
+	bcp.root.insertFile(id3, "compressed.txt");
+	bcp.root.insertFile(id4, "repeat.txt");
+	bcp.finalize();
+}
+
+#define NUMTESTS 30
 void (*tt[NUMTESTS])() = {Test1, Test2, Test3, Test4, Test5, Test6, Test7,
  Test8, Test9, Test10, Test11, Test12, Test13, Test14, Test15, Test16, Test17,
  Test18, Test19, Test20, Test21, Test22, Test23, Test24, Test25, Test26, Test27,
- Test28, Test29};
+ Test28, Test29, Test30};
 
 void RunTest()
 {

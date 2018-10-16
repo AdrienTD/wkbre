@@ -34,6 +34,7 @@ GrowList<PredecEntry> predec;
 GameObject *levelobj;
 char sggameset[384] = "\0";
 GrowList<RSAssociationListEntry> toassolist;
+char* lastsavegamepath = 0;
 char lastsavegamename[384] = "\0";
 bool isLevelStarted = 0;
 
@@ -457,6 +458,7 @@ void LoadSaveGame(char *fn)
 	gline = 0;
 	memset(gameobj, 0, sizeof(gameobj));
 
+	lastsavegamepath = strdup(fn);
 	char *lsgn = strrchr(fn, '\\');
 	if (!lsgn) lsgn = fn;
 	else lsgn++;

@@ -395,10 +395,10 @@ ULONG *p_dst_len;
     /* Note: All the variables here except unroll should be defined within    */
     /*       the inner loop. Unfortunately the loop hasn't got a block.       */
      register UBYTE *p;         /* Scans through targ phrase during matching. */
-     register UBYTE *p_ziv;     /* Points to first byte of current Ziv.       */
+     register UBYTE *p_ziv=0;     /* Points to first byte of current Ziv.       */
      register UWORD unroll;     /* Loop counter for unrolled inner loop.      */
      register UWORD index;      /* Index of current hash table entry.         */
-     register UBYTE **p_h0;     /* Pointer to current hash table entry.       */
+     register UBYTE **p_h0=0;     /* Pointer to current hash table entry.       */
      
     /* Test for overrun and jump to overrun code if necessary.                */
     if (p_dst>p_dst_post)
