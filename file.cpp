@@ -419,7 +419,19 @@ void LoadFile(char *fn, char **out, int *outsize, int extraBytes)
 		strcat(sn, fn);
 		sf = fopen(sn, "rb");
 	}
-	if(!sf)
+	if (!sf)
+		if(HRSRC h = FindResourceA(NULL, fn, "REDATA"))
+			if (HGLOBAL g = LoadResource(NULL, h))
+			{
+				void *p = LockResource(g);
+				uint siz = SizeofResource(NULL, h);
+				void *mout = malloc(siz+extraBytes);
+				memcpy(mout, p, siz);
+				*out = (char*)mout;
+				*outsize = siz;
+				return;
+			}
+	if (!sf)
 	{
 		strcpy(sn, "redata\\");
 		strcat(sn, fn);
@@ -453,37 +465,34 @@ int FileExists(char *fn)
 		if(bcpacks[i]->fileExists(fn))
 			return 1;
 
-	// TODO: Check for Mac filenames at the END of this function.
-	if (macFileNamesFallbackEnabled)
-		if (char *nfn = GetMacName(fn)) {
-			int ret = FileExists(nfn);
-			free(nfn);
-			return ret;
-		}
-
 	// File not found in the BCPs. Find it in the "saved" and "redata" folder.
 	char sn[384];
 	strcpy(sn, gamedir);
 	strcat(sn, "\\saved\\");
 	strcat(sn, fn);
-	if(_access(sn, 0) == -1)
-	{
-		strcpy(sn, "redata\\");
+	if (_access(sn, 0) != -1) return 1;
+
+	if (FindResourceA(NULL, fn, "REDATA"))
+		return 1;
+
+	strcpy(sn, "redata\\");
+	strcat(sn, fn);
+	if (_access(sn, 0) != -1) return 1;
+
+	if (allowDataDirectory) {
+		strcpy(sn, gamedir);
+		strcat(sn, "\\data\\");
 		strcat(sn, fn);
-		if(allowDataDirectory)
-		{
-			if(_access(sn, 0) == -1)
-			{
-				strcpy(sn, gamedir);
-				strcat(sn, "\\saved\\");
-				strcat(sn, fn);
-				return _access(sn, 0) != -1;
-			}
-			return 1;
-		}
-		else return _access(sn, 0) != -1;
+		if (_access(sn, 0) != -1) return 1;
 	}
-	return 1;
+
+	if (macFileNamesFallbackEnabled)
+		if (char *nfn = GetMacName(fn)) {
+			auto r = FileExists(nfn);
+			free(nfn);
+			return r;
+		}
+	return 0;
 }
 
 void FindFiles(char *sn, GrowStringList *gsl)

@@ -110,3 +110,8 @@ IDI_APPICON        ICON           ".\\icon.ico"
         VALUE "Translation", 0x0809, 0xFDE8
     }
 }
+
+grass.tga REDATA redata\grass.tga
+grid.tga REDATA redata\grid.tga
+netexfb.tga REDATA redata\netexfb.tga
+newlevel.lvl REDATA redata\newlevel.lvl
