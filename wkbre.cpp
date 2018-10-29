@@ -2080,6 +2080,11 @@ bool IGGSLItemsGetter(void *data, int idx, const char **out)
 	return true;
 }
 
+bool OldColorButton(const char *desc, ImVec4 &col, bool mini = false)
+{
+	return ImGui::ColorButton(desc, col, ImGuiColorEditFlags_NoTooltip, mini ? ImVec2(16,12) : ImVec2(0,0));
+}
+
 void IGMainMenu()
 {
 	if(ImGui::BeginMainMenuBar())
@@ -2139,7 +2144,7 @@ bool IGObjectSelectable(GameObject *o, boolean playerinfo = 0)
 	if(playerinfo)
 	{
 		ImGui::SameLine();
-		ImGui::ColorButton(ivcolortable[o->color], true);
+		OldColorButton("color", ivcolortable[o->color], true);
 		ImGui::SameLine();
 		ImGui::Text(t);
 	}
@@ -2260,7 +2265,10 @@ void IGSelectedObject()
 		{
 			ImGui::Text("Color:");
 			ImGui::SameLine();
-			if(ImGui::ColorButton(ivcolortable[o->color]))
+			bool r1 = OldColorButton("cb", ivcolortable[o->color]);
+			ImGui::SameLine(0, 0);
+			bool r2 = ImGui::ArrowButton("colselarrow", ImGuiDir_Down);
+			if(r1 || r2)
 				ImGui::OpenPopup("PlayerColor");
 			if(ImGui::BeginPopup("PlayerColor"))
 			{
@@ -2270,7 +2278,7 @@ void IGSelectedObject()
 						int c = y*2 + x;
 						if(x != 0) ImGui::SameLine();
 						ImGui::PushID(c);
-						if(ImGui::ColorButton(ivcolortable[c]))
+						if(OldColorButton("cb", ivcolortable[c]))
 						{
 							o->color = c;
 							UpdateParentDependantValues(o);
@@ -2548,41 +2556,44 @@ void IGLevelTree()
 
 bool IGPlayerChooser(char *popupid, goref *p)
 {
+	bool r = false;
 	ImGui::PushID(popupid);
-	bool r = 0;
-	if(ImGui::Selectable("##PlayerSelButton"))
-		ImGui::OpenPopup(popupid);
-	if(ImGui::BeginPopup(popupid))
+	ImGui::PushItemWidth(-1);
+	ImVec2 bpos = ImGui::GetCursorPos();
+	if (ImGui::BeginCombo("##Combo", "", 0))
 	{
-		for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
-		  if(e->value.objdef->type == CLASS_PLAYER)
-		{
-			ImGui::PushID(e->value.id);
-			if(ImGui::Selectable("##PlayerSelectable"))
+		for (DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
+			if (e->value.objdef->type == CLASS_PLAYER)
 			{
-				*p = &e->value;
-				r = 1;
+				ImGui::PushID(e->value.id);
+				if (ImGui::Selectable("##PlayerSelectable"))
+				{
+					*p = &e->value;
+					r = true;
+				}
+				ImGui::SameLine();
+				OldColorButton("cb", ivcolortable[e->value.color], true);
+				ImGui::SameLine();
+				ImGui::Text("%S (%u)", e->value.name, e->value.id);
+				ImGui::PopID();
 			}
-			ImGui::SameLine();
-			ImGui::ColorButton(ivcolortable[e->value.color], true);
-			ImGui::SameLine();
-			ImGui::Text("%S (%u)", e->value.name, e->value.id);
-			ImGui::PopID();
-		}
-		ImGui::EndPopup();
+		ImGui::EndCombo();
 	}
-	ImGui::SameLine();
-	if(!p->valid())
+	ImGui::SetCursorPos(bpos);
+	ImGui::AlignTextToFramePadding();
+	if (!p->valid())
 	{
-		ImGui::ColorButton(ImVec4(1,1,1,1), true);
+		OldColorButton("color", ImVec4(1, 1, 1, 1));
 		ImGui::SameLine();
 		ImGui::Text("Click me to select a player.");
-	} else {
+	}
+	else {
 		GameObject *o = p->get();
-		ImGui::ColorButton(ivcolortable[o->color], true);
+		OldColorButton("color", ivcolortable[o->color]);
 		ImGui::SameLine();
 		ImGui::Text("%S (%u)", o->name, o->id);
 	}
+	ImGui::PopItemWidth();
 	ImGui::PopID();
 	return r;
 }
@@ -2690,7 +2701,7 @@ void IGLevelInfo()
 		{
 			GameObject *o = &e->value;
 			ImGui::PushID(o->id);
-			ImGui::ColorButton(ivcolortable[o->color]/*, true*/);
+			OldColorButton("color", ivcolortable[o->color]/*, true*/);
 			ImGui::SameLine();
 			ImGui::Text("%S (%u)", o->name, o->id);
 			ImGui::NextColumn();
@@ -3095,6 +3106,8 @@ void IGCityCreator()
 	ImGui::End();
 }
 
+bool igshowdemo = false, igshowstyledit = false;
+
 void IGTest()
 {
 	if(!swTest) return;
@@ -3126,6 +3139,11 @@ void IGTest()
 		ImGui::DragFloat("farzvalue", &farzvalue);
 		ImGui::DragFloat("occlurate", &occlurate);
 		ImGui::DragFloat("verticalfov", &verticalfov);
+	}
+	if (ImGui::CollapsingHeader("ImGui"))
+	{
+		ImGui::Checkbox("Demo", &igshowdemo);
+		ImGui::Checkbox("Style editor", &igshowstyledit);
 	}
 	ImGui::End();
 }
@@ -3529,6 +3547,11 @@ void Test7()
 			IGTest();
 			IGNDlgBox();
 			IGMinimap();
+
+#ifndef WKBRE_RELEASE
+			if (igshowdemo) ImGui::ShowDemoWindow(&igshowdemo);
+			if (igshowstyledit) ImGui::ShowStyleEditor(0);
+#endif
 
 			renderer->InitImGuiDrawing();
 			ImGui::Render();

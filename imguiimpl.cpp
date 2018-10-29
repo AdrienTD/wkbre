@@ -73,6 +73,8 @@ void ImGuiImpl_CreateFontsTexture()
 
 void ImGuiImpl_Init()
 {
+	ImGui::CreateContext();
+
 	ImGuiIO &io = ImGui::GetIO();
 
 	io.KeyMap[ImGuiKey_Tab] = VK_TAB;
