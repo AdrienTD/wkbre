@@ -34,10 +34,10 @@ uchar secret[] = {0xec,0xc9,0xdf,0xc4,0xc8,0xc3,0x8d,0xea,0xc8,0xc8,0xd9,0xde};
 int bo = 0;
 int playMode = 0, enableObjTooltips = 0;
 ClientState *curclient = 0;
-boolean objmovalign = 0;
+bool objmovalign = 0;
 Cursor *defcursor;
-boolean mouseRot = 0; int msrotx, msroty;
-boolean multiSel = 0; int mselx, msely;
+bool mouseRot = 0; int msrotx, msroty;
+bool multiSel = 0; int mselx, msely;
 GrowList<GameObject*> msellist;
 bool swSelObj = 0, swLevTree = 0, swLevInfo = 0, swObjCrea = 0, swAbout = 0, swMapEditor = 0, swCityCreator = 0, swTest = 0, swMinimap = 0;
 bool mapeditmode = 0;
@@ -47,10 +47,10 @@ texture minimapTexture; Bitmap *minimapBitmap;
 
 #ifdef WKBRE_RELEASE
 int experimentalKeys = 1;
-boolean showTimeObjInfo = 0;
+bool showTimeObjInfo = 0;
 #else
 int experimentalKeys = 1;
-boolean showTimeObjInfo = 1;
+bool showTimeObjInfo = 1;
 #endif
 
 char *playercolorname[8] = {"Brown", "Blue", "Yellow", "Red", "Green", "Pink", "Orange", "Aqua"};
@@ -142,7 +142,7 @@ float stampdownRot = 0;
 
 MapTextureGroup *curtexgrp = 0; MapTexture *curtex = 0;
 int men_rot = 0; bool men_xflip = 0, men_zflip = 0;
-boolean mousetoolpress_l = 0, mousetoolpress_r = 0;
+bool mousetoolpress_l = 0, mousetoolpress_r = 0;
 int brushsize = 1, brushshape = 0; bool randommaptex = 0, randommaptiletransform = 0;
 bool himapautowater = 0;
 goref newmanorplayer; int nmc_size = 3; int nmc_npeasants = 4; bool nmc_flags = 0;
@@ -801,7 +801,7 @@ void CallCommand(int cmd)
 			RandomizeObjAppear(levelobj); break;
 		case CMD_CAMMANOR:
 		{
-			boolean fnd = 0;
+			bool fnd = 0;
 			GameObject *a = AskPlayer("Set camera position to the manor of player:");
 			if(a)
 			{
@@ -1197,7 +1197,7 @@ void SetTargetCursor()
 					SequenceEnv env;
 					env.self = e->value.get();
 					env.target = p;
-					boolean x = 1;
+					bool x = 1;
 					for(int j = 0; j < c->cursorAvailableConds.len; j++)
 						if(stpo(c->cursorAvailableConds[j]->test->get(&env)))
 						{
@@ -1353,7 +1353,7 @@ void DoZFlip(MapTile *t)
 	else t->zflip ^= 1;
 }
 
-void FindAutotileC(int tx, int tz, boolean we, boolean star, MapTextureGroup *ag) // we=0:NORTH-SOUTH, we=1:WEST-EAST
+void FindAutotileC(int tx, int tz, bool we, bool star, MapTextureGroup *ag) // we=0:NORTH-SOUTH, we=1:WEST-EAST
 {
 	if(we) {if((tx <= 0) || (tx >= mapwidth -1)) return;}
 	else   {if((tz <= 0) || (tz >= mapheight-1)) return;}
@@ -1571,7 +1571,7 @@ void DrawATS(int x, int z)
 int lakemove_mousey_ref; float lakemove_waterlev_ref; Vector3 *lakemove_sellake = 0;
 uchar vertexflatten_ref;
 
-void ApplyBrush(boolean rclick)
+void ApplyBrush(bool rclick)
 {
 	int cx = mapstdownpos.x / 5 + mapedge, cz = mapheight - (mapstdownpos.z / 5 + mapedge);
 	int m = brushsize/2;
@@ -2017,7 +2017,7 @@ void UpdateCommandButtons()
 				if(!l.has(e->value->objdef->offeredCmds[i]))
 				{
 					CCommand *c = e->value->objdef->offeredCmds[i];
-					boolean ok = 1;
+					bool ok = 1;
 					SequenceEnv env; env.self = e->value.get();
 					for(int j = 0; j < c->iconConditions.len; j++)
 						if(c->iconConditions[j] != -1)
@@ -2147,7 +2147,7 @@ void IGDisplayItem(GameObject *o, int item)
 	ImGui::PopID();
 }
 
-bool IGObjectSelectable(GameObject *o, boolean playerinfo = 0)
+bool IGObjectSelectable(GameObject *o, bool playerinfo = 0)
 {
 	char t[256]; bool r;
 	if(playerinfo) _snprintf(t, 255, "%S (%u)", o->name, o->id);
@@ -2540,7 +2540,7 @@ void IGLevelTreeNode(GameObject *o)
 		c.x += 0.3f; c.y += 0.3f; c.z += 0.3f;
 		ImGui::PushStyleColor(ImGuiCol_Text, c);
 	}
-	boolean n = ImGui::TreeNodeEx((void*)o->id,
+	bool n = ImGui::TreeNodeEx((void*)o->id,
 			// ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow |
 			((o->flags & FGO_SELECTED) ? ImGuiTreeNodeFlags_Selected : 0) |
 			((o->children.len > 0) ? 0 : ImGuiTreeNodeFlags_Leaf),
@@ -2752,7 +2752,7 @@ void IGLevelInfo()
 		}
 		if(ImGui::Button("Move up"))
 		{
-			boolean canmove = 0;
+			bool canmove = 0;
 			for(DynListEntry<goref> *e = humanplayers.first; e; e = e->next)
 			 if(e->value.valid())
 			{
@@ -2765,7 +2765,7 @@ void IGLevelInfo()
 		ImGui::SameLine();
 		if(ImGui::Button("Move down"))
 		{
-			boolean canmove = 0;
+			bool canmove = 0;
 			for(DynListEntry<goref> *e = humanplayers.last; e; e = e->previous)
 			 if(e->value.valid())
 			{
@@ -3041,7 +3041,7 @@ saveend:	;
 		for(int i = 0; i < g->tex->len; i++)
 		{
 			MapTexture *t = g->tex->getpnt(i);
-			boolean ss = curtex == t;
+			bool ss = curtex == t;
 			ImGui::PushID(i);
 			if(ss)
 			{
@@ -3445,7 +3445,7 @@ void Test7()
 	InitGTWs(); // :S
 	CreateCommandButtons();
 
-	boolean playView = 0;
+	bool playView = 0;
 	InitHUD();
 
 	ChangeCursor(defcursor = LoadCursor("Interface\\C_DEFAULT.TGA"));

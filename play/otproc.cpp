@@ -26,7 +26,7 @@ void CheckIfObjIdle(GameObject *o)
 	SendGameEvent(0, o, PDEVENT_ON_IDLE);
 }
 
-boolean IsCurOrderID(GameObject *o, int a)
+bool IsCurOrderID(GameObject *o, int a)
 {
 	if(!o->ordercfg.order.len) return 0;
 	return o->ordercfg.order.first->value.orderID == a;
@@ -253,7 +253,7 @@ void ProcessCurrentTask(GameObject *o)
 					}
 				} else {
 					if(t->proximity < 1) t->proximity = 1;
-					boolean pps = t->flags & FSTASK_PROXIMITY_SATISFIED;
+					bool pps = t->flags & FSTASK_PROXIMITY_SATISFIED;
 					t->flags &= ~FSTASK_PROXIMITY_SATISFIED;
 					StopCurrentTaskTriggers(o);
 					//SetObjectAnimationIfNotPlayed(o, 0, 1);

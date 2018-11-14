@@ -16,7 +16,7 @@
 
 #include "global.h"
 
-boolean preloadModels = 0;
+bool preloadModels = 0;
 extern bool rglUseBufferObjects;
 
 void ReadSettingsFile()

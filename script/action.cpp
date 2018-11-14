@@ -891,7 +891,7 @@ struct ActionIdentifyAndMarkClusters : public CAction
 		float rad = vcr->get(env), fmr = vmr->get(env);
 		rad *= rad;
 
-		boolean *us = new boolean[nf];
+		bool *us = new bool[nf];
 		for(int i = 0; i < nf; i++) us[i] = 0;
 
 		for(int i = 0; i < nf; i++)
@@ -1284,8 +1284,8 @@ struct ActionLeaveFormation : public CAction
 
 struct ActionSkipCameraPathPlayback : public CAction
 {
-	CFinder *f; boolean skipActions;
-	ActionSkipCameraPathPlayback(CFinder *a, boolean b) : f(a), skipActions(b) {}
+	CFinder *f; bool skipActions;
+	ActionSkipCameraPathPlayback(CFinder *a, bool b) : f(a), skipActions(b) {}
 	void run(SequenceEnv *env)
 	{
 		f->begin(env); GameObject *o;
@@ -1608,7 +1608,7 @@ CAction *ReadAction(char **pntfp, char **word)
 		case ACTION_SKIP_CAMERA_PATH_PLAYBACK:
 			{w += 2;
 			CFinder *f = ReadFinder(&w);
-			boolean sa = 0;
+			bool sa = 0;
 			if(*w) sa = !strcmp(*w, "SKIP_ACTIONS");
 			return new ActionSkipCameraPathPlayback(f, sa);}
 		case ACTION_INTERPOLATE_CAMERA_TO_STORED_POSITION:

@@ -28,8 +28,8 @@ char mapskytexdir[256];
 
 char lastmap[256];
 texture grass, gridtex; RBatch *mapbatch;
-boolean usemaptexdb = 1;
-boolean showMapGrid = 0;
+bool usemaptexdb = 1;
+bool showMapGrid = 0;
 
 GrowList<MapPart> mparts;
 uint mappartw = 32, mapparth = 32;
@@ -336,7 +336,7 @@ void SetTileWaterLevel(int sx, int sz, float wl, DynListEntry<Vector3> *lake)
 		t->fullWater = 1;
 }
 
-boolean IsFillableWithWater(int sx, int sz, float wl)
+bool IsFillableWithWater(int sx, int sz, float wl)
 {
 	if((sx < 0) || (sx >= mapwidth) || (sz < 0) || (sz >= mapheight)) return 0;
 	MapTile *t = &(maptiles[sz*mapwidth+sx]);
@@ -482,7 +482,7 @@ void DrawPart(MapPart *p)
 	renderer->DrawPart(p);
 }
 
-boolean IsPartInFrontOfCam(int px, int py)
+bool IsPartInFrontOfCam(int px, int py)
 {
 	Vector3 v1((px+0)*mappartw, 0, (py+0)*mapparth),
 		v2((px+1)*mappartw, 0, (py+0)*mapparth),
@@ -497,7 +497,7 @@ boolean IsPartInFrontOfCam(int px, int py)
 	return (t1.z > 0) || (t2.z > 0) || (t3.z > 0) || (t4.z > 0);
 }
 
-boolean IsTPInScreen(Vector3 &v)
+bool IsTPInScreen(Vector3 &v)
 {
 	Vector3 t;
 	TransformVector3(&t, &v, &matrix);
@@ -508,7 +508,7 @@ boolean IsTPInScreen(Vector3 &v)
 	return 1;
 }
 
-boolean IsTileInScreen(MapTile *c)
+bool IsTileInScreen(MapTile *c)
 {
 	Vector3 v(c->x, himap[c->z*(mapwidth+1)+c->x], c->z);
 	if(IsTPInScreen(v)) return 1;
@@ -521,7 +521,7 @@ boolean IsTileInScreen(MapTile *c)
 	return 0;
 }
 
-boolean IsWaterTileInScreen(MapTile *c)
+bool IsWaterTileInScreen(MapTile *c)
 {
 	Vector3 v(c->x, c->waterlev, c->z);
 	if(IsTPInScreen(v)) return 1;
@@ -1001,7 +1001,7 @@ void SaveMapBCM(char *filename)
 
 extern int brushsize, brushshape, mousetool, nmc_size;
 
-boolean IsTileCorcernedByBrush(int tx, int tz)
+bool IsTileCorcernedByBrush(int tx, int tz)
 {
 	int cx = mapstdownpos.x / 5 + mapedge, cz = mapheight - (mapstdownpos.z / 5 + mapedge);
 	int m = brushsize/2;

@@ -741,7 +741,7 @@ bool selxflip[2] = {0,0}, selzflip[2] = {0,0}, atxflip, atzflip;
 GrowList<MapTextureEdge*> atlist;
 MapTextureEdge *autote = 0;
 
-int TransformEdge(int edge, int rot, boolean xflip, boolean zflip)
+int TransformEdge(int edge, int rot, bool xflip, bool zflip)
 {
 	int d = (edge + rot) & 3;
 	if(xflip) if(!(d&1)) d ^= 2;
@@ -835,7 +835,7 @@ if(ImGui::CollapsingHeader("Autotile test"))
 		for(int i = 0; i < g->tex->len; i++)
 		{
 			MapTexture *t = g->tex->getpnt(i);
-			boolean ss = seltex[n] == t;
+			bool ss = seltex[n] == t;
 			ImGui::PushID(i);
 			if(ss)
 			{
@@ -877,7 +877,7 @@ if(ImGui::CollapsingHeader("Autotile test"))
 	{
 		MapTextureEdge *e = atlist[i];
 		MapTexture *t = e->tex;
-		boolean ss = e == autote;
+		bool ss = e == autote;
 		ImGui::PushID(i);
 		if(ss)
 		{

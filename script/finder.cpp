@@ -1070,7 +1070,7 @@ struct FinderDiscoveredUnits : public CFinder
 
 struct FinderUser : public CFinder
 {
-	boolean f;
+	bool f;
 	CFinder *clone() {return new FinderUser();}
 	void begin(SequenceEnv *env) {f = 1;}
 	GameObject *_getnext()

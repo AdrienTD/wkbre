@@ -59,8 +59,8 @@ struct BCPack
 	void ExtractFile(int id, char **out, int *outsize, int extraBytes);
 	BCPFile *getFile(char *fn);
 	BCPDirectory *getDirectory(char *dn);
-	boolean loadFile(char *fn, char **out, int *outsize, int extraBytes);
-	boolean fileExists(char *fn);
+	bool loadFile(char *fn, char **out, int *outsize, int extraBytes);
+	bool fileExists(char *fn);
 	void listFileNames(char *dn, GrowStringList *gsl);
 	void listDirectories(char *dn, GrowStringList *gsl);
 };
@@ -306,7 +306,7 @@ lend:	free(ftb); return ad;
 savdir:	free(ftb); return 0;
 }
 
-boolean BCPack::loadFile(char *fn, char **out, int *outsize, int extraBytes)
+bool BCPack::loadFile(char *fn, char **out, int *outsize, int extraBytes)
 {
 	BCPFile *bf = getFile(fn);
 	if(!bf) return 0;
@@ -314,7 +314,7 @@ boolean BCPack::loadFile(char *fn, char **out, int *outsize, int extraBytes)
 	return 1;
 }
 
-boolean BCPack::fileExists(char *fn)
+bool BCPack::fileExists(char *fn)
 {
 	BCPFile *bf = getFile(fn);
 	return bf ? 1 : 0;

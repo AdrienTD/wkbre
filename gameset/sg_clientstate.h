@@ -21,7 +21,7 @@ struct ClientState
 	goref obj;
 	int updateid;
 	Vector3 camerapos, cameraori;
-	boolean winDiplomacy, winReport, winTributes;
+	bool winDiplomacy, winReport, winTributes;
 	Vector3 storedpos, storedori;
 
 	int cammode; // 0=free, 1=camPath, 2=camInterpol

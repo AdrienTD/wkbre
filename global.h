@@ -166,7 +166,7 @@ extern GEContainer *actualpage;
 extern int appexit;
 extern HINSTANCE hInstance;
 extern int experimentalKeys;
-extern boolean showTimeObjInfo;
+extern bool showTimeObjInfo;
 
 extern DynList<goref> selobjects;
 extern char *statustext;
@@ -176,7 +176,7 @@ extern ClientState *curclient;
 
 extern int findertargetcommand;
 
-extern boolean multiSel; extern int mselx, msely;
+extern bool multiSel; extern int mselx, msely;
 extern GrowList<GameObject*> msellist;
 
 extern float walkstep;

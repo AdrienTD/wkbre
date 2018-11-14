@@ -34,7 +34,7 @@ struct GTWButton
 struct CGameTextWindow
 {
 	float px, py; int pw;
-	boolean forceReadAllPages, putAtBottomOfScreen;
+	bool forceReadAllPages, putAtBottomOfScreen;
 	GrowList<GTWPage> pages;
 	GrowList<GTWButton> buttons;
 

@@ -155,7 +155,7 @@ void UpdateCameraPath(ClientState *s)
 	s->cameraori = pa.ori + Vector3(dx, dy, 0) * l;
 }
 
-void StopCameraPath(ClientState *s, boolean skipActions)
+void StopCameraPath(ClientState *s, bool skipActions)
 {
 	if(s->cammode != 1) return;
 	CCameraPath *cp = s->camPathInProgress;

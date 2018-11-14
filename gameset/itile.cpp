@@ -83,7 +83,7 @@ void ResetITiles()
 	PutObjsInITiles(levelobj);
 }
 
-void GOPosChanged(GameObject *o, boolean sendEvents, boolean autoHeight)
+void GOPosChanged(GameObject *o, bool sendEvents, bool autoHeight)
 {
 	// Avoid objects being put out of bounds.
 	uint lw = (mapwidth-2*mapedge)*5, lh = (mapheight-2*mapedge)*5;

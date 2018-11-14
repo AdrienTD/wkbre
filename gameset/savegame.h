@@ -89,7 +89,7 @@ struct GameObject
 	Vector3 startcampos, startcamori;
 
 	int animtag, animvar;
-	int animtimeref; boolean animlooping, animlooped;
+	int animtimeref; bool animlooping, animlooped;
 
 	valuetype getItem(int x);
 	void setItem(int x, valuetype v);
@@ -174,7 +174,7 @@ void AddReaction(GameObject *o, int r);
 void RemoveReaction(GameObject *o, int r);
 void UpdateParentDependantValues(GameObject *o);
 Model *GetObjectModel(GameObject *o);
-void SetObjectAnimation(GameObject *o, int animtag, boolean loop);
-void SetObjectAnimationIfNotPlayed(GameObject *o, int animtag, boolean loop);
+void SetObjectAnimation(GameObject *o, int animtag, bool loop);
+void SetObjectAnimationIfNotPlayed(GameObject *o, int animtag, bool loop);
 void PlayMovementAnimation(GameObject *o);
-boolean DoesObjectHaveUniqueAnimation(GameObject *o, int rat);
+bool DoesObjectHaveUniqueAnimation(GameObject *o, int rat);

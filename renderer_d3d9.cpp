@@ -111,7 +111,7 @@ struct RBatchD3D9 : public RBatch
 	IDirect3DIndexBuffer9 *ibuf;
 	batchVertex *vlock;
 	ushort *ilock;
-	boolean locked;
+	bool locked;
 	DynListEntry<RBatchD3D9*> *rble;
 
 	~RBatchD3D9()

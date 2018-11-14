@@ -30,5 +30,5 @@ void FreeITiles();
 void ReinitITiles();
 void PutObjsInITiles(GameObject *o);
 void ResetITiles();
-void GOPosChanged(GameObject *o, boolean sendEvents = 0, boolean autoHeight = 1);
+void GOPosChanged(GameObject *o, bool sendEvents = 0, bool autoHeight = 1);
 void ListObjsInTiles(int tx, int tz, int l, int w, GrowList<goref> *r);

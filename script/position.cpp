@@ -128,7 +128,7 @@ struct PositionNearestAttachmentPoint : public CPosition
 		}
 		Model *mdl = GetObjectModel(o);
 		Mesh *msh = mdl->mesh;
-		boolean first = 1; float lenscore;
+		bool first = 1; float lenscore;
 		for(int i = 0; i < msh->nAttachPnts; i++)
 		{
 			AttachmentPoint *ap = &(msh->attachPnts[i]);

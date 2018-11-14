@@ -117,7 +117,7 @@ void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 }
 */
 
-boolean IsPRTTrue(SequenceEnv *ctx, CPRTrigger *prt)
+bool IsPRTTrue(SequenceEnv *ctx, CPRTrigger *prt)
 {
 	// OK if assessments true
 	for(uint k = 0; k < prt->ass.len; k++)
@@ -197,10 +197,10 @@ void SendGameEvent(SequenceEnv *ie, GameObject *o, int ev)
 */
 	GrowList<CPRTrigger*> trueprts;
 
-	auto f = [&trueprts,&executed,&ctx,ev](CReaction *re) -> boolean
+	auto f = [&trueprts,&executed,&ctx,ev](CReaction *re) -> bool
 	{
 		if(executed.has(re)) return 0;
-		boolean s = 0;
+		bool s = 0;
 		for(int j = 0; j < re->prts.len; j++)
 		{
 			if(trueprts.has(re->prts[j]))

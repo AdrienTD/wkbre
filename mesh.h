@@ -39,7 +39,7 @@ struct AttachmentPoint
 struct Model
 {
 	Mesh *mesh;
-	char *fname; boolean ready;
+	char *fname; bool ready;
 	virtual void prepare() = 0;
 	virtual void draw(int iwtcolor = 0) = 0;
 	virtual void drawInBatch(RBatch *batch, int grp, int uvl = 0, int dif = 0, int tm = 0) = 0;

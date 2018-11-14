@@ -23,8 +23,8 @@ struct texture
 	};
 	texture() : v(0) {}
 	texture(void* a) : v(a) {}
-	boolean valid() {return dd?1:0;}
-	boolean operator==(texture &a) {return dd == a.dd;}
+	bool valid() {return dd?1:0;}
+	bool operator==(texture &a) {return dd == a.dd;}
 	operator void*() {return v;}
 };
 

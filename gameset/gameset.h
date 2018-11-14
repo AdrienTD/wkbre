@@ -32,7 +32,7 @@ public:
 	GameObject *operator->() {return get();}
 	goref &operator=(GameObject *a) {set(a); return *this;}
 	goref &operator=(uint a); //{set(FindObjID(a)); return *this;}
-	boolean operator==(GameObject *a) {return (get() == a);}
+	bool operator==(GameObject *a) {return (get() == a);}
 	uint getID() {return id;}
 };
 

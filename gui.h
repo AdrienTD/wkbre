@@ -17,10 +17,10 @@ protected:
 
 public:
 	int posx, posy, width, height;
-	int bgColor; boolean alignment, enabled;
+	int bgColor; bool alignment, enabled;
 	GEContainer *parent;
 
-	boolean mouseClick, mouseRightClick;
+	bool mouseClick, mouseRightClick;
 	virtual void onMouseClick(int mx, int my) {}
 	virtual void onMouseRelease(int mx, int my) {}
 	virtual void onMouseRightClick(int mx, int my) {}

@@ -115,7 +115,7 @@ struct RBatchOGL1_BO : public RBatch
 	GLuint vbuf, ibuf;
 	batchVertex *vlock;
 	ushort *ilock;
-	boolean locked;
+	bool locked;
 	//DynListEntry<RBatchOGL1_BO*> *rble;
 
 	~RBatchOGL1_BO()

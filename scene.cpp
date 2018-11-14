@@ -39,7 +39,7 @@ struct OOBMTex
 	GrowList<GameObject*> *objs;
 };
 
-boolean meshbatching = 0, animsEnabled = 0;
+bool meshbatching = 0, animsEnabled = 0;
 GrowList<OOBMTex> oobm[2];
 RBatch *mshbatch;
 

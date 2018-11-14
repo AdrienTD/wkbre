@@ -30,13 +30,13 @@ struct CTask
 	uint type;
 	int cat;
 	CFinder *target;
-	boolean usePreviousTaskTarget, rejectTargetIfItIsTerminated,
+	bool usePreviousTaskTarget, rejectTargetIfItIsTerminated,
 		terminateEntireOrderIfNoTarget, identifyTargetEachCycle;
 	CValue *proxRequirement;
 	GrowList<CTrigger> triggers;
 	CValue *satf;
 	CPlayAnimation *playAnim;
-	boolean playAnimOnce;
+	bool playAnimOnce;
 	ActionSeq *initSeq, *startSeq, *suspendSeq, *resumeSeq, *cancelSeq,
 		*terminateSeq, *proxSatisfiedSeq, *proxDissatisfiedSeq,
 		*movStartedSeq, *movCompletedSeq;

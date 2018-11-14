@@ -17,7 +17,7 @@
 struct SCharacterRung
 {
 	int type;
-	boolean blocked;
+	bool blocked;
 	int detailedState;
 	SCharacterRung() : blocked(0) {}
 };
@@ -32,7 +32,7 @@ struct SRequirement
 struct SCommission
 {
 	int type; goref obj;
-	boolean complete, forceBalance;
+	bool complete, forceBalance;
 	DynList<SRequirement> reqs;
 	SCommission() : complete(0), forceBalance(0) {}
 };

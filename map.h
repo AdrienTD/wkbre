@@ -49,8 +49,8 @@ extern MapTile *maptiles;
 
 extern uint mappartw, mapparth;
 
-extern boolean usemaptexdb;
-extern boolean showMapGrid;
+extern bool usemaptexdb;
+extern bool showMapGrid;
 
 void InitMap();
 void CloseMap();

@@ -1183,7 +1183,7 @@ Model *GetObjectModel(GameObject *o)
 	return ap->def;
 }
 
-void SetObjectAnimation(GameObject *o, int animtag, boolean loop)
+void SetObjectAnimation(GameObject *o, int animtag, bool loop)
 {
 	o->animtag = animtag;
 	o->animvar = 0;
@@ -1191,7 +1191,7 @@ void SetObjectAnimation(GameObject *o, int animtag, boolean loop)
 	o->animlooping = loop; o->animlooped = 0;
 }
 
-void SetObjectAnimationIfNotPlayed(GameObject *o, int animtag, boolean loop)
+void SetObjectAnimationIfNotPlayed(GameObject *o, int animtag, bool loop)
 {
 	o->animlooping = loop;
 	if(o->animtag != animtag)
@@ -1240,7 +1240,7 @@ void PlayMovementAnimation(GameObject *o)
 	SetObjectAnimationIfNotPlayed(o, 0, 1);
 }
 
-boolean DoesObjectHaveUniqueAnimation(GameObject *o, int rat)
+bool DoesObjectHaveUniqueAnimation(GameObject *o, int rat)
 {
 	ODAppearance *ap = &(o->objdef->subtypes[o->subtype].appear[o->appearance]);
 	if(ap->anim) if(ap->anim[rat])

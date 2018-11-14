@@ -134,8 +134,8 @@ struct Vector3
 	Vector3 operator*=(valuetype a) {x *= a; y *= a; z *= a; return *this;}
 	Vector3 operator/=(valuetype a) {x /= a; y /= a; z /= a; return *this;}
 
-	boolean operator==(Vector3 a) {return (x==a.x) && (y==a.y) && (z==a.z);}
-	boolean operator!=(Vector3 a) {return !( (x==a.x) && (y==a.y) && (z==a.z) );}
+	bool operator==(Vector3 a) {return (x==a.x) && (y==a.y) && (z==a.z);}
+	bool operator!=(Vector3 a) {return !( (x==a.x) && (y==a.y) && (z==a.z) );}
 
 	void print() {printf("(%f, %f, %f)\n", x, y, z);}
 	valuetype len2xy() {return sqrt(x*x + y*y);}
