@@ -1845,6 +1845,26 @@ void T7ClickWindow(void *param)
 
 	if(objtypeToStampdown) objtypeToStampdown = 0;
 
+	if (keypressed[VK_CONTROL]) {
+		Vector3 selcenter(0, 0, 0); uint numselobjs = 0;
+		for (auto e = selobjects.first; e; e = e->next) {
+			if (e->value.valid()) {
+				selcenter += e->value->position;
+				numselobjs++;
+			}
+		}
+		if (numselobjs == 0)
+			return;
+		selcenter /= numselobjs;
+		for (auto e = selobjects.first; e; e = e->next) {
+			if (e->value.valid()) {
+				e->value->position = e->value->position - selcenter + stdownpos;
+				GOPosChanged(e->value.get());
+			}
+		}
+		return;
+	}
+
 	if(!multiSel)
 	{
 		multiSel = 1;
@@ -2082,7 +2102,8 @@ bool IGGSLItemsGetter(void *data, int idx, const char **out)
 
 bool OldColorButton(const char *desc, ImVec4 &col, bool mini = false)
 {
-	return ImGui::ColorButton(desc, col, ImGuiColorEditFlags_NoTooltip, mini ? ImVec2(16,12) : ImVec2(0,0));
+	float tlh = ImGui::GetTextLineHeight();
+	return ImGui::ColorButton(desc, col, ImGuiColorEditFlags_NoTooltip, mini ? ImVec2(tlh,tlh) : ImVec2(0,0));
 }
 
 void IGMainMenu()
@@ -3179,10 +3200,14 @@ void IGMinimap()
 	//ImGui::InputInt("Zoom", &viewsize);
 	ImGui::Checkbox("Edge", &mmshowedge); ImGui::SameLine();
 	ImGui::Checkbox("Objects", &mmshowobjs);
-	ImGui::BeginChild("MinimapRegion", ImVec2(0,0), true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	ImGui::BeginChild("MinimapRegion", ImVec2(0,0), true, ImGuiWindowFlags_HorizontalScrollbar);
 	ImVec2 imgpos = ImGui::GetCursorScreenPos();
+	ImVec2 curpos = ImGui::GetCursorPos();
 	ImGui::Image(minimapTexture, ImVec2(viewsize,viewsize));
-	if(ImGui::IsMouseDown(0) && ImGui::IsItemHoveredRect() && ImGui::IsWindowHovered())
+	ImGui::SetCursorPos(curpos);
+	ImGui::InvisibleButton("MinimapButton", ImVec2(viewsize, viewsize));
+	//if(ImGui::IsMouseDown(0) && ImGui::IsItemHoveredRect() && ImGui::IsWindowHovered())
+	if (ImGui::IsMouseDown(0) && ImGui::IsItemHovered())
 	{
 		ImVec2 v;
 		v.x = ImGui::GetMousePos().x - imgpos.x;

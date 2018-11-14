@@ -95,6 +95,13 @@ void ReadSettingsFile()
 				gs_ver = atoi(word[1]); break;
 			case SETTING_MAC_FILENAME_FALLBACK:
 				macFileNamesFallbackEnabled = atoi(word[1]); break;
+			case SETTING_ENABLE_LANGUAGE_FILE:
+				languageFileEnabled = atoi(word[1]); break;
+			case SETTING_IMGUI_FONT:
+				imguiFontFile = strdup(word[1]);
+				if(nwords >= 3)
+					imguiFontSize = atof(word[2]);
+				break;
 		}
 	}
 

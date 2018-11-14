@@ -2,6 +2,8 @@
 #include "imgui/imgui.h"
 
 uint iglasttime;
+char *imguiFontFile = 0;
+float imguiFontSize = 12;
 
 #define BGRA_TO_RGBA(x) ( (((x)&0xFF)<<16) | (((x)&0xFF0000)>>16) | ((x)&0xFF00FF00) )
 
@@ -63,7 +65,8 @@ void ImGuiImpl_CreateFontsTexture()
 {
 	ImGuiIO &io = ImGui::GetIO();
 	uchar *pix; int w, h, bpp;
-	//io.Fonts->AddFontFromFileTTF("MORPHEUS.TTF", 30);
+	if(imguiFontFile)
+		io.Fonts->AddFontFromFileTTF(imguiFontFile, imguiFontSize);
 	io.Fonts->GetTexDataAsRGBA32(&pix, &w, &h, &bpp);
 	Bitmap bm;
 	bm.w = w; bm.h = h; bm.form = BMFORMAT_B8G8R8A8; bm.pix = pix; bm.pal = 0;

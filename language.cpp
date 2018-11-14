@@ -17,15 +17,18 @@
 #include "global.h"
 
 GrowStringList locLabel, locText;
-int numLocStr;
+int numLocStr = 0;
+bool languageFileEnabled = true;
 
 void ReadLanguageFile()
 {
+	locLabel.clear(); locText.clear(); numLocStr = 0;
+	if (!languageFileEnabled)
+		return;
+
 	char *fcnt, *p, line[3072], *word[MAX_WORDS_IN_LINE], *e; int s, fsize;
-	// TODO: Load file data and store pointer in fcnt.
 	LoadFile("Languages\\Language.txt", &fcnt, &fsize, 1);
 	fcnt[fsize] = 0;
-	locLabel.clear(); locText.clear(); numLocStr = 0;
 	p = fcnt;
 	while(*p)
 	{
