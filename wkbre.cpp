@@ -222,18 +222,18 @@ void IGNDlgBox()
 	if(!ndlgmode) return;
 	if(ndlgfirsttime)
 	{
-		ImGui::SetNextWindowSize(ImVec2(400,(ndlgmode==2)?100:300), ImGuiSetCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(400,0/*(ndlgmode==2)?100:300*/), ImGuiSetCond_Always);
 		ImGui::SetNextWindowPosCenter(ImGuiSetCond_Always);
 		filter.Clear();
 	}
-	if(!ImGui::Begin("Prompt##NDlgBox", &q)) {ImGui::End(); return;}
+	if(!ImGui::Begin("Prompt##NDlgBox", &q, ImGuiWindowFlags_NoCollapse)) {ImGui::End(); return;}
 	ImGui::PushItemWidth(-1);
 	if(!q) ndlgmode = 0;
 	ImGui::TextWrapped(ndlgheader);
 	switch(ndlgmode)
 	{
 		case 1:
-			if(ndlgfirsttime) ImGui::SetKeyboardFocusHere();
+			if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
 			filter.Draw();
 			ImGui::ListBoxHeader("##ListBox", ImVec2(0,200));
 			for(int i = 0; i < nlstdlggsl->len; i++)
@@ -249,7 +249,7 @@ void IGNDlgBox()
 			ImGui::ListBoxFooter();
 			break;
 		case 2:
-			if(ndlgfirsttime) ImGui::SetKeyboardFocusHere();
+			if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
 			if(ImGui::InputText("##InputText", nstrdlgout, 80, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
 				ok = 1;
 			break;
@@ -675,7 +675,7 @@ void CallCommand(int cmd)
 		case CMD_SAVE:
 		{
 #ifndef WKBRE_RELEASE
-			if(keypressed[VK_SHIFT])
+			if(keyheld[VK_SHIFT])
 			{
 				char t[1024], e[1024] = "\"\0";
 				strcpy(t, gamedir);
@@ -700,8 +700,15 @@ void CallCommand(int cmd)
 			strcat(s, isLevelStarted ? ".sav" : ".lvl");
 			auto f = []()
 			{
+				char *p = strrchr(s, '.');
+				bool addext = false;
+				if (!p) addext = true;
+				else if (stricmp(p + 1, "sav") && stricmp(p + 1, "lvl")) addext = true;
+				std::string s2(s);
+				if (addext) s2 += isLevelStarted ? ".sav" : ".lvl";
+
 				char t[1024] = "Save_Games\\\0";
-				strcat(t, s);
+				strcat(t, s2.c_str());
 				if(FileExists(t))
 					if(MessageBox(hWindow, "The file name already exists. Do you want to replace/overwrite this file?", appName, 48 | MB_YESNO) != IDYES)
 						return;
@@ -716,7 +723,8 @@ void CallCommand(int cmd)
 				else
 					MessageBox(hWindow, "wkbre was not able to create the file for your savegame.\n\nBe sure that the filename doesn't contain special characters and that the \"saved\\Save_Games\" folder exists and is not write-protected.", appName, 48);
 			};
-			OpenStrDlgBox(s, "Save level (.lvl) or savegame (.sav) as:", f);
+			//OpenStrDlgBox(s, "Save level (.lvl) or savegame (.sav) as:", f);
+			OpenStrDlgBox(s,  isLevelStarted ? "Save savegame (.sav) as:" : "Save level (.lvl) as:", f);
 		} break;
 		case CMD_DELETEOBJTYPE:
 		{
@@ -1069,6 +1077,9 @@ void CallCommand(int cmd)
 			}
 			break;}
 		case CMD_START_LEVEL:
+			if (isLevelStarted)
+				if (MessageBox(hWindow, "The level has already been started! (It is a SAV file.)\nStarting the level again can cause weird behavior (especially an infinite loop)!\nDo you really want to start again?", appName, 48 | MB_YESNO) != IDYES)
+					break;
 			SendEventToObjAndSubord(levelobj, PDEVENT_ON_LEVEL_START);
 			isLevelStarted = 1;
 			GiveNotification("Level started.");
@@ -1141,7 +1152,7 @@ void CallCommand(int cmd)
 			ofa.lpstrFilter = "BCP\0*.bcp\0\0\0";
 			ofa.lpstrFile = bcpfn;
 			ofa.nMaxFile = MAX_PATH;
-			ofa.lpstrTitle = "Export map as BCP";
+			ofa.lpstrTitle = "Export map to BCP";
 			ofa.Flags = OFN_NOCHANGEDIR | OFN_OVERWRITEPROMPT;
 			ofa.lpstrDefExt = "bcp";
 			if (!GetSaveFileNameA(&ofa)) {
@@ -1163,6 +1174,7 @@ void CallCommand(int cmd)
 				}
 			free(lmnam);
 			bcp.finalize();
+			GiveNotification("Map successfully exported to BCP.");
 			break;
 		}
 	}
@@ -1772,6 +1784,8 @@ GameObject *GetTileCity(int tx, int tz)
 	return 0;
 }
 
+void AlignObjPosToGrid(CObjectDefinition* ot, Vector3& pos, float rot);
+
 void T7ClickWindow(void *param)
 {
 	if(mousetool)
@@ -1845,7 +1859,7 @@ void T7ClickWindow(void *param)
 
 	if(objtypeToStampdown) objtypeToStampdown = 0;
 
-	if (keypressed[VK_CONTROL]) {
+	if (keyheld[VK_CONTROL]) {
 		Vector3 selcenter(0, 0, 0); uint numselobjs = 0;
 		for (auto e = selobjects.first; e; e = e->next) {
 			if (e->value.valid()) {
@@ -1859,6 +1873,7 @@ void T7ClickWindow(void *param)
 		for (auto e = selobjects.first; e; e = e->next) {
 			if (e->value.valid()) {
 				e->value->position = e->value->position - selcenter + stdownpos;
+				AlignObjPosToGrid(e->value->objdef, e->value->position, e->value->orientation.y);
 				GOPosChanged(e->value.get());
 			}
 		}
@@ -1871,7 +1886,7 @@ void T7ClickWindow(void *param)
 		mselx = mouseX; msely = mouseY;
 	}
 
-	if(!keypressed[VK_SHIFT])
+	if(!keyheld[VK_SHIFT])
 		DeselectAll();
 	if(!currentSelection.valid()) return;
 	GameObject *cs = currentSelection.get();
@@ -1935,7 +1950,7 @@ void T7RightClick(void *param)
 			SequenceEnv ctx;
 			SendGameEvent(&ctx, o, PDEVENT_ON_STAMPDOWN);
 		}
-		if(!keypressed[VK_SHIFT]) objtypeToStampdown = 0;
+		if(!keyheld[VK_SHIFT]) objtypeToStampdown = 0;
 		return;
 	}
 nopapa:
@@ -1944,8 +1959,8 @@ nopapa:
 	if(!targetcmd) return;
 
 	int m = ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE;
-	if(keypressed[VK_SHIFT]) m = ORDERASSIGNMODE_DO_LAST;
-	if(keypressed[VK_CONTROL]) m = ORDERASSIGNMODE_DO_FIRST;
+	if(keyheld[VK_SHIFT]) m = ORDERASSIGNMODE_DO_LAST;
+	if(keyheld[VK_CONTROL]) m = ORDERASSIGNMODE_DO_FIRST;
 
 	GameObject *cs = currentSelection.get();
 	for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
@@ -2156,7 +2171,7 @@ bool IGObjectSelectable(GameObject *o, bool playerinfo = 0)
 	r = ImGui::Selectable(playerinfo ? "" : t, o->flags & FGO_SELECTED);
 	if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1))
 	{
-		if(!keypressed[VK_SHIFT])
+		if(!keyheld[VK_SHIFT])
 			DeselectAll();
 		if(o->flags & FGO_SELECTED)
 			DeselectObject(o);
@@ -2239,7 +2254,7 @@ void IGSelectedObject()
 			ImGui::Text("Player:"); ImGui::SameLine();
 			if (ImGui::SmallButton("->##SelectPlayer"))
 			{
-				if (!keypressed[VK_SHIFT]) DeselectAll();
+				if (!keyheld[VK_SHIFT]) DeselectAll();
 				if (o->player->flags & FGO_SELECTED) DeselectObject(o->player);
 				else SelectObject(o->player);
 			}
@@ -2254,7 +2269,7 @@ void IGSelectedObject()
 			ImGui::Text("Parent:"); ImGui::SameLine();
 			if (ImGui::SmallButton("->##SelectParent"))
 			{
-				if (!keypressed[VK_SHIFT]) DeselectAll();
+				if (!keyheld[VK_SHIFT]) DeselectAll();
 				if (o->parent->flags & FGO_SELECTED) DeselectObject(o->parent);
 				else SelectObject(o->parent);
 			}
@@ -2549,7 +2564,7 @@ void IGLevelTreeNode(GameObject *o)
 		ImGui::PopStyleColor();
 	if(ImGui::IsItemClicked(1))
 	{
-		if(!keypressed[VK_SHIFT])
+		if(!keyheld[VK_SHIFT])
 			DeselectAll();
 		if(o->flags & FGO_SELECTED)
 			DeselectObject(o);
@@ -2685,7 +2700,7 @@ void IGLevelInfo()
 		ImGui::SameLine();
 		if(ImGui::Button("Select all##Alias"))
 		{
-			if(!keypressed[VK_SHIFT])
+			if(!keyheld[VK_SHIFT])
 				DeselectAll();
 			for(DynListEntry<goref> *e = d->first; e; e = e->next)
 				if(e->value.valid())
@@ -2833,8 +2848,10 @@ void IGObjectCreation()
 		if(objcreaFilter.PassFilter(t))
 		{
 			ImGui::PushID(i);
-			if(ImGui::Selectable(t, od == objtypeToStampdown))
+			if (ImGui::Selectable(t, od == objtypeToStampdown)) {
 				objtypeToStampdown = od;
+				mousetool = 0;
+			}
 			ImGui::PopID();
 		}
 	}	
@@ -2959,23 +2976,32 @@ saveend:	;
 	if(ImGui::Button("Paste"))
 		PasteHeightmap();
 	//ImGui::Separator();
-	if(ImGui::CollapsingHeader("Tools"))
+	if(ImGui::CollapsingHeader("Tools", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		//ImGui::Text("Misc:"); ImGui::SameLine();
 		ImGui::RadioButton("Default##Mode", &mousetool, 0);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("For object selection and placement.");
 		ImGui::Text("Texture:"); ImGui::SameLine();
 		ImGui::RadioButton("Texture##Mode", &mousetool, 1); ImGui::SameLine();
-		ImGui::RadioButton("Autotiles##Mode", &mousetool, 47);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click to draw the texture on the tiles.\nRight-click to pick the tile's texture.");
+		ImGui::RadioButton("Autotile##Mode", &mousetool, 47);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click to draw the texture on the tile and transition textures around the tile.\nRight-click to pick the tile's texture.");
 		ImGui::Text("Vertex:"); ImGui::SameLine();
 		//ImGui::BeginGroup();
 		ImGui::RadioButton("Elevate##Mode", &mousetool, 2); ImGui::SameLine();
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click to raise the terrain.\nRight-click to lower the terrain.");
 		ImGui::RadioButton("Flatten##Mode", &mousetool, 6); ImGui::SameLine();
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click to flatten the terrain.");
 		ImGui::RadioButton("Equalize##Mode", &mousetool, 10);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click to smooth the terrain.");
 		//ImGui::EndGroup();
 		ImGui::Text("Lake:"); ImGui::SameLine();
 		ImGui::RadioButton("Add##Mode", &mousetool, 3); ImGui::SameLine();
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click to add a lake.");
 		ImGui::RadioButton("Move##Mode", &mousetool, 5); ImGui::SameLine();
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click + move the mouse up/down to raise/lower the lake.");
 		ImGui::RadioButton("Remove##Mode", &mousetool, 4);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Left-click a lake to remove it.");
 		ImGui::Separator();
 		ImGui::InputInt("Brush size", &brushsize);
 		ImGui::Text("Brush shape:"); ImGui::SameLine();
@@ -3035,7 +3061,7 @@ saveend:	;
 		}
 		ImGui::ListBoxFooter();
 
-		ImGui::BeginChild("Texture", ImVec2(0,96), true, ImGuiWindowFlags_HorizontalScrollbar);
+		ImGui::BeginChild("Texture", ImVec2(0,102), true, ImGuiWindowFlags_HorizontalScrollbar);
 		MapTextureGroup *g = curtexgrp;
 		if(g)
 		for(int i = 0; i < g->tex->len; i++)
@@ -3234,7 +3260,7 @@ void IGMinimap()
 void MoveKeyPress(Vector3 &m)
 {
 	Vector3 n = m.normal();
-	if(!keypressed[VK_CONTROL])
+	if(!keyheld[VK_CONTROL])
 		DisplaceCurCamera(n * camwalkstep);
 	else for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
 		if(e->value.valid())
@@ -3258,7 +3284,7 @@ void IGMainMenuBar()
 	{
 		if(ImGui::MenuItem("Save as...", "F3")) CallCommand(CMD_SAVE);
 		if(ImGui::MenuItem("Change WK version")) CallCommand(CMD_CHANGE_SG_WKVER);
-		if (ImGui::MenuItem("Export map as BCP...")) CallCommand(CMD_EXPORT_BCP);
+		if (ImGui::MenuItem("Export map to BCP...")) CallCommand(CMD_EXPORT_BCP);
 		if(ImGui::MenuItem("Quit", "Esc")) CallCommand(CMD_QUIT);
 		ImGui::EndMenu();
 	}
@@ -3273,17 +3299,21 @@ void IGMainMenuBar()
 		if(ImGui::MenuItem("Scale selection by 1/1.5", "/")) CallCommand(CMD_SELOBJSCALESMALLER);
 		if(ImGui::MenuItem("Rotate selection by 90 deg", "R")) CallCommand(CMD_ROTATEOBJQP);
 		ImGui::Separator();
-		if(ImGui::MenuItem("Convert type...")) CallCommand(CMD_CONVERTOBJTYPE);
-		if(ImGui::MenuItem("Give type...")) CallCommand(CMD_GIVEOBJTYPE);
-		if(ImGui::MenuItem("Delete type...")) CallCommand(CMD_DELETEOBJTYPE);
-		if(ImGui::MenuItem("Delete class...")) CallCommand(CMD_DELETEOBJCLASS);
-		ImGui::Separator();
-		if(ImGui::MenuItem("Randomize subtypes", "F11")) CallCommand(CMD_RANDOMSUBTYPE);
-		if(ImGui::MenuItem("Reset objects' heights", "F2")) CallCommand(CMD_RESETOBJPOS);
+		if (ImGui::MenuItem("Select object by ID...", "O")) CallCommand(CMD_SELECT_OBJECT_ID);
+		if (ImGui::MenuItem("Enable aligned movement", "Tab", objmovalign)) CallCommand(CMD_CHANGE_OBJMOVALIGN);
+		if (ImGui::MenuItem("Reset objects' heights", "F2")) CallCommand(CMD_RESETOBJPOS);
+		if (ImGui::MenuItem("Randomize subtypes", "F11")) CallCommand(CMD_RANDOMSUBTYPE);
 		//if(ImGui::MenuItem("Rename player object...")) CallCommand(CMD_CHANGE_PLAYER_NAME);
 		//if(ImGui::MenuItem("Change player color...")) CallCommand(CMD_CHANGE_PLAYER_COLOR);
-		if(ImGui::MenuItem("Select object by ID...", "O")) CallCommand(CMD_SELECT_OBJECT_ID);
-		if(ImGui::MenuItem("Enable aligned movement", "Tab", objmovalign)) CallCommand(CMD_CHANGE_OBJMOVALIGN);
+		ImGui::Separator();
+		if (ImGui::BeginMenu("Batch operations"))
+		{
+			if (ImGui::MenuItem("Convert type...")) CallCommand(CMD_CONVERTOBJTYPE);
+			if (ImGui::MenuItem("Give type...")) CallCommand(CMD_GIVEOBJTYPE);
+			if (ImGui::MenuItem("Delete type...")) CallCommand(CMD_DELETEOBJTYPE);
+			if (ImGui::MenuItem("Delete class...")) CallCommand(CMD_DELETEOBJCLASS);
+			ImGui::EndMenu();
+		}
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Game"))
@@ -3291,29 +3321,37 @@ void IGMainMenuBar()
 		if(ImGui::MenuItem("Pause", "P", !playMode)) CallCommand(CMD_PAUSE);
 		if(ImGui::MenuItem("Increase game speed", "+")) CallCommand(CMD_GAME_SPEED_FASTER);
 		if(ImGui::MenuItem("Decrease game speed", "-")) CallCommand(CMD_GAME_SPEED_SLOWER);
-		if(ImGui::MenuItem("Start level", "S")) CallCommand(CMD_START_LEVEL);
+		if(ImGui::MenuItem("Start level", "Ctrl+S")) CallCommand(CMD_START_LEVEL);
 		if(ImGui::MenuItem("Control client...", "F")) CallCommand(CMD_CONTROL_CLIENT);
 		ImGui::Separator();
-		if(ImGui::MenuItem("Execute command...", "A")) CallCommand(CMD_EXECUTE_COMMAND);
-		if(ImGui::MenuItem("Execute command with target...", "Y")) CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);
-		if(ImGui::MenuItem("Execute action sequence...", "X")) CallCommand(CMD_RUNACTSEQ);
-		if(ImGui::MenuItem("Send event...", "J")) CallCommand(CMD_SEND_EVENT);
-		if(ImGui::MenuItem("Cancel all objects' orders")) CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);
-		if(ImGui::MenuItem("Remove battles delayed sequences")) CallCommand(CMD_REMOVE_BATTLES_DELAYED_SEQS);
-		//if(ImGui::MenuItem("Quick stampdown...")) CallCommand(CMD_STAMPDOWN_OBJECT);
-		//if(ImGui::MenuItem("Open game text window...")) CallCommand(CMD_ENABLE_GTW);
-		//if(ImGui::MenuItem("Enable gameplay shortcuts")) CallCommand(CMD_TOGGLEEXPERIMENTALKEYS);
+		if (ImGui::BeginMenu("Advanced"))
+		{
+			if (ImGui::MenuItem("Execute command...", "A")) CallCommand(CMD_EXECUTE_COMMAND);
+			if (ImGui::MenuItem("Execute command with target...", "Y")) CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);
+			if (ImGui::MenuItem("Execute action sequence...", "X")) CallCommand(CMD_RUNACTSEQ);
+			if (ImGui::MenuItem("Send event...", "J")) CallCommand(CMD_SEND_EVENT);
+			if (ImGui::MenuItem("Cancel all objects' orders")) CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);
+			if (ImGui::MenuItem("Remove battles delayed sequences")) CallCommand(CMD_REMOVE_BATTLES_DELAYED_SEQS);
+			//if (ImGui::MenuItem("Quick stampdown...")) CallCommand(CMD_STAMPDOWN_OBJECT);
+			//if (ImGui::MenuItem("Open game text window...")) CallCommand(CMD_ENABLE_GTW);
+			//if (ImGui::MenuItem("Enable gameplay shortcuts")) CallCommand(CMD_TOGGLEEXPERIMENTALKEYS);
+			ImGui::EndMenu();
+		}
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("View"))
 	{
-		if(ImGui::MenuItem("Move to...")) CallCommand(CMD_CAMPOS);
-		if(ImGui::MenuItem("Move to down-left corner", "1")) CallCommand(CMD_CAMDOWNLEFT);
-		if(ImGui::MenuItem("Move to down-right corner", "2")) CallCommand(CMD_CAMDOWNRIGHT);
-		if(ImGui::MenuItem("Move to up-left corner", "3")) CallCommand(CMD_CAMUPLEFT);
-		if(ImGui::MenuItem("Move to up-right corner", "4")) CallCommand(CMD_CAMUPRIGHT);
-		if(ImGui::MenuItem("Move to player's manor...", "5")) CallCommand(CMD_CAMMANOR);
-		if(ImGui::MenuItem("Move to client's position...", "8")) CallCommand(CMD_CAMCLISTATE);
+		if (ImGui::BeginMenu("Move camera to..."))
+		{
+			//if (ImGui::MenuItem("Move to...")) CallCommand(CMD_CAMPOS);
+			if (ImGui::MenuItem("Down-left corner", "1")) CallCommand(CMD_CAMDOWNLEFT);
+			if (ImGui::MenuItem("Down-right corner", "2")) CallCommand(CMD_CAMDOWNRIGHT);
+			if (ImGui::MenuItem("Up-left corner", "3")) CallCommand(CMD_CAMUPLEFT);
+			if (ImGui::MenuItem("Up-right corner", "4")) CallCommand(CMD_CAMUPRIGHT);
+			if (ImGui::MenuItem("Player's manor...", "5")) CallCommand(CMD_CAMMANOR);
+			if (ImGui::MenuItem("Client's position...", "8")) CallCommand(CMD_CAMCLISTATE);
+			ImGui::EndMenu();
+		}
 		if(ImGui::MenuItem("Reset orientation", "7")) CallCommand(CMD_CAMRESETORI);
 		ImGui::Separator();
 		if(ImGui::MenuItem("Show terrain", "M", enableMap)) CallCommand(CMD_SHOWHIDELANDSCAPE);
@@ -3325,9 +3363,6 @@ void IGMainMenuBar()
 	}
 	if(ImGui::BeginMenu("Window"))
 	{
-		if(ImGui::MenuItem("Open all")) CallCommand(CMD_SWOPENALL);
-		if(ImGui::MenuItem("Close all")) CallCommand(CMD_SWCLOSEALL);
-		ImGui::Separator();
 		if(ImGui::MenuItem("Object information", "F4", swSelObj)) CallCommand(CMD_SWSELOBJ);
 		if(ImGui::MenuItem("Level information", "F5", swLevInfo)) CallCommand(CMD_SWLEVINFO);
 		if(ImGui::MenuItem("Level tree", "F6", swLevTree)) CallCommand(CMD_SWLEVTREE);
@@ -3335,6 +3370,9 @@ void IGMainMenuBar()
 		if(ImGui::MenuItem("Terrain editor", "F8", swMapEditor)) CallCommand(CMD_SWMAPEDITOR);
 		if(ImGui::MenuItem("City creator", "F9", swCityCreator)) CallCommand(CMD_SWCITYCREATOR);
 		if(ImGui::MenuItem("Minimap", "6", swMinimap)) CallCommand(CMD_SWMINIMAP);
+		ImGui::Separator();
+		if(ImGui::MenuItem("Open all")) CallCommand(CMD_SWOPENALL);
+		if(ImGui::MenuItem("Close all")) CallCommand(CMD_SWCLOSEALL);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Help"))
@@ -3383,7 +3421,7 @@ void Test7()
 	while(!levselected)
 	{
 		ImGuiImpl_NewFrame();
-		ImGui::SetNextWindowSize(ImVec2(450,320), ImGuiSetCond_Once);
+		ImGui::SetNextWindowSize(ImVec2(450,0/*320*/), ImGuiSetCond_Once);
 		ImGui::SetNextWindowPosCenter(ImGuiSetCond_Once);
 		ImGui::Begin("Load level/savegame", 0, ImGuiWindowFlags_NoCollapse);
 		ImGui::PushItemWidth(-1);
@@ -3409,7 +3447,7 @@ void Test7()
 			levselected = 1;
 			playAfterLoading = 1;
 		}
-		if(ImGui::IsItemHovered()) ImGui::SetTooltip("Load and start/unpause the game automatically.");
+		if(ImGui::IsItemHovered()) ImGui::SetTooltip("Load and start/unpause the game automatically.\nWARNING: This will convert a .LVL into a .SAV!");
 		ImGui::SameLine();
 		if(ImGui::Button("Exit"))
 			return;
@@ -3493,7 +3531,6 @@ void Test7()
 	{
 		if(playMode || keypressed['0'])
 		{
-			keypressed['0'] = 0;
 			AdvanceTime();
 			ProcessAllOrders();
 			CheckBattlesDelayedSequences();
@@ -3601,7 +3638,7 @@ void Test7()
 				DrawFont(scrw - 188, 0, st);
 			}
 
-			if(mousetool) ChangeCursor(defcursor);
+			if(mousetool || ImGui::GetIO().WantCaptureMouse) ChangeCursor(defcursor);
 			else if(!objtypeToStampdown) SetTargetCursor();
 			else if((objtypeToStampdown->type == CLASS_PLAYER) || (objtypeToStampdown->type == CLASS_TERRAIN_ZONE) || playerToGiveStampdownObj.valid())
 				ChangeCursor(buildcursor);
@@ -3621,130 +3658,89 @@ void Test7()
 
 		if(keypressed['\r'])
 		{
-			keypressed['\r'] = 0;
 			playView = !playView;
 		}
 
-		if(keypressed[VK_SHIFT]) {walkstep = objmovalign ? 5.0f : 4.0f; camwalkstep = 4.0f;}
+		if(keyheld[VK_SHIFT]) {walkstep = objmovalign ? 5.0f : 4.0f; camwalkstep = 4.0f;}
 		else {walkstep = objmovalign ? 2.5f : 1.0f; camwalkstep = 1.0f;}
-		if(keypressed[VK_UP])
+		bool isAlignMoving = keyheld[VK_CONTROL] && objmovalign;
+		if(isAlignMoving ? keypressed[VK_UP] : keyheld[VK_UP])
 		{
-			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_UP] = 0;
 			Vector3 m = Vector3(vLAD.x, 0, vLAD.z);
 			MoveKeyPress(m);
 		}
-		if(keypressed[VK_DOWN])
+		if(isAlignMoving ? keypressed[VK_DOWN] : keyheld[VK_DOWN])
 		{
-			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_DOWN] = 0;
 			Vector3 m = Vector3(-vLAD.x, 0, -vLAD.z);
 			MoveKeyPress(m);
 		}
-		if(keypressed[VK_LEFT])
+		if(isAlignMoving ? keypressed[VK_LEFT] : keyheld[VK_LEFT])
 		{
-			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_LEFT] = 0;
 			Vector3 m = Vector3(-vLAD.z, 0, vLAD.x);
 			MoveKeyPress(m);
 		}
-		if(keypressed[VK_RIGHT])
+		if(isAlignMoving ? keypressed[VK_RIGHT] : keyheld[VK_RIGHT])
 		{
-			if(objmovalign) if(keypressed[VK_CONTROL]) keypressed[VK_RIGHT] = 0;
 			Vector3 m = Vector3(vLAD.z, 0, -vLAD.x);
 			MoveKeyPress(m);
 		}
-		if(keypressed['E']) DisplaceCurCamera(Vector3(0.0f,  camwalkstep, 0.0f));
-		if(keypressed['D']) DisplaceCurCamera(Vector3(0.0f, -camwalkstep, 0.0f));
-		if(keypressed['T']) RotateCurCamera( 0.01f, 0);
-		if(keypressed['G']) RotateCurCamera(-0.01f, 0);
-		if(keypressed['U']) RotateCurCamera(0,  0.01f);
-		if(keypressed['I']) RotateCurCamera(0, -0.01f);
+		if(keyheld['E']) DisplaceCurCamera(Vector3(0.0f,  camwalkstep, 0.0f));
+		if(keyheld['D']) DisplaceCurCamera(Vector3(0.0f, -camwalkstep, 0.0f));
+		if(keyheld['T']) RotateCurCamera( 0.01f, 0);
+		if(keyheld['G']) RotateCurCamera(-0.01f, 0);
+		if(keyheld['U']) RotateCurCamera(0,  0.01f);
+		if(keyheld['I']) RotateCurCamera(0, -0.01f);
 
-		if(keypressed['1'])
-			{keypressed['1'] = 0; CallCommand(CMD_CAMDOWNLEFT);}
-		if(keypressed['2'])
-			{keypressed['2'] = 0; CallCommand(CMD_CAMDOWNRIGHT);}
-		if(keypressed['3'])
-			{keypressed['3'] = 0; CallCommand(CMD_CAMUPLEFT);}
-		if(keypressed['4'])
-			{keypressed['4'] = 0; CallCommand(CMD_CAMUPRIGHT);}
+		if(keypressed['1']) CallCommand(CMD_CAMDOWNLEFT);
+		if(keypressed['2']) CallCommand(CMD_CAMDOWNRIGHT);
+		if(keypressed['3']) CallCommand(CMD_CAMUPLEFT);
+		if(keypressed['4']) CallCommand(CMD_CAMUPRIGHT);
 
-		if(keypressed['M'])
-			{keypressed['M'] = 0; CallCommand(CMD_SHOWHIDELANDSCAPE);}
-		if(keypressed[VK_ESCAPE])
-			{keypressed[VK_ESCAPE] = 0; CallCommand(CMD_QUIT);}
+		if(keypressed['M']) CallCommand(CMD_SHOWHIDELANDSCAPE);
+		if(keypressed[VK_ESCAPE]) CallCommand(CMD_QUIT);
 
-		if(keypressed[VK_F3]) {keypressed[VK_F3] = 0; CallCommand(CMD_SAVE);}
+		if(keypressed[VK_F3]) CallCommand(CMD_SAVE);
 
-		if(keypressed['5']) {keypressed['5'] = 0; CallCommand(CMD_CAMMANOR);}
-/*
-		if(keypressed[VK_F5])
-			{keypressed[VK_F5] = 0; CallCommand(CMD_DELETEOBJTYPE);}
-		if(keypressed[VK_F6])
-			{keypressed[VK_F6] = 0; CallCommand(CMD_CONVERTOBJTYPE);}
-		if(keypressed[VK_F7])
-			{keypressed[VK_F7] = 0; CallCommand(CMD_GIVEOBJTYPE);}
-		if(keypressed[VK_F8])
-			{keypressed[VK_F8] = 0; CallCommand(CMD_CREATEOBJ);}
-		if(keypressed[VK_F9])
-			{keypressed[VK_F9] = 0; CallCommand(CMD_DELETELASTCREATEDOBJ);}
-*/
-		if(keypressed[VK_F4])
-			{keypressed[VK_F4] = 0; CallCommand(CMD_SWSELOBJ);}
-		if(keypressed[VK_F5])
-			{keypressed[VK_F5] = 0; CallCommand(CMD_SWLEVINFO);}
-		if(keypressed[VK_F6])
-			{keypressed[VK_F6] = 0; CallCommand(CMD_SWLEVTREE);}
-		if(keypressed[VK_F7])
-			{keypressed[VK_F7] = 0; CallCommand(CMD_SWOBJCREA);}
-		if(keypressed[VK_F8])
-			{keypressed[VK_F8] = 0; CallCommand(CMD_SWMAPEDITOR);}
-		if(keypressed[VK_F9])
-			{keypressed[VK_F9] = 0; CallCommand(CMD_SWCITYCREATOR);}
-		if(keypressed[VK_F10])
-			{keypressed[VK_F10] = 0; CallCommand(CMD_SWCITYCREATOR);}
-		if(keypressed[VK_F11])
-			{keypressed[VK_F11] = 0; CallCommand(CMD_RANDOMSUBTYPE);}
+		if(keypressed['5']) CallCommand(CMD_CAMMANOR);
 
-		if(keypressed['6']) {keypressed['6'] = 0; CallCommand(CMD_SWMINIMAP);}
+		if(keypressed[VK_F4]) CallCommand(CMD_SWSELOBJ);
+		if(keypressed[VK_F5]) CallCommand(CMD_SWLEVINFO);
+		if (keypressed[VK_F6]) CallCommand(CMD_SWLEVTREE);
+		if(keypressed[VK_F7]) CallCommand(CMD_SWOBJCREA);
+		if(keypressed[VK_F8]) CallCommand(CMD_SWMAPEDITOR);
+		if(keypressed[VK_F9]) CallCommand(CMD_SWCITYCREATOR);
+		if(keypressed[VK_F10]) CallCommand(CMD_SWCITYCREATOR);
+		if(keypressed[VK_F11]) CallCommand(CMD_RANDOMSUBTYPE);
 
-		if(keypressed[VK_F1])
-			{keypressed[VK_F1] = 0; CallCommand(CMD_HELP);}
+		if(keypressed['6']) CallCommand(CMD_SWMINIMAP);
 
-		if(keypressed[VK_F2])
-			{keypressed[VK_F2] = 0; CallCommand(CMD_RESETOBJPOS);}
-		//if(keypressed[VK_F4])
-		//	{keypressed[VK_F4] = 0; CallCommand(CMD_DELETEOBJCLASS);}
+		if(keypressed[VK_F1]) CallCommand(CMD_HELP);
 
-		if(keypressed[VK_DELETE])
-			{keypressed[VK_DELETE] = 0; CallCommand(CMD_DELETESELOBJECT);}
-		//if(keypressed[VK_INSERT])
-		//	{keypressed[VK_INSERT] = 0; CallCommand(CMD_DUPLICATESELOBJECT);}
-		if(keypressed['N'])
-			{keypressed['N'] = 0; CallCommand(CMD_DUPLICATESELOBJECT);}
+		if(keypressed[VK_F2]) CallCommand(CMD_RESETOBJPOS);
 
-		if(keypressed[VK_BACK])
-			{keypressed[VK_BACK] = 0; menuVisible = !menuVisible;
-			}//menubar->enabled = menuVisible;}
+		if(keypressed[VK_DELETE]) CallCommand(CMD_DELETESELOBJECT);
+		//if(keypressed[VK_INSERT]) CallCommand(CMD_DUPLICATESELOBJECT);
+		if(keypressed['N']) CallCommand(CMD_DUPLICATESELOBJECT);
 
-		if(keypressed['7']) {keypressed['7'] = 0; CallCommand(CMD_CAMRESETORI);}
+		if(keypressed[VK_BACK]) menuVisible = !menuVisible;
 
-		if(keypressed[VK_MULTIPLY])
-			{keypressed[VK_MULTIPLY] = 0; CallCommand(CMD_SELOBJSCALEBIGGER);}
-		if(keypressed[VK_DIVIDE])
-			{keypressed[VK_DIVIDE] = 0; CallCommand(CMD_SELOBJSCALESMALLER);}
-		if(keypressed[VK_HOME])
-			{keypressed[VK_HOME] = 0; CallCommand(CMD_GIVESELOBJECT);}
+		if(keypressed['7']) CallCommand(CMD_CAMRESETORI);
 
-		if(keypressed['R']) {keypressed['R'] = 0; CallCommand(CMD_ROTATEOBJQP);}
-		if(keypressed['8']) {keypressed['8'] = 0; CallCommand(CMD_CAMCLISTATE);}
+		if(keypressed[VK_MULTIPLY]) CallCommand(CMD_SELOBJSCALEBIGGER);
+		if(keypressed[VK_DIVIDE]) CallCommand(CMD_SELOBJSCALESMALLER);
+		if(keypressed[VK_HOME]) CallCommand(CMD_GIVESELOBJECT);
 
-		if(keypressed['O']) {keypressed['O'] = 0; CallCommand(CMD_SELECT_OBJECT_ID);}
-		if(keypressed[VK_TAB]) {keypressed[VK_TAB] = 0; CallCommand(CMD_CHANGE_OBJMOVALIGN);}
+		if(keypressed['R']) CallCommand(CMD_ROTATEOBJQP);
+		if(keypressed['8']) CallCommand(CMD_CAMCLISTATE);
 
-		if(keypressed['L']) {keypressed['L'] = 0; CallCommand(CMD_TOGGLE_TIMEOBJINFO);}
+		if(keypressed['O']) CallCommand(CMD_SELECT_OBJECT_ID);
+		if(keypressed[VK_TAB]) CallCommand(CMD_CHANGE_OBJMOVALIGN);
 
-		if(keypressed['K']) {keypressed['K'] = 0; CallCommand(CMD_TOGGLEGRID);}
+		if(keypressed['L']) CallCommand(CMD_TOGGLE_TIMEOBJINFO);
 
-		if(keypressed[VK_NUMPAD0] || mmbPressed)
+		if(keypressed['K']) CallCommand(CMD_TOGGLEGRID);
+
+		if(keyheld[VK_NUMPAD0] || mmbPressed)
 		{
 			if(!mouseRot)
 			{
@@ -3822,16 +3818,13 @@ void Test7()
 
 	if(experimentalKeys)
 	{
-		if(keypressed['P']) {keypressed['P'] = 0; CallCommand(CMD_PAUSE);}
-		if(keypressed[VK_ADD]) {keypressed[VK_ADD] = 0; CallCommand(CMD_GAME_SPEED_FASTER);}
-		if(keypressed[VK_SUBTRACT]) {keypressed[VK_SUBTRACT] = 0; CallCommand(CMD_GAME_SPEED_SLOWER);}
+		if(keypressed['P']) CallCommand(CMD_PAUSE);
+		if(keypressed[VK_ADD]) CallCommand(CMD_GAME_SPEED_FASTER);
+		if(keypressed[VK_SUBTRACT]) CallCommand(CMD_GAME_SPEED_SLOWER);
 
-		//if(keypressed['A'])
-		//	{keypressed['A'] = 0; drawdebug = 1;}
 #ifndef WKBRE_RELEASE
 		if(keypressed['W'])
 		{
-			keypressed['W'] = 0;
 			//GameObject *a = FindObjID(3102);
 			//if(a) printf("Got %i\n", a->id);
 /*
@@ -3860,12 +3853,12 @@ void Test7()
 			swTest = !swTest;
 		}
 #endif
-		if(keypressed['A']) {keypressed['A'] = 0; CallCommand(CMD_EXECUTE_COMMAND);}
-		if(keypressed['Y']) {keypressed['Y'] = 0; CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);}
-		if(keypressed['X']) {keypressed['X'] = 0; CallCommand(CMD_RUNACTSEQ);}
-		if(keypressed['C']) {keypressed['C'] = 0; CallCommand(CMD_CREATE_MAPPED_TYPE_OBJECT);}
-		if(keypressed['V']) {keypressed['V'] = 0; CallCommand(CMD_STAMPDOWN_OBJECT);}
-		//if(keypressed['Q']) {keypressed['Q'] = 0; CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);}
+		if(keypressed['A']) CallCommand(CMD_EXECUTE_COMMAND);
+		if(keypressed['Y']) CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);
+		if(keypressed['X']) CallCommand(CMD_RUNACTSEQ);
+		//if(keypressed['C']) CallCommand(CMD_CREATE_MAPPED_TYPE_OBJECT);
+		//if(keypressed['V']) CallCommand(CMD_STAMPDOWN_OBJECT);
+		//if(keypressed['Q']) CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);
 #if 0
 		if(keypressed['B'])
 		{
@@ -3888,7 +3881,13 @@ void Test7()
 			}
 		}
 #endif
-		if(keypressed['S']) {keypressed['S'] = 0; CallCommand(CMD_START_LEVEL);}
+		if(keypressed['S'])
+		{
+			if (keypressed[VK_CONTROL])
+				CallCommand(CMD_START_LEVEL);
+			else
+				GiveNotification("Press CTRL+S to start the level.");
+		}
 #if 0
 		if(keypressed['N'])
 		{
@@ -3907,9 +3906,9 @@ void Test7()
 				printf("%s\n", strUnknownValue.getdp(i));
 		}
 #endif
-		if(keypressed['H']) {keypressed['H'] = 0; CallCommand(CMD_ENABLE_GTW);}
-		if(keypressed['F']) {keypressed['F'] = 0; CallCommand(CMD_CONTROL_CLIENT);}
-		if(keypressed['J']) {keypressed['J'] = 0; CallCommand(CMD_SEND_EVENT);}
+		//if(keypressed['H']) CallCommand(CMD_ENABLE_GTW);
+		if(keypressed['F']) CallCommand(CMD_CONTROL_CLIENT);
+		if(keypressed['J']) CallCommand(CMD_SEND_EVENT);
 	}
 	}
 }

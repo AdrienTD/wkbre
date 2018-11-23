@@ -22,7 +22,7 @@ Vector3 nullvector(0.0f, 0.0f, 0.0f), onevector(1.0f, 1.0f, 1.0f);
 
 Matrix matView, matProj, mWorld, camworld;
 D3DVIEWPORT9 dvport;
-float farzvalue = 250.0f, occlurate = 2.0f/3.0f, verticalfov = 52.5f * M_PI / 180.0f;
+float farzvalue = 250.0f, occlurate = 0.5f /*2.0f/3.0f*/, verticalfov = 0.9;
 float camyaw = 0.0f, campitch = 0.0f;
 Vector3 vLAD;
 goref currentSelection, newSelection; float newSelZ;
@@ -31,7 +31,7 @@ Matrix mReal; //, mWorldMulView;
 Matrix mIdentity;
 
 int enableMap = 1, drawdebug = 1;
-int fogenabled = 0, showrepresentations = 0;
+int fogenabled = 1, showrepresentations = 0;
 
 struct OOBMTex
 {
@@ -39,7 +39,7 @@ struct OOBMTex
 	GrowList<GameObject*> *objs;
 };
 
-bool meshbatching = 0, animsEnabled = 0;
+bool meshbatching = 1, animsEnabled = 1;
 GrowList<OOBMTex> oobm[2];
 RBatch *mshbatch;
 
@@ -392,6 +392,23 @@ Model *GetObjTypeDefaultModel(CObjectDefinition *cod)
 	return m;
 }
 
+void AlignObjPosToGrid(CObjectDefinition* ot, Vector3& pos, float rot)
+{
+	if (ot->type == CLASS_BUILDING)
+	{
+		pos.x = (int)(pos.x / 5) * 5.0f + 2.5f;
+		pos.z = (int)(pos.z / 5) * 5.0f + 2.5f;
+		if (ot->footprint)
+		{
+			int ogx = ot->footprint->origin_x;
+			int ogy = ot->footprint->origin_z;
+			pos.x += ogx * cos(rot) - ogy * sin(rot);
+			pos.z += ogx * sin(rot) + ogy * cos(rot);
+		}
+		pos.y = GetHeight(pos.x, pos.z);
+	}
+}
+
 extern CObjectDefinition *objtypeToStampdown;
 extern goref playerToGiveStampdownObj;
 extern float stampdownRot;
@@ -441,19 +458,7 @@ if(experimentalKeys) {
 	if(playerToGiveStampdownObj.valid())
 	{
 		// Align buildings in the grid.
-		if(objtypeToStampdown->type == CLASS_BUILDING)
-		{
-			stdownpos.x = (int)(stdownpos.x / 5) * 5.0f + 2.5f;
-			stdownpos.z = (int)(stdownpos.z / 5) * 5.0f + 2.5f;
-			if(objtypeToStampdown->footprint)
-			{
-				int ogx = objtypeToStampdown->footprint->origin_x;
-				int ogy = objtypeToStampdown->footprint->origin_z;
-				stdownpos.x += ogx * cos(stampdownRot) - ogy * sin(stampdownRot);
-				stdownpos.z += ogx * sin(stampdownRot) + ogy * cos(stampdownRot);
-			}
-			stdownpos.y = GetHeight(stdownpos.x, stdownpos.z);
-		}
+		AlignObjPosToGrid(objtypeToStampdown, stdownpos, stampdownRot);
 		Model *m = GetObjTypeDefaultModel(objtypeToStampdown);
 		if(m)
 		{

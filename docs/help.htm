@@ -1,5 +1,5 @@
 <html>
-<head><title>wkbre v0.0.9.0 Help file</title></head>
+<head><title>wkbre v0.1.0.0 Help file</title></head>
 <body>
 <style>
 body {
@@ -18,15 +18,39 @@ th {
 }
 </style>
 
-<h1>wkbre v0.0.9.0 Help file</h1>
+<h1>wkbre v0.1.0.0 Help file</h1>
 
-<h2>Introduction</h2>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="#intro">Introduction</a></li>
+<li><a href="#start">Start</a></li>
+<li><a href="#custommaps">Creating new custom maps</a></li>
+
+<li><a href="#windows">Windows</a>
+<ul>
+<li><a href="#objinfo">Object information</a></li>
+<li><a href="#leveltree">Level tree</a></li>
+<li><a href="#levelinfo">Level information</a></li>
+<li><a href="#objcreation">Object creation</a></li>
+<li><a href="#terraineditor">Terrain editor</a></li>
+<li><a href="#citycreator">City creator</a></li>
+<li><a href="#minimap">Minimap</a></li>
+</ul></li>
+
+<li><a href="#gameplay">Playing games in wkbre</a></li>
+<li><a href="#keys">Keys</a></li>
+<li><a href="#settings">Settings</a></li>
+<li><a href="#knownissues">Known issues</a></li>
+<li><a href="#contact">Contact</a></li>
+</ul>
+
+<h2 id="intro">Introduction</h2>
 <p><b><i>wkbre</i></b> is a engine reimplementation of the game <b>Warrior Kings (Battles)</b> (developed by Black Cactus) in which you can load, edit, play and save saved games of the game. It loads the game set, including the .cpp files, meshes, textures, …, so you can get a 3D view looking exactly as in the game.</p>
 <p>The program is open source and is licensed under the GNU GPL 3. The source code and the latest build are available here: <a href="https://github.com/AdrienTD/wkbre">https://github.com/AdrienTD/wkbre</a></p>
 
-<h2>Start</h2>
-<p>First you need to configure the "settings.txt" file. Ensure that the <b>GAME_DIR</b> value is the directory of the game (with "data.bcp" and the "saved" folder). The other settings are not important.</p>
-<p>Now you can start the executable (wkbre.exe). If it doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
+<h2 id="start">Start</h2>
+<p>First, you should tell wkbre the folder path where the game is installed. To do this, either <b>copy</b> the executable <b>wkbre_vc.exe</b> to the game's directory (where you should find "Warrior Kings (Battles).exe", "data.bcp" and the "saved" folder). Or you can also leave wkbre in its own directory: open the <b>"settings.txt"</b> file (which must be at the same directory as wkbre_vc.exe), and change the <b>GAME_DIR</b> value to the directory path of the game.</p>
+<p>Now you can start the executable (wkbre_vc.exe). If it doesn’t start, be sure that the Visual C++ 2010 Redistributable Package (x86) and the latest DirectX runtime are installed. If not, you can download them from <a href="http://www.microsoft.com/download">http://www.microsoft.com/download</a> .</p>
 <p>You will be asked which saved game you want to load. Select a file in the list then click <b>Load</b> or <b>double-click</b> the file to open it. If you click <b>Play</b> instead, the game will be started and unpaused when loaded!</p>
 <p>Use the <b>arrow</b>, <b>‘E’</b> and <b>‘D’</b> keys to move the camera. Hold the <b>NumPad 0</b> key and move the mouse to rotate the camera. You can also <b>scroll the mouse wheel</b> to move up/down, and press the <b>middle mouse button and move the mouse</b> to rotate the camera.</p>
 <p><b>Click</b> an object to select it. Press the <b>Control</b> key and the <b>arrow</b> keys at the same time to move the selected object. You can also press the <b>N</b> key to duplicate the selected object, the <b>Delete</b> key to delete it, and the <b>*</b> or <b>/</b> key to change the size. Look at the menu bar in the program or the Keys section of this document for a list of available commands.</p>
@@ -34,34 +58,35 @@ th {
 <p>To create a new object, click <b>Window > Object creation</b> and a window will open. First click the white box next to <b>"Give to:"</b> to select the player you want to give the new object, then click in the big list <b>the type of the new object</b>. You can shorten the list by typing a part of the type name in the <b>"Filter"</b> text box. Once you have chosen a type in the list box, do a <b>right-click on the game view</b> to create the object.</p>
 <p>Once you have finished doing some modifications in the level, press <b>F3</b> and type the name of the new savegame. The name should end with <b>“.sav”</b> (for a savegame) or <b>“.lvl”</b> (for a new skirmish level), otherwise the game won’t display it in its list.</p>
 
-<h2>Creating new custom maps</h2>
-<p>wkbre v0.0.8 has new features and improvements with which it is easier to make new custom maps that you can play against AIs and real human players.</p>
+<h2 id="custommaps">Creating new custom maps</h2>
+<p>wkbre's most notable feature is to allow you to make new custom maps that you can play against AIs and real human players.</p>
 <p>When you first start wkbre, you can see the option <b>&lt;New empty level></b>. If you choose it, you will get an empty level with a flat terrain, 8 players and no more objects, so that you can create a new map from scratch.</p>
 <p>Click <b>Window > Terrain editor</b> to open the Terrain editor window, which provides you functions to modify the terrain. In the Tools section you can find tools like terrain height (vertex) elevation, texture changing, lake insertion, etc.</p>
 <p>Each tool will change the behaviour of the mouse buttons. For example if you use the <b>Vertex Elevate</b> tool, pressing the left mouse button on the terrain will increase the height, and a right click will decrease instead. If you want to go back to the default tool (object selection), then click <b>Default</b>.</p>
 <p>By default, when creating a new level, the map size is 128x128 tiles. If you want to change the size, click the <b>"New"</b> button at the top of the Terrain editor window. This will show a popup where you can specify a new map size, but note that this will reset the whole terrain!</p>
-<p>If you want to save the terrain, type a name in the <b>Name</b> textbox, then click the either "Save SNR" or "Save BCM". The difference between the SNR and BCM formats are:</p>
+<p>If you want to save the terrain, type a name in the <b>Name</b> textbox, then click the either <b>"Save SNR"</b> or <b>"Save BCM"</b>. The difference between the SNR and BCM formats are:</p>
 <ul>
-<li>SNR is compatible with both WK and WKB, and uses a set of text and bitmap (PCX) files, so that you can edit the map without the editor. The downside is that it can become really big if the map is large. For example for a 1024x1024 sized map, it might take ~62 MB (whereas as BCM it is ~2MB).</li>
+<li>SNR is compatible with both WK and WKBattles, and uses a set of text and bitmap (PCX) files, so that you can edit the map without the editor. The downside is that it can become really big if the map is large. For example for a 1024x1024 sized map, it might take ~62 MB (whereas as BCM it is ~2MB).</li>
 <li>BCM is a binary file format that can have smaller sizes, but the disadvantage is that it is only supported in WKBattles and not the first WK.</li>
 </ul>
 <p>You can find your saved terrain files in <b>&lt;GAME_DIR>\saved\Maps\&lt;name>\&lt;name>.snr/.bcm</b>.</p>
 <p>Please note that SNR and BCM "map files" only contain the terrain and eventually lakes. They don't contain any objects like units and buildings. The objects are saved in the "savegame" (SAV) or "level" (LVL).</p>
-<p>When you save your terrain, the current savegame/level will be automatically bound to the saved terrain. To check to which map file the current savegame is bound, go to <b>Window > Level information > Properties > Map:</b>.</p>
+<p>When you save your terrain, the current savegame/level will be automatically bound to the saved terrain. To check to which terrain file the current savegame is bound, go to <b>Window > Level information > Properties > Map:</b>.</p>
 <p>Click <b>Window > City creator</b> to open a window where you create cities with automatically a manor inside and peasants in front of it. First click the <b>Add/remove city</b> radio button, then <b>choose a player</b>, and <b>left-click</b> on the area where you want to put the city. You can press R before clicking to rotate the manor. <b>Right-click</b> a city to remove it. At the end click <b>Default</b> to go back to object selection tool.</p>
 <p>You can now put objects like trees and props with <b>Window > Object creation</b>. Be sure that the <b>Send "On Stampdown" event</b> checkbox is disabled for most cases. For objects like trees that are not owned by human players, give them to the <b>Neutral Player</b>.</p>
 <p>The developers of the game have left in WKBattles' game set scripts certain special objects that, by stamping them down, will generate lots of trees around, so that you don't have to create every single tree. To do this, check the <b>Send "On Stampdown" event</b> then in the <b>Filter</b> box, type <b>auto</b>. In the listbox, click for example <b>MARKER "AutoTrees Coniferous-10"</b>. By creating it, you will get 10 trees as well as some bushes and birds! Try other auto markers as well. If you don't need auto objects anymore, be sure to disable the On Stampdown checkbox back.</p>
 <p>You also need to set the starting camera position of every player. To do this, open <b>Window > Object information</b>, then go to <b>Window > Level information > Human players list</b>, click a player, and in the Object information window, click <b>Start camera</b>. You should see the button <b>Set</b>. Move your camera and click this button to set the starting camera position of the selected player object to the current position of the camera.</p>
 <p>To save the level, press <b>F3</b> and type a name with an ending of <b>.lvl</b> . Note that if you have modified the terrain/map, be sure to save the terrain/map before saving the level/savegame, so that the level is already bound to the modified terrain.</p>
 <p>To play your custom level in the game, be sure that you have installed <a href="http://steamcommunity.com/groups/WARKC/discussions/0/1319961618834033179/">my unofficial patch</a>. This patch will make custom levels appear in the skirmish and multiplayer menus.</p>
-<p>If you want to play your custom level in multiplayer, be sure that you give to all players the terrain file (SNR/BCM) and the level file (LVL/SAV) which must be installed in the same directories as they were found on your computer ("saved" directory).</p>
+<p>Now if you are happy with your custom map and want to share it with other players, you can pack your terrain and level files together in a single BCP file which makes uploading and installing much easier. To do this, load your custom map into wkbre, then click <b>File > Export map to BCP...</b> to create a BCP file with your map. So if someone wants to try your map, what he/she has to do first is just to copy to the game's directory (where you can find the .exe and the data.bcp files) the BCP file, as well as the unofficial patch if he hasn't done before. Then he/she should be able to see the custom map in the skirmish/multiplayer map selection list.</p>
+<p>If you want to play your custom level in multiplayer, be sure that all players have copied the exported BCP file of your map to the game's directory (as well as the unofficial patch in form of d3d8.dll).</p>
 
-<h2>Windows</h2>
-<p>Since v0.0.7, wkbre has a few floating windows which allows you to view/edit a lot of properties the savegame and its objects. You can open them via the <b>Window</b> submenu.</p>
+<h2 id="windows">Windows</h2>
+<p>wkbre features some floating windows which allows you to view/edit a lot of properties of the level/savegame and its objects. You can open them via the <b>Window</b> submenu.</p>
 <p>These windows are done thanks to the open source <a href="https://github.com/ocornut/imgui">Dear ImGui</a> library, so any tricks and keyboard shortcuts of Dear ImGui also apply here.</p>
 <p>The windows are:</p>
 
-<h3>Object information</h3>
+<h3 id="objinfo">Object information</h3>
 <p>This shows information/properties of the first selected object. If no object is selected, it shows nothing.</p>
 <p>At the top, you can see the ID and type of the selected object. Click <b>Change type</b> to change the object type. Depending on the object, you can also see the player, parent, name and color of the object. Clicking the <b>"->"</b> button will select the mentioned object. Clicking the player name will show a popup where you can change the player of the object. If a player object is selected, clicking the color button will show a popup where you can change the color of the player.</p>
 <p>The window is also divided in sections/groups that are all closed by default. To open one, click it.</p>
@@ -76,10 +101,10 @@ th {
 <li>If a PLAYER object is selected, you will also see the <b>Start camera</b> group, where you see and change the starting position of the player's camera.</li>
 </ul>
 
-<h3>Level tree</h3>
+<h3 id="leveltree">Level tree</h3>
 <p>Here you can view the whole tree of the objects in the level. Click a node to show its subordinates. Right-click a node to select the object (SHIFT+right-click to add to selection).</p>
 
-<h3>Level information</h3>
+<h3 id="levelinfo">Level information</h3>
 <p>Like the Object information window, the window is divided in sections:</p>
 <ul>
 <li>In <b>Properties</b>, you can change the gameset, map, game type, campaign name and server name. Changes on these values will only take effect after the savegame is saved and reopened, and might make the savegame unopenable if they are incorrect. In this case you can always change them with a text editor by searching for GAME_SET, GAME_TYPE and MAP.<br>(If you want to open a new terrain file immediately, go to <b>Terrain editor > Open</b> instead.)</li>
@@ -89,11 +114,11 @@ th {
 <li>In <b>Human players list</b> you can see the list of human players (for skirmish and multiplayer). You can add and remove human players, which changes the number of players required for the level. It is also possible to move the players in the list, so you can swap the positions of the players with few clicks.</li>
 </ul>
 
-<h3>Object creation</h3>
+<h3 id="objcreation">Object creation</h3>
 <p>Here you can easily create new objects. See the Start section of this document for a guide on how to use it.</p>
 <p>The <b>Send "On Stampdown" event</b> checkbox will execute some game script after the object is created. This is especially needed for some MARKER objects. For example for a MARKER "AutoTrees ..." object this will automatically generate trees around the position of the new marker. For a village building, this will also automatically generate a cart. Sometimes this feature is important as the script that will be executed will initialise the new object properly. It is recommended to enable this feature with SAV files and to disable it with non-started LVL files.</p>
 
-<h3>Terrain editor</h3>
+<h3 id="terraineditor">Terrain editor</h3>
 <p>The Terrain editor allows you create, open and edit map files (terrains).</p>
 <p>At the beginning you see a textbox for the name of the terrain you want to open or the name you want to save your terrain as.</p>
 <ul>
@@ -110,7 +135,7 @@ th {
 <ul>
 <li>The <b>Default</b> is the standard tool (select game objects).</li>
 <li>The <b>Texture</b> allows you to change the textures of the tiles of the terrain. You first need to select a texture in the <b>Texture</b> section. Then click on the terrain to apply the new texture. Do a right-click if you want to select the texture that is on the tile you are pointing to on the terrain.</li>
-<li>The <b>Autotiles</b> is similar to <b>Texture</b> but will also automatically determine the textures for the tiles around the tile you clicked so that they match with the rest of the terrain.</li>
+<li>The <b>Autotile</b> is similar to <b>Texture</b> but will also automatically determine the textures for the tiles around the tile you clicked so that they match with the rest of the terrain.</li>
 <li>The <b>Elevate</b> tool allows you to change the height of the terrain. Do a click to make the area higher, or a right-click to make it lower.</li>
 <li>The <b>Flatten</b> tool will copy the height of the tile you clicked and apply to every vertex you point at while keeping the left mouse button pressed.</li>
 <li>The <b>Equalize</b> tool will equilibrate the heights of the vertices to an average. Can look like smoothing.</li>
@@ -135,8 +160,10 @@ th {
 <li>In the box below, you select the texture you want to use. When hovering a texture, a tooltip will display the ID of the texture.</li>
 <li>In <b>Rotation</b> you can rotate the texture by 0, 90, 180 and 270 degrees.</li>
 <li>In <b>Flip</b> you can flip the texture in the X and/or Z direction.</li>
-<li>If the <b>Randomize textures</b> checkbox is checked, and you use the Texture tool, then the program will choose another texture from the same group for the next draw.</li>
+<li>If the <b>Randomize textures</b> checkbox is checked, and you use the Texture or Autotile tool, then the program will select another matching texture from the same group every time you draw.</li>
+<li>If the <b>Randomize transformation</b> checkbox is checked, and you use the Texture or Autotile tool, then the program will randomize the rotation and X/Z flip of the texture while you are drawing.</li>
 </ul>
+
 <p>In the <b>Lakes</b> section:</p>
 <ul>
 <li>The <b>Clear</b> button will remove all lakes.</li>
@@ -145,10 +172,10 @@ th {
 <li>At the end you can see a <b>list of all lakes with their starting position and height</b>. You can remove a lake individually by clicking the <b>X</b> button.</li>
 </ul>
 
-<h3>City creator</h3>
+<h3 id="citycreator">City creator</h3>
 <p>To create a new city with a manor inside, click the <b>Add/remove city</b>, choose a player, then <b>click</b> on the terrain where you want to create the city. You can also <b>right-click</b> an existing manor city to remove it. In the window you can also change the size, the number of peasants as well as if you want flags in front of the city or not.</p>
 
-<h3>Minimap</h3>
+<h3 id="minimap">Minimap</h3>
 <p>This will display a minimap of the level and the terrain.</p>
 <p>Note that the minimap is refreshed every frame, thus causing lags. So if you don't need the minimap, close it.
 <ul>
@@ -158,19 +185,20 @@ th {
 <li>If the <b>Objects</b> checkbox is checked, then the positions of the objects are drawn on the minimap, otherwise not.</li>
 </ul>
 
-<h2>Playing games in wkbre</h2>
-<p>wkbre is also able to let you play the game. This is done by interpreting the game set script which can be found in the game data (data.bcp).</p>
+<h2 id="gameplay">Playing games in wkbre</h2>
+<p>wkbre is also able to let you play the game. This is done by interpreting the game set script which can be found in the game data as .cpp files.</p>
 <p>When you press <b>'P'</b>, the game will be unpaused. You can see your units moving, peasants doing their work, units attacking, etc...</p>
 <p>When you have selected an unit you can also give it an order by <b>right-clicking</b> a target, or press <b>'A'</b> to execute button commands.</p>
 <p>Please note that savegames with AI players might not work because some game set script features related to AI are not supported yet.</p>
-<p>If you have opened a lvl file, you can press <b>'S'</b> to start the level (for example in a tutorial this will show the first message).</p>
+<p>If you have opened a lvl file, you can press <b>'Control + S'</b> to start the level and intialize the game (for example in a tutorial this will show the first message, and in Battles it "should" initialize the AI).</p>
+<p>Please keep in mind that whenever you start a level, it will convert the level (LVL) into a savegame (SAV), <b><u>and you can't revert back to a LVL!</u></b><br>So if you made a new level, be sure to save it as a LVL file before starting it.</p>
 <p>You can also start a level directly after loading by clicking the <b>"Play"</b> button in the Load level/savegame select window instead of the "Load" button.</p>
 <p>You can also take control of the camera of a player/client with <b>'F'</b>.</p>
 <p>Finally, press <b>'Enter'</b> to switch into a "Game" interface.</p>
 <p>See the Keys section and the "Game" submenu in the menu bar for a list of available commands.</p>
 <p>Also please keep in mind that the ability to play games in wkbre is "experimental", this means some features are missing and bugs can be encountered.</p>
 
-<h2>Keys</h2>
+<h2 id="keys">Keys</h2>
 <p>The number (0-9) keys in the numeric keypad (NumPad) cannot be used, except if explicitely stated.</p>
 <table>
 <thead><tr><th>Key</th><th>Function</th></tr></thead>
@@ -194,11 +222,13 @@ th {
 <tr class="subhead"><td colspan="2"><b>Level editing</b></td></tr>
 <tr><td>Left mouse button</td><td>Select the object pointed by the mouse cursor (if the object is red).<br>Hold Shift for multiple selection.<br>Hold the left button for drag selection.</td></tr>
 <tr><td>N</td><td>Duplicate selected object.</td></tr>
+<tr><td>Home</td><td>Give selected object to another player.</td></tr>
 <tr><td>Delete</td><td>Delete selected object.</td></tr>
 <tr><td>* (NumPad)</td><td>Multiply selected object’s scale by 1.5.</td></tr>
 <tr><td>/ (NumPad)</td><td>Divide selected object’s scale by 1.5.</td></tr>
 <tr><td>R</td><td>Rotate selected objects, stampdown object or new city by 90°.</td></tr>
 <tr><td>Control + Arrow key</td><td>Move selected object (hold down Shift to move it faster)</td></tr>
+<tr><td>Control + Left-click</td><td>Place the selected objects to where the mouse points at</td></tr>
 <tr><td>F2</td><td>Reset object heights</td></tr>
 <tr><td>F3</td><td>Save game</td></tr>
 <!--<tr><td>F4</td><td>Delete all objects of selected class</td></tr>-->
@@ -209,19 +239,20 @@ th {
 <tr><td>P</td><td>Pause/unpause game.</td></tr>
 <tr><td>+</td><td>Increase game speed.</td></tr>
 <tr><td>-</td><td>Decrease game speed.</td></tr>
-<tr><td>S</td><td>Start the level. (Send "On Level Start" event to all objects.)</td></tr>
+<tr><td>Control + S</td><td>Start the level. (Send "On Level Start" event to all objects.)</td></tr>
 <tr><td>F</td><td>Control a client (including its camera).</td></tr>
 <tr><td>Right-click</td><td>Execute cursor command on the selected objects (target is object under the mouse cursor.)
    <br>With <b>Shift</b>: Do order last.
    <br>With <b>Control</b>: Do order first (current order will be suspended).
    <br>With nothing: Cancel all orders in stack then do the order.</td></tr>
 <tr><td>X</td><td>Execute action sequence</td></tr>
-<tr><td>C</td><td>Create a mapped type object via the selected object</td></tr>
-<tr><td>V</td><td>Create object, put it in the same position of the selected object and send the "On Stampdown" event to it.</td></tr>
+<!--<tr><td>C</td><td>Create a mapped type object via the selected object</td></tr>-->
+<!--<tr><td>V</td><td>Create object, put it in the same position of the selected object and send the "On Stampdown" event to it.</td></tr>-->
 <tr><td>A</td><td>Execute command on selected objects (without target)</td></tr>
 <tr><td>Y</td><td>Execute command on first selected objects targetting last selected object.</td></tr>
-<tr><td>H</td><td>Display a game text window.</td></tr>
+<!--<tr><td>H</td><td>Display a game text window.</td></tr>-->
 <tr><td>J</td><td>Send an event to the selected objects.</td></tr>
+<tr><td>0</td><td>Game "step": Unpause the game for one single frame.</td></tr>
 <tr class="subhead"><td colspan="2"><b>Misc.</b></td></tr>
 <tr><td>Escape</td><td>Exit</td></tr>
 <tr><td>F1</td><td>Show this help.htm file.</td></tr>
@@ -241,7 +272,7 @@ th {
 </table>
 <p>There are also more commands which can only be accessed from the menu bar.</p>
 
-<h2>Settings</h2>
+<h2 id="settings">Settings</h2>
 <p>In “settings.txt”:</p>
 <table>
 <thead><tr><th>Setting</th><th>Value</th></tr></thead>
@@ -271,13 +302,16 @@ th {
 <tr><td>SHOW_TIME_OBJ_INFO</td><td>Display the current time and values for the selected object: 0 = disabled, 1 = enabled<br>Can be changed in runtime via the menubar.</td></tr>
 <tr><td>ENABLE_GAMESET_TRACING</td><td>Allow the gameset script to print trace information into the console (stdout). 1 = yes, 0 = no</td></tr>
 <tr><td>R_OGL1_USE_BUFFER_OBJECTS</td><td>1 = Use OpenGL Vertex Buffer Object extension, 0 = no</td></tr>
+<tr><td>MAC_FILENAME_FALLBACK</td><td>1 = If a file is not found, then try again with a truncated file name for compatibility with the Mac version. 0 = fail otherwise</td></tr>
+<tr><td>ENABLE_LANGUAGE_FILE</td><td>1 = Use the "Languages\Language.txt" file. 0 = Don't use it and show "Not localized" text instead.</td></tr>
+<tr><td>IMGUI_FONT</td><td>Path of font filename to use in Dear ImGui windows. And optionally, a number can be added next to the path to indicate the size of the font. For example: IMGUI_FONT "Morpheus.ttf" 30</td></tr>
 </tbody>
 </table>
 
-<h2>Known issues</h2>
+<h2 id="knownissues">Known issues</h2>
 <ul>
-<li><b>The Autotiles doesn't work correctly</b>
-<br>I've spent a lot of time implementing and I don't know how the autotiling feature really works (the information is present in data.bcp\Maps\Map_Textures\All_Textures.dat).</li>
+<!--<li><b>The Autotiles doesn't work correctly</b>
+<br>I've spent a lot of time implementing and I don't know how the autotiling feature really works (the information is present in data.bcp\Maps\Map_Textures\All_Textures.dat).</li>-->
 <li><b>When using WK data, some map textures are totally red (not found).</b>
 <br>This is because of how textures are stored in game data. When you take a look at the All_Textures.dat file, you can see that it references files like grass1.pcx which can be found at Maps\Map_Textures. This file exists in WKB, but not the first WK. Instead, you see in Maps\Map_Textures LTTT files as well as the "Packed" folder. The LTTT contains a table that translates a file name like grass1.pcx into a file name in the Packed folder. It also translates the position of the textures in the bitmap. There is a LTTT for every existing map. And the problem is that the LTTT only contains translations for textures that are used in the terrain, meaning that if for example the snow texture is not used in the map, then there is no information which allows us to know in which file in the "Packed" folder it is present. So wkbre doesn't find it and uses the sad red smiley texture instead.
 <br>Also, if you create a new map, no LTTT is loaded, meaning that wkbre expects for example the file grass1.pcx to really exist.
@@ -310,9 +344,11 @@ th {
 <p>The last two tips can also be done with the new <b>Objects creation</b> window with the <b>Send "On Stampdown" event</b> checkbox enabled.</p>
 -->
 
-<h2>Contact</h2>
+<h2 id="contact">Contact</h2>
 <p>If you have a questions, you have found a bug or simply have a suggestion, please contact me:</p>
+<p>Name: AdrienTD</p>
 <p>Email: <a href="mailto:agpetit69@gmail.com">agpetit69@gmail.com</a></p>
+<p>Visit our <a href="https://discord.gg/dkb7APh">Discord server</a>!</p>
 <p>Or visit the <a href="http://steamcommunity.com/groups/WARKC">Warrior Kings Community on Steam</a> or the <a href="http://wkforums.de.to/">Warrior Kings Forum</a>.</p>
 <p>And don't forget to go to <a href="https://github.com/AdrienTD/wkbre">wkbre's GitHub repository</a> for the lastest version of wkbre and the source code!</p>
 <p>Enjoy! :) </p>

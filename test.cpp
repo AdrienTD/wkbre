@@ -96,12 +96,12 @@ void Test3()
 		EndDrawing();
 		HandleWindow();
 
-		if(keypressed[VK_UP]) camerapos += Vector3(0.0f, 0.0f, walkstep);
-		if(keypressed[VK_DOWN]) camerapos -= Vector3(0.0f, 0.0f, walkstep);
-		if(keypressed[VK_LEFT]) camerapos -= Vector3(walkstep, 0.0f, 0.0f);
-		if(keypressed[VK_RIGHT]) camerapos += Vector3(walkstep, 0.0f, 0.0f);
-		if(keypressed['E']) camerapos += Vector3(0.0f, walkstep, 0.0f);
-		if(keypressed['D']) camerapos -= Vector3(0.0f, walkstep, 0.0f);
+		if(keyheld[VK_UP]) camerapos += Vector3(0.0f, 0.0f, walkstep);
+		if(keyheld[VK_DOWN]) camerapos -= Vector3(0.0f, 0.0f, walkstep);
+		if(keyheld[VK_LEFT]) camerapos -= Vector3(walkstep, 0.0f, 0.0f);
+		if(keyheld[VK_RIGHT]) camerapos += Vector3(walkstep, 0.0f, 0.0f);
+		if(keyheld['E']) camerapos += Vector3(0.0f, walkstep, 0.0f);
+		if(keyheld['D']) camerapos -= Vector3(0.0f, walkstep, 0.0f);
 	}
 }
 
@@ -509,12 +509,10 @@ void Test22()
 
 		if(keypressed[VK_LEFT])
 		{
-			keypressed[VK_LEFT] = 0;
 			if(curgrp > 0) curgrp--;
 		}
 		if(keypressed[VK_RIGHT])
 		{
-			keypressed[VK_RIGHT] = 0;
 			if(curgrp < maptexgroup.len-1) curgrp++;
 		}
 
@@ -617,17 +615,17 @@ void Test23()
 		delete batch;
 
 		if(keypressed[VK_LEFT])
-			{keypressed[VK_LEFT] = 0; px--;}
+			px--;
 		if(keypressed[VK_RIGHT])
-			{keypressed[VK_RIGHT] = 0; px++;}
+			px++;
 		if(keypressed[VK_UP])
-			{keypressed[VK_UP] = 0; pz--;}
+			pz--;
 		if(keypressed[VK_DOWN])
-			{keypressed[VK_DOWN] = 0; pz++;}
+			pz++;
 		if(keypressed[VK_MULTIPLY])
-			{keypressed[VK_MULTIPLY] = 0; ps <<= 1;}
+			ps <<= 1;
 		if(keypressed[VK_DIVIDE])
-			{keypressed[VK_DIVIDE] = 0; ps >>= 1;}
+			ps >>= 1;
 		if(ps <= 0) ps = 1;
 
 		EndDrawing();

@@ -20,7 +20,7 @@
 
 extern char appName[];
 extern HWND hWindow;
-extern bool keypressed[256];
+extern bool keypressed[256], keyheld[256];
 extern int drawfps, drawframes, objsdrawn;
 extern int HWVPenabled, VSYNCenabled, numBackBuffers, reqRender;
 extern IDirect3DDevice9 *ddev;
@@ -31,6 +31,7 @@ extern int winMinimized;
 extern int fullscreen;
 extern bool lostdev;
 extern float mouseWheel;
+extern bool imguienabled;
 
 struct IRenderer;
 extern IRenderer *renderer;

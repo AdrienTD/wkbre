@@ -913,11 +913,15 @@ void SaveMapBCM(char *filename)
 	bwcurbyte = 0; bwnextbit = 0; bwfile = bcm;
 
 	// Lakes
-	writenb(6, maplakes.len);
+	if (maplakes.len >= 64)
+		MessageBox(hWindow, "The terrain has 64 or more lakes, but the BCM format only supports up to 63 lakes.\nOnly the first 63 lakes will be kept and saved.", appName, 48);
+	writenb(6, (maplakes.len >= 63) ? 63 : maplakes.len);
+	int nlkw = 0;
 	for(DynListEntry<Vector3> *e = maplakes.first; e; e = e->next)
 	{
 		writefloat(e->value.x); writefloat(e->value.y); writefloat(e->value.z);
 		writenb(2, 0);
+		if (++nlkw >= 63) break;
 	}
 
 	// Make a list of used groups, IDs, and textures.

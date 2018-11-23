@@ -1,16 +1,27 @@
-// This is the settings file.
+// This is the settings file for wkbre, the Warrior Kings Recreated Engine.
 // See help.htm for help.
 
 // Change the following value to the path where WK(B) is installed.
+//
 GAME_DIR "C:\Program Files (x86)\Empire Interactive\Warrior Kings - Battles"
 
 // If wkbre fails to detect the version of the game (WK1 or WKBattles)
 // correctly, then change the following value to force the version:
+//
 GAME_SET_VERSION 0
+//
 // 0 = autodetect, 1 = Warrior Kings 1/Original, 2 = Warrior Kings Battles
+
+// wkbre has not been tested with every language version of the game.
+// In case wkbre doesn't load, especially on versions with non-latin
+// characters, try disabling the language file by setting the following
+// setting to 0:
+//
+ENABLE_LANGUAGE_FILE 1
 
 MULTI_BCP 1
 DATA_DIRECTORY 0
+MAC_FILENAME_FALLBACK 1
 
 SCREEN_SIZE 800 600
 FULLSCREEN 0
@@ -25,8 +36,10 @@ FAR_Z_VALUE 250
 OCCLUSION_RATE 0.5
 MAP_MAX_PART_SIZE 32 32
 FOG 1
-FONT "Fonts\Proportional\20\Proportional - 20.font"
 VERTICAL_FOV 51.5662
+
+FONT "Fonts\Proportional\20\Proportional - 20.font"
+//IMGUI_FONT "Morpheus.ttf" 24
 
 USE_MAP_TEXTURE_DATABASE 1
 MESH_BATCHING 1

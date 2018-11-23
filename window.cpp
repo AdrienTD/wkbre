@@ -19,9 +19,10 @@
 char appName[] = "wkbre", className[] = "AG_wkbreWinClass";
 HWND hWindow = 0;
 char fpstbuf[256];
-bool keypressed[256];
+bool keypressed[256], keyheld[256];
+bool imguienabled = false;
 
-int scrw = 640, scrh = 480;
+int scrw = 800, scrh = 600;
 int drawfps = 0, drawframes = 0, objsdrawn = 0;
 int mouseX = 0, mouseY = 0; bool lmbPressed = 0, rmbPressed = 0, mmbPressed = 0;
 int HWVPenabled = 1, VSYNCenabled = 1, numBackBuffers = 1, reqRender = 1;
@@ -55,16 +56,19 @@ void GUIMouseMove()
 		movingguielement->posy = mouseY + movge_ry;
 	}
 
-	ImGuiIO &io = ImGui::GetIO();
-	io.MousePos.x = mouseX; io.MousePos.y = mouseY;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MousePos.x = mouseX; io.MousePos.y = mouseY;
+	}
 }
 
 void GUIMouseClick()
 {
-	ImGuiIO &io = ImGui::GetIO();
-	io.MouseDown[0] = true;
-	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
-	if(io.WantCaptureMouse) return;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MouseDown[0] = true;
+		if (io.WantCaptureMouse) return;
+	}
 
 	lmbPressed = 1;
 	if(actsubmenu)
@@ -76,10 +80,11 @@ void GUIMouseClick()
 
 void GUIMouseRightClick()
 {
-	ImGuiIO &io = ImGui::GetIO();
-	io.MouseDown[1] = true;
-	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
-	if(io.WantCaptureMouse) return;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MouseDown[1] = true;
+		if (io.WantCaptureMouse) return;
+	}
 
 	rmbPressed = 1;
 	if(actsubmenu)
@@ -96,10 +101,11 @@ void GUIMouseMiddleClick()
 
 void GUIMouseRelease()
 {
-	ImGuiIO &io = ImGui::GetIO();
-	io.MouseDown[0] = false;
-	//if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
-	if(io.WantCaptureMouse) return;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MouseDown[0] = false;
+		if (io.WantCaptureMouse) return;
+	}
 
 	lmbPressed = 0;
 	if(actualpage)
@@ -108,10 +114,11 @@ void GUIMouseRelease()
 
 void GUIMouseRightRelease()
 {
-	ImGuiIO &io = ImGui::GetIO();
-	io.MouseDown[1] = false;
-	////if(ImGui::IsMouseHoveringAnyWindow() || io.WantCaptureMouse) return;
-	if(io.WantCaptureMouse) return;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MouseDown[1] = false;
+		if (io.WantCaptureMouse) return;
+	}
 
 	rmbPressed = 0;
 }
@@ -123,35 +130,43 @@ void GUIMouseMiddleRelease()
 
 void GUIKeyDown(int key)
 {
-	ImGuiIO &io = ImGui::GetIO();
-	if(io.WantCaptureKeyboard)
-		io.KeysDown[key] = 1;
-	else
-		keypressed[key] = 1;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		if (io.WantCaptureKeyboard) {
+			io.KeysDown[key] = 1;
+			return;
+		}
+	}
+	keypressed[key] = 1;
 }
 
 void GUIKeyUp(int key)
 {
-	ImGuiIO &io = ImGui::GetIO();
-	//if(io.WantCaptureKeyboard)
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
 		io.KeysDown[key] = 0;
-	//else
-		keypressed[key] = 0;
+	}
+	keypressed[key] = 0;
 }
 
 void GUICharTyped(int c)
 {
 	if(c & 0xFFFF0000) return;
-	ImGuiIO &io = ImGui::GetIO();
-	if(!io.WantCaptureKeyboard) return;
-	io.AddInputCharacter((ushort)c);
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		if (!io.WantCaptureKeyboard) return;
+		io.AddInputCharacter((ushort)c);
+	}
 }
 
 void GUIMouseWheel(int w)
 {
-	ImGuiIO &io = ImGui::GetIO();
-	io.MouseWheel += w / 120.0f;
-	if(!io.WantCaptureMouse) mouseWheel += w / 120.0f;
+	if (imguienabled) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MouseWheel += w / 120.0f;
+		if (io.WantCaptureMouse) return;
+	}
+	mouseWheel += w / 120.0f;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -227,6 +242,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void HandleWindow()
 {
+	// Reset pressed keys to false.
+	memset(keypressed, 0, sizeof(keypressed));
+	// Check for held keys.
+	BYTE ks[256];
+	GetKeyboardState(ks);
+	bool igkbcapture = false;
+	if (imguienabled)
+		if (ImGui::GetIO().WantCaptureKeyboard)
+			igkbcapture = true;
+	if ((GetActiveWindow() == hWindow) && !igkbcapture)
+		for (int i = 0; i < 256; i++)
+			keyheld[i] = ks[i] & 0x80;
+	else
+		for (int i = 0; i < 256; i++)
+			keyheld[i] = false;
+
 	MSG msg;
 	if(winMinimized) WaitMessage();
 	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
