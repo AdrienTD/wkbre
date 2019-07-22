@@ -51,7 +51,7 @@ public:
 	WDirectory root;
 
 	BCPWriter(char *fn);
-	uint createFile(void *pnt, size_t siz);
+	uint createFile(void *pnt, uint siz);
 	void finalize();
 	void copyFile(char *fn);
 };

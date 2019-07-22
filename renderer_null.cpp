@@ -69,9 +69,13 @@ struct NULLRenderer : public IRenderer
 	void EnableColorBlend() {}
 	void DisableColorBlend() {}
 	void SetBlendColor(int c) {}
+	void EnableAlphaBlend() {}
+	void DisableAlphaBlend() {}
 	void EnableScissor() {}
 	void DisableScissor() {}
 	void SetScissorRect(int x, int y, int w, int h) {}
+	void EnableDepth() {};
+	void DisableDepth() {};
 
 	// 2D Rectangles drawing
 	void InitRectDrawing() {}

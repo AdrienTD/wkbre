@@ -23,6 +23,8 @@ struct batchVertex
 	};
 	int color;
 	float u, v;
+	batchVertex() {}
+	batchVertex(float _x, float _y, float _z, int _color, float _u, float _v) : x(_x), y(_y), z(_z), color(_color), u(_u), v(_v) {}
 };
 
 struct RBatch
@@ -79,10 +81,13 @@ struct IRenderer
 	virtual void EnableColorBlend() = 0;
 	virtual void DisableColorBlend() = 0;
 	virtual void SetBlendColor(int c) = 0;
+	virtual void EnableAlphaBlend() = 0;
+	virtual void DisableAlphaBlend() = 0;
 	virtual void EnableScissor() = 0;
 	virtual void DisableScissor() = 0;
 	virtual void SetScissorRect(int x, int y, int w, int h) = 0;
-
+	virtual void EnableDepth() = 0;
+	virtual void DisableDepth() = 0;
 	// 2D Rectangles drawing
 	virtual void InitRectDrawing() = 0;
 	virtual void DrawRect(int x, int y, int w, int h, int c, float u, float v, float o, float p) = 0;

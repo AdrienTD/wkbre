@@ -1,5 +1,17 @@
 wkbre changelog:
 
+[0.1.0]  23/11/2017
+Overview:
+ - The autotile tool has been significantly improved.
+ - Improved compatibility with more versions of WK and WKB, including the Mac
+   version of WK.
+ - Added "Export map to BCP" feature which packs all the terrain and level files
+   into a BCP so that you can easily share your map with the community.
+ - Ctrl + left-click to place selected objects.
+ - Some interface changes, updated Dear ImGui to v1.65
+ - Some other improvements and bug fixes.
+For more changes, see the git commit log (https://github.com/AdrienTD/wkbre/commits/master).
+
 [0.0.9]  15/02/2017
 Highlights:
  - Attachment points (they are rendererd and also do task triggers)

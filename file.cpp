@@ -578,7 +578,7 @@ BCPWriter::BCPWriter(char *fn)
 	root.writer = this;
 }
 
-uint BCPWriter::createFile(void *pnt, size_t siz)
+uint BCPWriter::createFile(void *pnt, uint siz)
 {
 	uint id = ftable.len;
 	fileentry *e = ftable.addp();
@@ -587,7 +587,7 @@ uint BCPWriter::createFile(void *pnt, size_t siz)
 	e->unk = 0;
 
 	uchar *lzws = (uchar*)malloc(MEM_REQ);
-	size_t slz = siz + COMPRESS_OVERRUN; //4 + siz + (siz / 16) * 2 + 4;
+	uint slz = siz + COMPRESS_OVERRUN; //4 + siz + (siz / 16) * 2 + 4;
 	void *cplz = malloc(slz);
 	compress(COMPRESS_ACTION_COMPRESS, lzws, (uchar*)pnt, siz, (uchar*)cplz, &slz);
 	free(lzws);

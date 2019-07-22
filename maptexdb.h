@@ -6,6 +6,7 @@ struct MapTextureEdge
 	MapTexture *tex;
 	uint rot; uint xflip, zflip;
 	// NOTE: Using memcmp with "boolean" types is dangerous!
+	bool operator==(MapTextureEdge &b) { return tex == b.tex && rot == b.rot && xflip == b.xflip && zflip == b.zflip; }
 };
 
 struct MapTexture

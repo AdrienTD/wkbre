@@ -35,6 +35,8 @@ GrowList<MapPart> mparts;
 uint mappartw = 32, mapparth = 32;
 uint npartsw, npartsh;
 
+texture skyboxtex[5];
+
 ///// Bit Reading /////
 char *bytepos; unsigned int bitpos = 0;
 int readbit()
@@ -475,6 +477,17 @@ void LoadMap(char *filename, int bitoff)
 
 	InitMapParts();
 	FloodfillWater();
+
+	// Load skybox textures
+	static char* skyfilenames[5] = { "sky_front.tga", "sky_right.tga", "sky_back.tga", "sky_left.tga", "sky_top.tga" };
+	char stn[512];
+	strcpy(stn, mapskytexdir);
+	char *pp = stn + strlen(stn);
+	for (int i = 0; i < 5; i++) {
+		strcpy(pp, skyfilenames[i]);
+		printf(stn);
+		skyboxtex[i] = LoadTexture(stn, 1, 1);
+	}
 }
 
 void DrawPart(MapPart *p)
@@ -1153,4 +1166,61 @@ void DrawTileHighlights()
 	}
 	mapbatch->flush();
 	mapbatch->end();
+}
+
+extern Matrix vpmatrix;
+extern void SetMatrices(Vector3 is, Vector3 ir, Vector3 it);
+
+RVertexBuffer *skybox_vertexbuf = 0;
+RIndexBuffer *skybox_indexbuf = 0;
+
+
+void DrawSkyBox()
+{
+	static batchVertex cube[8] = {
+		batchVertex(-1, 0, -1, 0xFF000000, 0, 0.5f),
+		batchVertex(-1, 1, -1, 0xFFFF0000, 0, 0),
+		batchVertex( 1, 0, -1, 0xFF00FF00, 1, 0.5f),
+		batchVertex( 1, 1, -1, 0xFFFFFF00, 1, 0),
+		batchVertex( 1, 0,  1, 0xFF0000FF, 0, 0.5f),
+		batchVertex( 1, 1,  1, 0xFFFF00FF, 0, 0),
+		batchVertex(-1, 0,  1, 0xFF00FFFF, 1, 0.5f),
+		batchVertex(-1, 1,  1, 0xFFFFFFFF, 1, 0),
+	};
+	ushort indix[36] = { 0, 2, 1, 1, 2, 3,  2, 4, 3, 3, 4, 5,  4, 6, 5, 5, 6, 7,  6, 0, 7, 7, 0, 1,  0, 6, 2, 2, 6, 4,  1, 3, 7, 3, 5, 7 };
+	batchVertex *outcube; ushort *outindix;  uint fi;
+	SetMatrices(Vector3(5, 5, 5), Vector3(0, 0, 0), camerapos);
+	renderer->BeginBatchDrawing();
+	renderer->SetTransformMatrix(&matrix);
+	renderer->DisableAlphaTest();
+	renderer->DisableDepth();
+	renderer->EnableAlphaBlend();
+
+	static ushort quads[20] = { 0, 1, 2, 3,   2, 3, 4, 5,   4, 5, 6, 7,   6, 7, 0, 1,   1, 7, 3, 5 };
+	static ushort ixix[6] = { 0, 2, 1, 1, 2, 3 };
+
+	mapbatch->begin();
+	for (int i = 0; i < 5; i++) {
+		batchVertex *vpnt; ushort *ipnt; uint fi;
+		mapbatch->next(4, 6, &vpnt, &ipnt, &fi);
+		for (int j = 0; j < 4; j++) {
+			batchVertex v = cube[quads[i * 4 + j]];
+			if (i < 4)
+				v.color = (j & 1) ? (-1) : 0x00; // FFFFFF;
+			else
+				v.color = -1;
+			v.u = (j & 2) ? 1.0f : 0.0f;
+			v.v = (j & 1) ? 0.0f : ((i==4)?1.0f:0.5f);
+			vpnt[j] = v;
+		}
+		for (int j = 0; j < 6; j++) {
+			ipnt[j] = ixix[j] + fi;
+		}
+		renderer->SetTexture(0, skyboxtex[i]);
+		mapbatch->flush();
+	}
+	mapbatch->end();
+
+	renderer->EnableDepth();
+	renderer->DisableAlphaBlend();
 }

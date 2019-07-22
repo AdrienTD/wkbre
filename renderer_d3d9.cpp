@@ -529,6 +529,18 @@ void SetBlendColor(int c)
 	ddev->SetRenderState(D3DRS_BLENDFACTOR, c);
 }
 
+void EnableAlphaBlend()
+{
+	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+	ddev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+	ddev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+}
+
+void DisableAlphaBlend()
+{
+	ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+}
+
 RBatch *CreateBatch(int mv, int mi)
 {
 	RBatchD3D9* b = new RBatchD3D9;
@@ -646,6 +658,16 @@ void UpdateTexture(texture t, Bitmap *bmp)
 	assert(lr.Pitch == bmp->w * 4);
 	memcpy(lr.pBits, bmp->pix, bmp->w * bmp->h * 4);
 	t.dd->UnlockRect(0);
+}
+
+void EnableDepth()
+{
+	ddev->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
+}
+
+void DisableDepth()
+{
+	ddev->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 }
 
 };

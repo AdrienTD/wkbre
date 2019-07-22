@@ -1502,7 +1502,7 @@ void FindAutotileF(int tx, int tz, bool edge_n, bool edge_e, bool edge_s, bool e
 			for (int j = 0; j < m[n]->len; j++)
 			{
 				MapTextureEdge *b = m[n]->getpnt(j);
-				if (!memcmp(a, b, sizeof(MapTextureEdge)))
+				if(*a == *b)
 				{
 					fnd = true; break;
 				}
@@ -1633,11 +1633,13 @@ void ApplyBrush(bool rclick)
 			case 10:
 			{
 				int i = z * (mapwidth+1) + x;
-				uchar nn = oldhm_byte[i-mapwidth-1];
-				uchar ns = oldhm_byte[i+mapwidth+1];
-				uchar nw = oldhm_byte[i-1];
-				uchar ne = oldhm_byte[i+1];
-				uint a = (nn + ns + nw + ne) / 4;
+				uint a = 0, n = 0;
+				if ((x - 1) >= 0 && (x - 1) <= mapwidth) { a += oldhm_byte[i - 1]; n++; }
+				if ((x + 1) >= 0 && (x + 1) <= mapwidth) { a += oldhm_byte[i + 1]; n++; }
+				if ((z - 1) >= 0 && (z - 1) <= mapheight) { a += oldhm_byte[i - mapwidth - 1]; n++; }
+				if ((z + 1) >= 0 && (z + 1) <= mapheight) { a += oldhm_byte[i + mapwidth + 1]; n++; }
+				if (!n) break;
+				a /= n;
 				if(himap_byte[i] > a) if(himap_byte[i] > 0) himap_byte[i]--;
 				if(himap_byte[i] < a) if(himap_byte[i] < 255) himap_byte[i]++;
 				himap[i] = (float)himap_byte[i] * maphiscale;
@@ -3661,25 +3663,32 @@ void Test7()
 			playView = !playView;
 		}
 
+		// TODO: Key binding settings, because "WASD" keys can conflict with other keys on several layouts.
+		//int wasd_up =    MapVirtualKey(0x11, MAPVK_VSC_TO_VK);
+		//int wasd_left =  MapVirtualKey(0x1e, MAPVK_VSC_TO_VK);
+		//int wasd_down =  MapVirtualKey(0x1f, MAPVK_VSC_TO_VK);
+		//int wasd_right = MapVirtualKey(0x20, MAPVK_VSC_TO_VK);
+		int wasd_up = VK_UP, wasd_left = VK_LEFT, wasd_down = VK_DOWN, wasd_right = VK_RIGHT;
+
 		if(keyheld[VK_SHIFT]) {walkstep = objmovalign ? 5.0f : 4.0f; camwalkstep = 4.0f;}
 		else {walkstep = objmovalign ? 2.5f : 1.0f; camwalkstep = 1.0f;}
 		bool isAlignMoving = keyheld[VK_CONTROL] && objmovalign;
-		if(isAlignMoving ? keypressed[VK_UP] : keyheld[VK_UP])
+		if(isAlignMoving ? (keypressed[VK_UP] || keypressed[wasd_up]) : (keyheld[VK_UP] || keyheld[wasd_up]))
 		{
 			Vector3 m = Vector3(vLAD.x, 0, vLAD.z);
 			MoveKeyPress(m);
 		}
-		if(isAlignMoving ? keypressed[VK_DOWN] : keyheld[VK_DOWN])
+		if(isAlignMoving ? (keypressed[VK_DOWN] || keypressed[wasd_down]) : (keyheld[VK_DOWN] || keyheld[wasd_down]))
 		{
 			Vector3 m = Vector3(-vLAD.x, 0, -vLAD.z);
 			MoveKeyPress(m);
 		}
-		if(isAlignMoving ? keypressed[VK_LEFT] : keyheld[VK_LEFT])
+		if(isAlignMoving ? (keypressed[VK_LEFT] || keypressed[wasd_left]) : (keyheld[VK_LEFT] || keyheld[wasd_left]))
 		{
 			Vector3 m = Vector3(-vLAD.z, 0, vLAD.x);
 			MoveKeyPress(m);
 		}
-		if(isAlignMoving ? keypressed[VK_RIGHT] : keyheld[VK_RIGHT])
+		if(isAlignMoving ? (keypressed[VK_RIGHT] || keypressed[wasd_right]) : (keyheld[VK_RIGHT] || keyheld[wasd_right]))
 		{
 			Vector3 m = Vector3(vLAD.z, 0, -vLAD.x);
 			MoveKeyPress(m);

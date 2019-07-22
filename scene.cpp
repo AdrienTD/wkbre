@@ -430,6 +430,8 @@ void DrawScene()
 		//printf("New selection: %i\n", newSelection);
 	}
 
+	DrawSkyBox();
+
 	if(meshbatching) DrawOOBM();
 
 if(experimentalKeys) {

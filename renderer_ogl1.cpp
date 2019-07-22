@@ -424,6 +424,17 @@ void SetBlendColor(int c)
 	glColor4ub((c>>16)&255, (c>>8)&255, c&255, (c>>24)&255);
 }
 
+void EnableAlphaBlend()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void DisableAlphaBlend()
+{
+	glDisable(GL_BLEND);
+}
+
 void InitRectDrawing()
 {
 	glDisable(GL_ALPHA_TEST);
@@ -698,6 +709,16 @@ void UpdateTexture(texture t, Bitmap *bmp)
 {
 	glBindTexture(GL_TEXTURE_2D, t.gl);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bmp->w, bmp->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, bmp->pix);
+}
+
+void EnableDepth()
+{
+	glDepthMask(GL_TRUE);
+}
+
+void DisableDepth()
+{
+	glDepthMask(GL_FALSE);
 }
 
 };
