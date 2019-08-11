@@ -22,11 +22,11 @@ struct MapPart
 	int x, y, w, h; float minhi, maxhi;
 	DynList<MapTile*> *tpt;
 
-	IDirect3DVertexBuffer9 *vbuf;
-	IDirect3DIndexBuffer9 *ibuf;
+	void *vbuf;
+	void *ibuf;
 
 	float *glverts;
-	GLushort *glindices;
+	ushort *glindices;
 };
 
 struct MapTile

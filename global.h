@@ -26,10 +26,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <mmsystem.h>
-//#define D3D_DEBUG_INFO
-#include <d3d9.h>
-#include <gl/gl.h>
-#include <gl/glu.h>
 
 #ifdef WKBRE_RELEASE
 #ifndef WKBRE_VERSION
@@ -138,6 +134,7 @@ extern "C" {
 //#include "d3dx_dll.h"
 #include "window.h"
 #include "bitmap.h"
+#include "renderer.h"
 #include "texture.h"
 #include "drawing.h"
 #include "cursor.h"
@@ -158,7 +155,6 @@ extern "C" {
 //#include "script/script.h"
 #include "play/play.h"
 #include "play/otproc.h"
-#include "renderer.h"
 #include "maptexdb.h"
 #include "imguiimpl.h"
 

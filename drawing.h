@@ -16,17 +16,11 @@
 
 extern Matrix idmx;
 
-void DoDrawing();
-
-void SetRect(int x, int y, int w, int h);
 void DrawRect(int x, int y, int w, int h, int c = -1, float u = 0, float v = 0, float o = 1, float p = 1);
 void DrawGradientRect(int x, int y, int w, int h, int c0, int c1, int c2, int c3);
 void InitRectDrawing();
 void BeginDrawing();
 void EndDrawing();
-
-IDirect3DVertexShader9 *LoadVertexShader(char *filename);
-IDirect3DPixelShader9 *LoadPixelShader(char *filename);
 
 void SetTransformMatrix(Matrix *m);
 void SetTexture(uint x, texture t);

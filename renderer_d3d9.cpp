@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
+#include <d3d9.h>
 
 struct RBatchD3D9;
 
@@ -245,16 +246,20 @@ void Reset()
 
 void CreateMesh(Mesh *m)
 {
-	ddev->CreateVertexBuffer(m->mverts.len*4, 0, 0, D3DPOOL_MANAGED, &m->dvbverts, 0);
-	ddev->CreateIndexBuffer(m->mindices.len*2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &m->dixbuf, 0);
+	IDirect3DVertexBuffer9 *dvbverts;
+	IDirect3DIndexBuffer9 *dixbuf;
+	ddev->CreateVertexBuffer(m->mverts.len*4, 0, 0, D3DPOOL_MANAGED, &dvbverts, 0);
+	m->dvbverts = dvbverts;
+	ddev->CreateIndexBuffer(m->mindices.len*2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &dixbuf, 0);
+	m->dixbuf = dixbuf;
 
 	void *buf;
-	m->dvbverts->Lock(0, m->mverts.len*4, &buf, 0);
+	dvbverts->Lock(0, m->mverts.len*4, &buf, 0);
 	memcpy(buf, m->mverts.gb.memory, m->mverts.len * 4);
-	m->dvbverts->Unlock();
-	m->dixbuf->Lock(0, m->mindices.len*2, &buf, 0);
+	dvbverts->Unlock();
+	dixbuf->Lock(0, m->mindices.len*2, &buf, 0);
 	memcpy(buf, m->mindices.gb.memory, m->mindices.len*2);
-	m->dixbuf->Unlock();
+	dixbuf->Unlock();
 
 	for(int i = 0; i < m->muvlist.len; i++)
 	{
@@ -284,9 +289,9 @@ void BeginMeshDrawing()
 
 void DrawMesh(Mesh *m, int iwtcolor)
 {
-	ddev->SetStreamSource(0, m->dvbverts, 0, 12);
-	ddev->SetStreamSource(1, m->dvbtexc[iwtcolor], 0, 8);
-	ddev->SetIndices(m->dixbuf);
+	ddev->SetStreamSource(0, (IDirect3DVertexBuffer9*)m->dvbverts, 0, 12);
+	ddev->SetStreamSource(1, (IDirect3DVertexBuffer9*)m->dvbtexc[iwtcolor], 0, 8);
+	ddev->SetIndices((IDirect3DIndexBuffer9*)m->dixbuf);
 	for(int g = 0; g < m->ngrp; g++)
 	{
 		ddev->SetRenderState(D3DRS_ALPHATESTENABLE, m->lstmatflags[g]?TRUE:FALSE);
@@ -305,7 +310,7 @@ void SetTransformMatrix(Matrix *m)
 
 void SetTexture(uint x, texture t)
 {
-	ddev->SetTexture(x, t.dd);
+	ddev->SetTexture(x, (IDirect3DTexture9*)t);
 }
 
 void NoTexture(uint x)
@@ -398,16 +403,15 @@ texture CreateTexture(Bitmap *bm, int mipmaps)
 	for(int y = 0; y < c->h; y++)
 		memcpy( ((char*)(lore.pBits)) + y * lore.Pitch, c->pix + y * c->w * 4, c->w * 4);
 	dt->UnlockRect(0);
-	texture t; t.dd = dt;
 
 	if(bm->form != BMFORMAT_B8G8R8A8)
 		FreeBitmap(c);
-	return t;
+	return (texture)dt;
 }
 
 void FreeTexture(texture t)
 {
-	t.dd->Release();
+	((IDirect3DTexture9*)t)->Release();
 }
 
 //***********************************//
@@ -415,8 +419,11 @@ void FreeTexture(texture t)
 void CreateMapPart(MapPart *p, int x, int y, int w, int h)
 {
 	float *fb; ushort *sb;
-	ddev->CreateVertexBuffer((w+1)*(h+1)*5*4, 0, 0, D3DPOOL_MANAGED, &p->vbuf, NULL);
-	p->vbuf->Lock(0, 0, (void**)&fb, 0);
+
+	IDirect3DVertexBuffer9 *vbuf = 0;
+	ddev->CreateVertexBuffer((w+1)*(h+1)*5*4, 0, 0, D3DPOOL_MANAGED, &vbuf, NULL);
+	p->vbuf = (void*)vbuf;
+	vbuf->Lock(0, 0, (void**)&fb, 0);
 	float *fp = fb;
 	for(int b = 0; b < h+1; b++)
 	for(int a = 0; a < w+1; a++)
@@ -427,10 +434,12 @@ void CreateMapPart(MapPart *p, int x, int y, int w, int h)
 
 		*(fp++) = a+x; *(fp++) = b+y;
 	}
-	p->vbuf->Unlock();
+	vbuf->Unlock();
 
-	ddev->CreateIndexBuffer(( (2*(w+1)+1)*h ) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &p->ibuf, NULL);
-	p->ibuf->Lock(0, 0, (void**)&sb, 0);
+	IDirect3DIndexBuffer9 *ibuf = 0;
+	ddev->CreateIndexBuffer(( (2*(w+1)+1)*h ) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &ibuf, NULL);
+	p->ibuf = (void*)ibuf;
+	ibuf->Lock(0, 0, (void**)&sb, 0);
 	ushort *os = sb;
 
 	for(int cy = 0; cy < h; cy++)
@@ -452,22 +461,18 @@ void CreateMapPart(MapPart *p, int x, int y, int w, int h)
 			}
 		}
 	}
-	//if(h & 1)
-	//	*(os++) = h*(w+1)+w;
-	//else
-	//	*(os++) = h*(w+1);
-	p->ibuf->Unlock();
+	ibuf->Unlock();
 }
 
 void FreeMapPart(MapPart *p)
 {
-	p->vbuf->Release(); p->ibuf->Release();
+	((IDirect3DVertexBuffer9*)p->vbuf)->Release(); ((IDirect3DIndexBuffer9*)p->ibuf)->Release();
 }
 
 void DrawPart(MapPart *p)
 {
-	ddev->SetStreamSource(0, p->vbuf, 0, 20);
-	ddev->SetIndices(p->ibuf);
+	ddev->SetStreamSource(0, (IDirect3DVertexBuffer9*)p->vbuf, 0, 20);
+	ddev->SetIndices((IDirect3DIndexBuffer9*)p->ibuf);
 	ddev->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, (p->w+1)*(p->h+1), 0, (2*(p->w+1)+1)*p->h-2); //p->w*p->h*2+3*p->h);
 }
 
@@ -654,10 +659,10 @@ int ConvertColor(int c)
 void UpdateTexture(texture t, Bitmap *bmp)
 {
 	D3DLOCKED_RECT lr;
-	t.dd->LockRect(0, &lr, NULL, 0);
+	((IDirect3DTexture9*)t)->LockRect(0, &lr, NULL, 0);
 	assert(lr.Pitch == bmp->w * 4);
 	memcpy(lr.pBits, bmp->pix, bmp->w * bmp->h * 4);
-	t.dd->UnlockRect(0);
+	((IDirect3DTexture9*)t)->UnlockRect(0);
 }
 
 void EnableDepth()

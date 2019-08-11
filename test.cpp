@@ -230,11 +230,13 @@ void Test10()
 {
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow();
 	LoadGameSet("Warrior Kings Game Set\\multi-player extensions.cpp");
+	/*
 	CObjectDefinition *d = AskObjDef("Read starting item values of object definition:");
 	if(!d) return;
 	for(int i = 0; i < strItems.len; i++)
 		if(d->startItems[i] != 0.0f)
 			printf("%s = %f\n", strItems.getdp(i), d->startItems[i]);
+	*/
 }
 
 void Test11()

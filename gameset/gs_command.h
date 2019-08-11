@@ -26,7 +26,8 @@ struct CCommand
 	COrder *order;
 	ActionSeq *startSeq;
 	GEPicButton *gButton;
-	CCommand() : name(0), cursor(0), order(0), startSeq(0), gButton(0) {}
+	CCommand() : name(0), cursor(0), order(0), startSeq(0), gButton(0),
+		buttonEnabled(0), buttonWait(0), buttonImpossible(0), buttonDepressed(0), buttonHighlighted(0) {}
 };
 
 struct CCondition

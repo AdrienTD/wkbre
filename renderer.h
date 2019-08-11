@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+// Pointer type used to identify textures
+typedef void* texture;
+
 struct batchVertex
 {
 	union
@@ -54,6 +57,9 @@ struct RIndexBuffer
 	virtual ushort *lock() = 0;
 	virtual void unlock() = 0;
 };
+
+struct MapPart;
+struct Mesh;
 
 struct IRenderer
 {

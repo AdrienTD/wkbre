@@ -15,7 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Windows.h>
-#include <d3d9.h>
 #include "imgui/imgui.h"
 
 extern char appName[];
@@ -23,7 +22,6 @@ extern HWND hWindow;
 extern bool keypressed[256], keyheld[256];
 extern int drawfps, drawframes, objsdrawn;
 extern int HWVPenabled, VSYNCenabled, numBackBuffers, reqRender;
-extern IDirect3DDevice9 *ddev;
 extern int scrw, scrh;
 extern int mouseX, mouseY; extern bool lmbPressed, rmbPressed, mmbPressed;
 extern voidfunc onClickWindow;

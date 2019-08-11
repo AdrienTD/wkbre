@@ -21,7 +21,6 @@ Matrix matrix, vpmatrix;
 Vector3 nullvector(0.0f, 0.0f, 0.0f), onevector(1.0f, 1.0f, 1.0f);
 
 Matrix matView, matProj, mWorld, camworld;
-D3DVIEWPORT9 dvport;
 float farzvalue = 250.0f, occlurate = 0.5f /*2.0f/3.0f*/, verticalfov = 0.9;
 float camyaw = 0.0f, campitch = 0.0f;
 Vector3 vLAD;
@@ -194,7 +193,6 @@ void DrawOOBM()
 }
 
 //GrowList<GameObject*> visobj;	// Visible objects
-IDirect3DVertexShader9 *meshvsh;
 
 void InitScene()
 {
@@ -434,7 +432,6 @@ void DrawScene()
 
 	if(meshbatching) DrawOOBM();
 
-if(experimentalKeys) {
 	// Stampdown
 	CalcStampdownPos();
 /*
@@ -490,7 +487,6 @@ if(experimentalKeys) {
 			m->draw(newmanorplayer->color);
 		}
 	}
-}
 
 	if(enableMap)
 	{

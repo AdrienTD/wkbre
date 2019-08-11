@@ -68,9 +68,9 @@ public:
 	float sphere[4];
 	uint *remapper;
 
-	IDirect3DVertexBuffer9 *dvbverts;
-	IDirect3DIndexBuffer9 *dixbuf;
-	GrowList<IDirect3DVertexBuffer9*> dvbtexc;
+	void *dvbverts;
+	void *dixbuf;
+	GrowList<void*> dvbtexc;
 
 	int nAttachPnts;
 	AttachmentPoint *attachPnts;

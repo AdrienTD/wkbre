@@ -15,6 +15,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
+#include <gl/gl.h>
+#include <gl/glu.h>
 
 #define glprocvalid(x) ( (((scpuint)(x)) < -1) || (((scpuint)(x)) > 3) )
 #ifndef GL_BGRA_EXT
@@ -337,9 +339,9 @@ texture CreateTexture(Bitmap *bm, int mipmaps)
 	if(bm->form != BMFORMAT_B8G8R8A8)
 		c = ConvertBitmapToB8G8R8A8(bm);
 
-	texture t;
-	glGenTextures(1, &t.gl);
-	glBindTexture(GL_TEXTURE_2D, t.gl);
+	GLuint gltex;
+	glGenTextures(1, &gltex);
+	glBindTexture(GL_TEXTURE_2D, gltex);
 	if(mipmaps != 1)
 	{
 		gluBuild2DMipmaps(GL_TEXTURE_2D, 4, c->w, c->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, c->pix);
@@ -355,12 +357,13 @@ texture CreateTexture(Bitmap *bm, int mipmaps)
 
 	if(bm->form != BMFORMAT_B8G8R8A8)
 		FreeBitmap(c);
-	return t;
+	return (texture)gltex;
 }
 
 void FreeTexture(texture t)
 {
-	glDeleteTextures(1, &t.gl);
+	GLuint gltex = (GLuint)t;
+	glDeleteTextures(1, &gltex);
 }
 
 void SetTransformMatrix(Matrix *m)
@@ -371,7 +374,7 @@ void SetTransformMatrix(Matrix *m)
 void SetTexture(uint x, texture t)
 {
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, t.gl);
+	glBindTexture(GL_TEXTURE_2D, (GLuint)t);
 }
 
 void NoTexture(uint x)
@@ -585,7 +588,7 @@ void DrawMesh(Mesh *m, int iwtcolor)
 	{
 		if(m->lstmatflags[g]) glEnable(GL_ALPHA_TEST);
 		else glDisable(GL_ALPHA_TEST);
-		glBindTexture(GL_TEXTURE_2D, m->lstmattex[g].gl);
+		glBindTexture(GL_TEXTURE_2D, (GLuint)m->lstmattex[g]);
 		glDrawElements(GL_TRIANGLES, m->mstartix[g+1]-m->mstartix[g], GL_UNSIGNED_SHORT, ((short*)m->mindices.gb.memory) + m->mstartix[g]);
 	}
 }
@@ -707,7 +710,7 @@ int ConvertColor(int c)
 
 void UpdateTexture(texture t, Bitmap *bmp)
 {
-	glBindTexture(GL_TEXTURE_2D, t.gl);
+	glBindTexture(GL_TEXTURE_2D, (GLuint)t);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bmp->w, bmp->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, bmp->pix);
 }
 

@@ -14,20 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-struct texture
-{
-	union {
-		IDirect3DTexture9 *dd;
-		GLuint gl;
-		void *v;
-	};
-	texture() : v(0) {}
-	texture(void* a) : v(a) {}
-	bool valid() {return dd?1:0;}
-	bool operator==(texture &a) {return dd == a.dd;}
-	operator void*() {return v;}
-};
-
 extern int TXCenabled;
 
 void ResetTexList();

@@ -348,19 +348,6 @@ void SetCurCameraPosXYZ(float x, float y, float z)
 		camerapos = Vector3(x, y, z);
 }
 
-void PresentObject(int igo)
-{
-	GameObject *go = FindObjID(igo);
-	printf("I'd like to present you object number %i!\n", igo);
-	printf(" - Class: %s\n", CLASS_str[go->objdef->type]);
-	printf(" - Colour index: %i\n", go->color);
-	printf(" - Position: (%f, %f, %f)\n", go->position.x, go->position.y, go->position.z);
-	printf(" - Orientation: (%f, %f, %f)\n", go->orientation.x, go->orientation.y, go->orientation.z);
-	printf(" - Subtype: %i\n", go->subtype);
-	printf(" - Appearance: %s\n", strAppearTag.getdp(go->appearance));
-	printf(" - Renderable?: %s\n", go->renderable?"Yes":"No");
-}
-
 void RemoveObjOfType(GameObject *o, CObjectDefinition *d)
 {
 	DynListEntry<GameObject> *nx;
@@ -404,23 +391,6 @@ void SetObjsCtrl(GameObject *o, CObjectDefinition *d, GameObject *p)
 		SetObjectParent(o, p);
 }
 
-CObjectDefinition *AskObjDef(char *head)
-{
-	GrowStringList l; char ts[256];
-	for(int i = 0; i < strObjDef.len; i++)
-	{
-		if((objdef[i].type == 0) || (objdef[i].name == 0))
-			{l.add("?"); continue;}
-		strcpy(ts, CLASS_str[objdef[i].type]);
-		strcat(ts, " ");
-		strcat(ts, objdef[i].name);
-		l.add(ts);
-	}
-	int r = ListDlgBox(&l, head?head:"Select an object definition.");
-	if(r == -1) return 0;
-	else return &objdef[r];
-}
-
 void NAskObjDef(char *head, std::function<void(CObjectDefinition*)> f)
 {
 	static GrowStringList l; char ts[256];
@@ -443,20 +413,6 @@ void NAskObjDef(char *head, std::function<void(CObjectDefinition*)> f)
 			f(cod);
 		   }
 		);
-}
-
-GameObject *AskPlayer(char *head = 0)
-{
-	GrowStringList l; char ts[512]; int x = 0;
-	for(DynListEntry<GameObject> *e = levelobj->children.first; e; e = e->next)
-	{
-		if(e->value.objdef->type != CLASS_PLAYER) break; // TODO: Something better.
-		sprintf(ts, "%u: %S (obj. id %u)", x++, e->value.name ? e->value.name : L"(null)", e->value.id);
-		l.add(ts);
-	}
-	int r = ListDlgBox(&l, head?head:"Select a player.", (l.len >= 2) ? 1 : 0);
-	if(r == -1) return 0;
-	else return &levelobj->children.getEntry(r)->value;
 }
 
 void NAskPlayer(char *head, std::function<void(GameObject*)> f)
@@ -517,32 +473,44 @@ void SendEventToObjAndSubord(GameObject *o, int v)
 	}
 }
 
-int AskClass(char *head = 0)
+void NAskClass(char *head, std::function<void(int)> f)
 {
-	GrowStringList sl;
-	for(int i = 0; i < OBJTYPE_NUM; i++)
+	static GrowStringList sl;
+	for (int i = 0; i < OBJTYPE_NUM; i++)
 		sl.add(OBJTYPE_str[i]);
-	int r = ListDlgBox(&sl, head?head:"Select an object class.");
-	if(r == -1) return -1;
-	return stfind_cs(CLASS_str, CLASS_NUM, OBJTYPE_str[r]);
+
+	OpenListDlgBox(&sl, head ? head : "Select an object class.", 0,
+		[f]() {
+		if (nlstdlgsel != -1)
+			f(stfind_cs(CLASS_str, CLASS_NUM, OBJTYPE_str[nlstdlgsel]));
+		}
+	);
 }
 
-CCommand *AskCommand(char *head = 0, DynList<goref> *dl = &selobjects)
+void NAskCommand(char *head, DynList<goref> *objs, std::function<void(CCommand*)> func)
 {
-	GrowList<CCommand *> lc;
-	GrowStringList ls;
-	for(DynListEntry<goref> *e = dl->first; e; e = e->next)
+	static GrowList<CCommand *> lc;
+	static GrowStringList ls;
+
+	lc.clear();
+	ls.clear();
+
+	for (DynListEntry<goref> *e = objs->first; e; e = e->next)
 	{
-		if(!e->value.valid()) continue;
-		for(int i = 0; i < e->value->objdef->offeredCmds.len; i++)
-			if(!lc.has(e->value->objdef->offeredCmds[i]))
+		if (!e->value.valid()) continue;
+		for (int i = 0; i < e->value->objdef->offeredCmds.len; i++)
+			if (!lc.has(e->value->objdef->offeredCmds[i]))
 				lc.add(e->value->objdef->offeredCmds[i]);
 	}
-	for(int i = 0; i < lc.len; i++)
+	for (int i = 0; i < lc.len; i++)
 		ls.add(lc[i]->name);
-	int r = ListDlgBox(&ls, head?head:"Select a command.");
-	if(r == -1) return 0;
-	return lc[r];
+
+	OpenListDlgBox(&ls, head ? head : "Select a command.", 0,
+		[func]() {
+			if (nlstdlgsel != -1)
+				func(lc[nlstdlgsel]);
+		}
+	);
 }
 
 DynList<goref> createdObjects;
@@ -728,24 +696,11 @@ void CallCommand(int cmd)
 		} break;
 		case CMD_DELETEOBJTYPE:
 		{
-		/*
-			CObjectDefinition *d = AskObjDef("Select the type of objects you want to delete.");
-			if(d)
-				RemoveObjOfType(levelobj, d); //&objdef[FindObjDef(CLASS_CHARACTER, "Peasant")]);
-		*/
 			NAskObjDef("Select the type of objects you want to delete.",
 				[](CObjectDefinition *d) {
 					RemoveObjOfType(levelobj, d);
 				});
 		} break;
-/*
-		case CMD_CONVERTOBJTYPE:
-		{
-			CObjectDefinition *a, *b;
-			if(a = AskObjDef("What type of object do you want to convert?")) if(b = AskObjDef("Which object type should they be converted to?"))
-				ReplaceObjsType(levelobj, a, b);
-		} break;
-*/
 		case CMD_CONVERTOBJTYPE:
 		{
 			NAskObjDef("What type of object do you want to convert?", 
@@ -758,11 +713,6 @@ void CallCommand(int cmd)
 		} break;
 		case CMD_GIVEOBJTYPE:
 		{
-		/*
-			CObjectDefinition *d; GameObject *p;
-			if(d = AskObjDef("What type of objects do you want to give?")) if(p = AskPlayer("Give the objects to:"))
-				SetObjsCtrl(levelobj, d, p);
-		*/
 			NAskObjDef("What type of objects do you want to give?",
 				[](CObjectDefinition *d) {
 					NAskPlayer("Give the objects to:",
@@ -771,75 +721,11 @@ void CallCommand(int cmd)
 						});
 				});
 		} break;
-		case CMD_CREATEOBJ:
-		{
-			CObjectDefinition *d; GameObject *p; float px, pz;
-			if(d = AskObjDef("What sort of object do you want to create?"))
-			{
-				if(d->type == CLASS_PLAYER)
-				{
-					GameObject *o = CreateObject(d, levelobj);
-					createdObjects.add();
-					createdObjects.last->value = o;
-				}
-				else
-				{
-					if(p = AskPlayer("Who do you want to give the created object to?"))
-					if(PositionDlgBox(&px, &pz, "Where do you want to put the created object?"))
-					{
-						GameObject *o = CreateObject(d, p);
-						o->position = Vector3(px, GetHeight(px, pz), pz);
-						GOPosChanged(o);
-						createdObjects.add();
-						createdObjects.last->value = o;
-					}
-				}
-			}
-		} break;
-		case CMD_DELETELASTCREATEDOBJ:
-		{
-			if(createdObjects.len)
-			{
-				if(createdObjects.last->value.valid())
-					RemoveObject(createdObjects.last->value.get());
-				createdObjects.remove(createdObjects.last);
-			}
-		} break;
 		case CMD_RANDOMSUBTYPE:
 			RandomizeObjAppear(levelobj); break;
-		case CMD_CAMMANOR:
-		{
-			bool fnd = 0;
-			GameObject *a = AskPlayer("Set camera position to the manor of player:");
-			if(a)
-			{
-				int c = strAssociateCat.find("My Initial Palace Building");
-				if(c != -1)
-				   for(DynListEntry<GOAssociation> *e = a->association.first; e; e = e->next)
-					if(e->value.category == c)
-					   if(e->value.associates.len)
-						{SetCurCameraPos(e->value.associates.first->value.o->position); fnd = 1; break;}
-				if(fnd) break;
-				c = strItems.find("Palace Building");
-				if(c != -1)
-				   for(int i = 0; i < MAX_GAMEOBJECTS; i++)
-					if(gameobj[i])
-					   if(gameobj[i]->getItem(c) != 0.0f)
-						if(gameobj[i]->player == a)
-						   {SetCurCameraPos(gameobj[i]->position); fnd = 1; break;}
-				if(!fnd) GiveNotification("The player's manor was not found."); //MessageBox(hWindow, "The player's manor was not found.", appName, 16);
-			}
-		} break;
-		case CMD_CAMPOS:
-		{
-			float x, z;
-			if(PositionDlgBox(&x, &z, "Where would you like to go?"))
-				SetCurCameraPosXZ(x, z);
-		} break;
 		case CMD_ABOUT:
 		{
 			swAbout = !swAbout;
-			//MessageBox(hWindow, "wkbre - WK (Battles) Recreated Engine\nVersion " WKBRE_VERSION "\n(C) 2015-2017 AdrienTD\nThis program is released under the GNU GPL Version 3 license. For more information see the \"LICENSE\" file.\nRead the \"docs/help.htm\" file for help and more information.", appName, 64);
 		} break;
 		case CMD_RESETOBJPOS:
 			ResetPosition(levelobj); break;
@@ -851,11 +737,6 @@ void CallCommand(int cmd)
 			SetCurCameraPosXYZ(0, 0, (mapheight-mapedge*2)*5); break;
 		case CMD_CAMUPRIGHT:
 			SetCurCameraPosXYZ((mapwidth-mapedge*2)*5, 0, (mapheight-mapedge*2)*5); break;
-/*		case CMD_BCMHIMAPRIGHT:
-			LoadMap(lastmap, ++bo); break;
-		case CMD_BCMHIMAPLEFT:
-			LoadMap(lastmap, --bo); break;
-*/
 		case CMD_SHOWHIDELANDSCAPE:
 			enableMap = !enableMap; break;
 		case CMD_QUIT:
@@ -877,8 +758,9 @@ void CallCommand(int cmd)
 			break;
 		case CMD_DELETEOBJCLASS:
 		{
-			int c = AskClass("Delete all objects of class:");
-			if(c) RemoveObjOfClass(levelobj, c);
+			NAskClass("Delete all objects of class:",
+				[](int cl) {RemoveObjOfClass(levelobj, cl); }
+			);
 		} break;
 		case CMD_CAMRESETORI:
 			SetCurCameraRot(0.0f, 0.0f); break;
@@ -894,24 +776,28 @@ void CallCommand(int cmd)
 			break;
 		case CMD_GIVESELOBJECT:
 		{
-			GameObject *p;
-			if(p = AskPlayer("Give selected object to:"))
-				for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					SetObjectParent(e->value.get(), p);
+			NAskPlayer("Give selected object to:", [](GameObject *p) {
+				for (DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+					if (e->value.valid())
+						SetObjectParent(e->value.get(), p);
+			});
 		} break;
 		case CMD_RUNACTSEQ:
 		{
-			GrowStringList sas;
-			int x = ListDlgBox(&strActionSeq, "Which action sequence do you want to execute?");
-			if(x != -1)
-			{
-				SequenceEnv s;
-				for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					{s.self = e->value; break;}
-				actionseq[x]->run(&s);
-			}
+			OpenListDlgBox(&strActionSeq, "Which action sequence do you want to execute?", 0,
+				[]() {
+					if (nlstdlgsel != -1)
+					{
+						SequenceEnv s;
+						for (DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+							if (e->value.valid())
+							{
+								s.self = e->value; break;
+							}
+						actionseq[nlstdlgsel]->run(&s);
+					}
+				}
+			);
 		} break;
 		case CMD_ROTATEOBJQP:
 			if( (objtypeToStampdown && playerToGiveStampdownObj.valid()) ||
@@ -936,15 +822,18 @@ void CallCommand(int cmd)
 			showrepresentations = !showrepresentations; break;
 		case CMD_CAMCLISTATE:
 		{
-			GrowStringList sl;
+			static GrowStringList sl;
+			sl.clear();
 			AddClientsToGSL(&sl);
-			int r = ListDlgBox(&sl, "Copy camera position and rotation from whose client?", 0);
-			if(r != -1)
-			{
-				ClientState *c = clistates.getpnt(r);
-				SetCurCameraPos(c->camerapos);
-				SetCurCameraRot(c->cameraori.x, c->cameraori.y);
-			}
+			OpenListDlgBox(&sl, "Copy camera position and rotation from whose client?", 0,
+				[]() {
+					if (nlstdlgsel != -1) {
+						ClientState *c = clistates.getpnt(nlstdlgsel);
+						SetCurCameraPos(c->camerapos);
+						SetCurCameraRot(c->cameraori.x, c->cameraori.y);
+					}
+				}
+			);
 		} break;
 		case CMD_PAUSE:
 			playMode = !playMode;
@@ -960,122 +849,95 @@ void CallCommand(int cmd)
 			CancelAllObjsOrders(levelobj); break;
 		case CMD_SELECT_OBJECT_ID:
 		{
-/*
-			char s[256];
-			if(StrDlgBox(s, "Enter the ID of the object you'd like to select."))
-			{
-				GameObject *o = FindObjID(atoi(s));
-				if(!o) GiveNotification("Object with specified ID not found."); //MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
-				else {DeselectAll(); SelectObject(o);}
-			}
-*/
 			static char s[256];
 			auto f = []() {
 				GameObject *o = FindObjID(atoi(s));
-				if(!o) GiveNotification("Object with specified ID not found."); //MessageBox(hWindow, "Object with specified ID not found.", appName, 16);
+				if(!o) GiveNotification("Object with specified ID not found.");
 				else {DeselectAll(); SelectObject(o);}
 			};
 			OpenStrDlgBox(s, "Enter the ID of the object you'd like to select.", f);
 		} break;
 		case CMD_CHANGE_SG_WKVER:
 		{
-			GrowStringList sl;
+			static GrowStringList sl;
+			sl.clear();
 			sl.add("Warrior Kings"); sl.add("Warrior Kings - Battles");
-			int r = ListDlgBox(&sl, "Make next saves compatible with:", (sg_ver==WKVER_BATTLES)?1:0);
-			if(r != -1)
-				sg_ver = r ? WKVER_BATTLES : WKVER_ORIGINAL;
+			OpenListDlgBox(&sl, "Make next saves compatible with:", (sg_ver==WKVER_BATTLES)?1:0,
+				[]() {
+					if (nlstdlgsel != -1)
+						sg_ver = nlstdlgsel ? WKVER_BATTLES : WKVER_ORIGINAL;
+				}
+			);
 		} break;
 		case CMD_CONTROL_CLIENT:
 		{
-			GrowStringList sl;
+			static GrowStringList sl;
+			sl.clear();
 			sl.add("<No client>");
 			AddClientsToGSL(&sl);
-			int r = ListDlgBox(&sl, "Which client to you want to take control?", 1);
-			if(!r)
-				curclient = 0;
-			else if(r != -1)
-				curclient = clistates.getpnt(r-1);
+			OpenListDlgBox(&sl, "Which client to you want to take control?", 1, 
+				[]() {
+					if (!nlstdlgsel)
+						curclient = 0;
+					else if (nlstdlgsel != -1)
+						curclient = clistates.getpnt(nlstdlgsel - 1);
+				}
+			);
 		} break;
 		case CMD_CHANGE_OBJMOVALIGN:
 			objmovalign = !objmovalign;
 			GiveNotification(objmovalign ? "Aligned object movement ON." : "Aligned object movement OFF.");
 			break;
-		case CMD_CHANGE_PLAYER_NAME:
-			{GameObject *o = AskPlayer("Choose the player you would like to rename.");
-			if(!o) break;
-			char s[384];
-			if(!StrDlgBox(s, "Enter the new name:")) break;
-			int l = strlen(s);
-			if(o->name) delete [] o->name;
-			o->name = new wchar_t[l+1];
-			for(int i = 0; i < l; i++)
-				o->name[i] = s[i];
-			o->name[l] = 0;
-			break;}
-		case CMD_CHANGE_PLAYER_COLOR:
-			{GameObject *o = AskPlayer("Change color of player:");
-			if(!o) break;
-			GrowStringList sl;
-			for(int i = 0; i < 8; i++)
-				sl.add(playercolorname[i]);
-			int x = ListDlgBox(&sl, "Change to this color:");
-			if(x == -1) break;
-			o->color = x;
-			UpdateParentDependantValues(o);
-			break;}
 		case CMD_EXECUTE_COMMAND:
-			{CCommand *c = AskCommand("Which command do you want to execute on the selected objects (with no target)?");
-			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					ExecuteCommand(e->value.get(), c, 0, ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
-			break;}
+		{
+			NAskCommand("Which command do you want to execute on the selected objects (with no target)?", &selobjects,
+				[](CCommand *c) {
+					for (DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+						if (e->value.valid())
+							ExecuteCommand(e->value.get(), c, 0, ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+				}
+			);
+			break;
+		}
 		case CMD_EXECUTE_COMMAND_WITH_TARGET:
 			if(selobjects.len >= 2)
 			 if(selobjects.last->value.valid())
 			{
-				DynList<goref> dl; dl.add(); dl.first->value = selobjects.first->value;
-				CCommand *c = AskCommand("Which command do you want to execute on the first selected objects with the last selected object as the target?", &dl);
-				DynListEntry<goref> *e = selobjects.first;
-				for(int i = 0; i < selobjects.len-1; i++)
-				{
-					if(e->value.valid())
-						ExecuteCommand(e->value.get(), c, selobjects.last->value.get(), ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
-					e = e->next;
-				}
+				static DynList<goref> dl;
+				dl.clear();
+				dl.add(); dl.first->value = selobjects.first->value;
+				NAskCommand("Which command do you want to execute on the first selected objects with the last selected object as the target?", &dl,
+					[](CCommand *c) {
+						DynListEntry<goref> *e = selobjects.first;
+						for (int i = 0; i < selobjects.len - 1; i++)
+						{
+							if (e->value.valid())
+								ExecuteCommand(e->value.get(), c, selobjects.last->value.get(), ORDERASSIGNMODE_FORGET_EVERYTHING_ELSE);
+							e = e->next;
+						}
+					}
+				);
 			}
 			break;
 		case CMD_CREATE_MAPPED_TYPE_OBJECT:
-			{int t = ListDlgBox(&strTypeTag, "Select a type tag.");
-			if(t != -1)
-			{
-				for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-				if(e->value->objdef->mappedType[t])
-				{
-					GameObject *o = CreateObject(e->value->objdef->mappedType[t], e->value->parent);
-					o->position = e->value->position;
-					GOPosChanged(o);
+		{
+			OpenListDlgBox(&strTypeTag, "Select a type tag.", 0, 
+				[]() {
+					if(nlstdlgsel != -1)
+					{
+						for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+						if(e->value.valid())
+						if(e->value->objdef->mappedType[nlstdlgsel])
+						{
+							GameObject *o = CreateObject(e->value->objdef->mappedType[nlstdlgsel], e->value->parent);
+							o->position = e->value->position;
+							GOPosChanged(o);
+						}
+					}
 				}
-			}
-			break;}
-		case CMD_STAMPDOWN_OBJECT:
-			{GameObject *p = 0;
-			for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-				if(e->value.valid())
-					{p = e->value.get(); break;}
-			if(p)
-			{
-				CObjectDefinition *od;
-				if(od = AskObjDef("What do you want to stampdown (create + send the 'On Stampdown' event)?"))
-				{
-					GameObject *o = CreateObject(od, p->player ? p->player : levelobj);
-					o->position = p->position;
-					GOPosChanged(o);
-					SequenceEnv ctx;
-					SendGameEvent(&ctx, o, PDEVENT_ON_STAMPDOWN);
-				}
-			}
-			break;}
+			);
+			break;
+		}
 		case CMD_START_LEVEL:
 			if (isLevelStarted)
 				if (MessageBox(hWindow, "The level has already been started! (It is a SAV file.)\nStarting the level again can cause weird behavior (especially an infinite loop)!\nDo you really want to start again?", appName, 48 | MB_YESNO) != IDYES)
@@ -1095,18 +957,18 @@ void CallCommand(int cmd)
 				delete [] e->value.ola;
 			repPeriodSeq.clear();
 			break;
-		case CMD_ENABLE_GTW:
-			{int x = ListDlgBox(&strGameTextWindow, "Display this game text window:");
-			if(x != -1)
-				EnableGTW(&(gsgametextwin[x]));
-			break;}
 		case CMD_SEND_EVENT:
-			{int x = ListDlgBox(&strGameEvent, "Which event do you want to send to the selected objects?");
-			if(x != -1)
-				for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
-					if(e->value.valid())
-						SendGameEvent(0, e->value.get(), x);
-			break;}
+		{
+			OpenListDlgBox(&strGameEvent, "Which event do you want to send to the selected objects?", 0,
+				[]() {
+					if(nlstdlgsel != -1)
+						for(DynListEntry<goref> *e = selobjects.first; e; e = e->next)
+							if(e->value.valid())
+								SendGameEvent(0, e->value.get(), nlstdlgsel);
+				}
+			);
+			break;
+		}
 		case CMD_TOGGLE_TIMEOBJINFO:
 			showTimeObjInfo = !showTimeObjInfo; break;
 		case CMD_SWSELOBJ:
@@ -1353,55 +1215,6 @@ void ChangeTileTexture(MapTile *tile, MapTexture *newtex)
 	tile->pl[oldtex->tfid].move(tile->ple, &(tile->pl[newtex->tfid]));
 }
 
-void DoXFlip(MapTile *t)
-{
-	if(t->rot & 1) t->zflip ^= 1;
-	else t->xflip ^= 1;
-}
-
-void DoZFlip(MapTile *t)
-{
-	if(t->rot & 1) t->xflip ^= 1;
-	else t->zflip ^= 1;
-}
-
-void FindAutotileC(int tx, int tz, bool we, bool star, MapTextureGroup *ag) // we=0:NORTH-SOUTH, we=1:WEST-EAST
-{
-	if(we) {if((tx <= 0) || (tx >= mapwidth -1)) return;}
-	else   {if((tz <= 0) || (tz >= mapheight-1)) return;}
-	MapTile *mto = &(maptiles[tz*mapwidth+tx]);
-	if(mto->mt->grp == ag) return;
-	MapTile *mtn = &(maptiles[we ? (tz*mapwidth+tx-1) : ((tz-1)*mapwidth+tx)]);
-	MapTile *mts = &(maptiles[we ? (tz*mapwidth+tx+1) : ((tz+1)*mapwidth+tx)]);
-	MapTile *oriref = star ? mts : mtn;
-	GrowList<MapTextureEdge> *gl0 = &mtn->mt->atdir[we ? MAPTEXDIR_EAST : MAPTEXDIR_SOUTH];
-	GrowList<MapTextureEdge> *gl1 = &mts->mt->atdir[we ? MAPTEXDIR_WEST : MAPTEXDIR_NORTH];
-	GrowList<MapTextureEdge*> reslist;
-	for(int i = 0; i < gl0->len; i++)
-	{
-		MapTextureEdge *e0 = gl0->getpnt(i);
-		for(int j = 0; j < gl1->len; j++)
-		{
-			MapTextureEdge *e1 = gl1->getpnt(j);
-			if(!memcmp(e0, e1, sizeof(MapTextureEdge)))
-				reslist.add(e0);
-		}
-	}
-	if(reslist.len)
-	{
-		MapTextureEdge *e = reslist[rand() % reslist.len];
-		ChangeTileTexture(mto, e->tex);
-
-		MapTile oc = *oriref;
-		mto->xflip = e->xflip;
-		mto->zflip = e->zflip;
-		mto->rot = e->rot;
-		if(oc.rot >= 2) {oc.rot -= 2; oc.xflip = !oc.xflip; oc.zflip = !oc.zflip;}
-		if(oc.zflip) DoZFlip(mto);
-		mto->rot = (mto->rot + oc.rot) & 3;
-	}
-}
-
 GrowList<MapTextureEdge> *GetMatchingTilesList(int tx, int tz, int edge)
 {
 	//if (tx < 0 || tx >= mapwidth || tz < 0 || tz >= mapheight)
@@ -1433,39 +1246,6 @@ GrowList<MapTextureEdge> *GetMatchingTilesList(int tx, int tz, int edge)
 		}
 	}
 	return mtlist;
-}
-
-void FindAutotileWE(int tx, int tz)
-{
-	GrowList<MapTextureEdge> *m, *n, *r;
-	m = GetMatchingTilesList(tx - 1, tz, MAPTEXDIR_EAST);
-	n = GetMatchingTilesList(tx + 1, tz, MAPTEXDIR_WEST);
-	r = new GrowList<MapTextureEdge>;
-	for (int i = 0; i < m->len; i++)
-	{
-		MapTextureEdge *a = m->getpnt(i);
-		for (int j = 0; j < n->len; j++)
-		{
-			MapTextureEdge *b = n->getpnt(j);
-			if (!memcmp(a, b, sizeof(MapTextureEdge)))
-			{
-				MapTextureEdge *c = r->addp();
-				*c = *a;
-			}
-		}
-	}
-	delete m, n;
-	if (r->len > 0)
-	{
-		int c = rand() % r->len;
-		MapTextureEdge *e = r->getpnt(c);
-		MapTile *tile = &(maptiles[tz * mapwidth + tx]);
-		ChangeTileTexture(tile, e->tex);
-		tile->rot = e->rot;
-		tile->xflip = e->xflip;
-		tile->zflip = e->zflip;
-	}
-	delete r;
 }
 
 void FindAutotileF(int tx, int tz, bool edge_n, bool edge_e, bool edge_s, bool edge_w, MapTextureGroup *grp = 0)
@@ -2045,7 +1825,7 @@ void UpdateCommandButtons()
 
 	int x = 0;
 	for(int i = 0; i < l.len; i++)
-	if(l[i]->buttonEnabled.valid())
+	if(l[i]->buttonEnabled)
 	{
 		GEPicButton *b = l[i]->gButton;
 		b->enabled = 1;
@@ -3292,11 +3072,10 @@ void IGMainMenuBar()
 	}
 	if(ImGui::BeginMenu("Object"))
 	{
-		if(ImGui::MenuItem("Create object...", "F7")) CallCommand(CMD_SWOBJCREA); //CallCommand(CMD_CREATEOBJ);
+		if(ImGui::MenuItem("Create object...", "F7")) CallCommand(CMD_SWOBJCREA);
 		if(ImGui::MenuItem("Duplicate selection", "N")) CallCommand(CMD_DUPLICATESELOBJECT);
 		if(ImGui::MenuItem("Give selection to...", "Home")) CallCommand(CMD_GIVESELOBJECT);
 		if(ImGui::MenuItem("Delete selection", "Del")) CallCommand(CMD_DELETESELOBJECT);
-		//if(ImGui::MenuItem("Delete last created object")) CallCommand(CMD_DELETELASTCREATEDOBJ);
 		if(ImGui::MenuItem("Scale selection by 1.5", "*")) CallCommand(CMD_SELOBJSCALEBIGGER);
 		if(ImGui::MenuItem("Scale selection by 1/1.5", "/")) CallCommand(CMD_SELOBJSCALESMALLER);
 		if(ImGui::MenuItem("Rotate selection by 90 deg", "R")) CallCommand(CMD_ROTATEOBJQP);
@@ -3305,8 +3084,6 @@ void IGMainMenuBar()
 		if (ImGui::MenuItem("Enable aligned movement", "Tab", objmovalign)) CallCommand(CMD_CHANGE_OBJMOVALIGN);
 		if (ImGui::MenuItem("Reset objects' heights", "F2")) CallCommand(CMD_RESETOBJPOS);
 		if (ImGui::MenuItem("Randomize subtypes", "F11")) CallCommand(CMD_RANDOMSUBTYPE);
-		//if(ImGui::MenuItem("Rename player object...")) CallCommand(CMD_CHANGE_PLAYER_NAME);
-		//if(ImGui::MenuItem("Change player color...")) CallCommand(CMD_CHANGE_PLAYER_COLOR);
 		ImGui::Separator();
 		if (ImGui::BeginMenu("Batch operations"))
 		{
@@ -3334,9 +3111,6 @@ void IGMainMenuBar()
 			if (ImGui::MenuItem("Send event...", "J")) CallCommand(CMD_SEND_EVENT);
 			if (ImGui::MenuItem("Cancel all objects' orders")) CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);
 			if (ImGui::MenuItem("Remove battles delayed sequences")) CallCommand(CMD_REMOVE_BATTLES_DELAYED_SEQS);
-			//if (ImGui::MenuItem("Quick stampdown...")) CallCommand(CMD_STAMPDOWN_OBJECT);
-			//if (ImGui::MenuItem("Open game text window...")) CallCommand(CMD_ENABLE_GTW);
-			//if (ImGui::MenuItem("Enable gameplay shortcuts")) CallCommand(CMD_TOGGLEEXPERIMENTALKEYS);
 			ImGui::EndMenu();
 		}
 		ImGui::EndMenu();
@@ -3345,7 +3119,6 @@ void IGMainMenuBar()
 	{
 		if (ImGui::BeginMenu("Move camera to..."))
 		{
-			//if (ImGui::MenuItem("Move to...")) CallCommand(CMD_CAMPOS);
 			if (ImGui::MenuItem("Down-left corner", "1")) CallCommand(CMD_CAMDOWNLEFT);
 			if (ImGui::MenuItem("Down-right corner", "2")) CallCommand(CMD_CAMDOWNRIGHT);
 			if (ImGui::MenuItem("Up-left corner", "3")) CallCommand(CMD_CAMUPLEFT);
@@ -3391,7 +3164,6 @@ void Test7()
 	LoadBCP("data.bcp"); ReadLanguageFile(); InitWindow(); InitScene(); InitFont(); InitCursor();
 	ImGuiImpl_Init();
 	memset(gameobj, 0, MAX_GAMEOBJECTS * sizeof(GameObject*));
-	//ddev->SetDialogBoxMode(TRUE);
 
 	AutodetectGameSetVersion();
 
@@ -3411,10 +3183,6 @@ void Test7()
 	gsl->add("<New empty level>");
 	ListFiles("Save_Games", gsl);
 
-/*
-	int lx = ListDlgBox(gsl, "Select a saved game you want to load. The list begins with files from data.bcp and ends with your personal saved games in the \"saved\" directory.");
-	if(lx == -1) return;
-*/
 	int lx = 0;
 	bool levselected = 0;
 	char gaben[64] = {0};
@@ -3476,12 +3244,7 @@ void Test7()
 	actualpage = editInterface;
 	editInterface->buttonClick = T7ClickWindow;
 	editInterface->buttonRightClick = T7RightClick;
-/*
-	GEMenuBar *menubar = new GEMenuBar(menubarstr, menucmds, 5, editInterface);
-	editInterface->add(menubar);
-	menubar->setRect(0, 0, 32767, 20);
-	menubar->bgColor = 0xC0000080;
-*/
+
 	InitGTWs(); // :S
 	CreateCommandButtons();
 
@@ -3825,71 +3588,13 @@ void Test7()
 				break;
 		}
 
-	if(experimentalKeys)
-	{
 		if(keypressed['P']) CallCommand(CMD_PAUSE);
 		if(keypressed[VK_ADD]) CallCommand(CMD_GAME_SPEED_FASTER);
 		if(keypressed[VK_SUBTRACT]) CallCommand(CMD_GAME_SPEED_SLOWER);
 
-#ifndef WKBRE_RELEASE
-		if(keypressed['W'])
-		{
-			//GameObject *a = FindObjID(3102);
-			//if(a) printf("Got %i\n", a->id);
-/*
-			int t = FindObjDef(CLASS_MARKER, "Standard");
-			for(int i = 0; i < 16384; i++)
-				CreateObject(&objdef[t], levelobj);
-*/
-/*
-			printf("%i material textures:\n", strMaterials.len);
-			for(int i = 0; i < strMaterials.len; i++)
-				printf(" - %s\n", strMaterials.getdp(i));
-*/
-/*
-			printf("%i unique models:\n", alModelFn.len);
-			for(int i = 0; i < alModelFn.len; i++)
-				printf(" - %s\n", alModelFn.getdp(i));
-*/
-/*
-			if(selobjects.len)
-			if(selobjects.first->value.valid())
-			{
-				GameObject *o = selobjects.first->value.get();
-				printf("animtag = %i, animlooping = %i\n", o->animtag, o->animlooping);
-			}
-*/
-			swTest = !swTest;
-		}
-#endif
 		if(keypressed['A']) CallCommand(CMD_EXECUTE_COMMAND);
 		if(keypressed['Y']) CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);
 		if(keypressed['X']) CallCommand(CMD_RUNACTSEQ);
-		//if(keypressed['C']) CallCommand(CMD_CREATE_MAPPED_TYPE_OBJECT);
-		//if(keypressed['V']) CallCommand(CMD_STAMPDOWN_OBJECT);
-		//if(keypressed['Q']) CallCommand(CMD_CANCEL_ALL_OBJS_ORDERS);
-#if 0
-		if(keypressed['B'])
-		{
-			keypressed['B'] = 0;
-			if(selobjects.len) if(selobjects.first->value.valid())
-			{
-				GameObject *o = selobjects.first->value.get();
-				//printf("%i objects on same tile:\n", o->itile->objs.len);
-				//for(DynListEntry<goref> *e = o->itile->objs.first; e; e = e->next)
-				//	printf(" - %i\n", e->value.getID());
-			/*	GrowList<goref> onm;
-				ListObjsInTiles(o->position.x/5-1, o->position.z/5-1, 3, 3, &onm);
-				printf("%i objects near it:\n", onm.len);
-				for(int i = 0; i < onm.len; i++)
-					printf(" - %i\n", onm.getpnt(i)->getID());
-			*/
-				printf("%i referencers:\n", o->referencers.len);
-				for(DynListEntry<GameObject*> *e = o->referencers.first; e; e = e->next)
-					printf(" - %i\n", e->value->id);
-			}
-		}
-#endif
 		if(keypressed['S'])
 		{
 			if (keypressed[VK_CONTROL])
@@ -3897,28 +3602,13 @@ void Test7()
 			else
 				GiveNotification("Press CTRL+S to start the level.");
 		}
-#if 0
-		if(keypressed['N'])
-		{
-			keypressed['N'] = 0;
-			printf("--- Unknown actions ---\n");
-			for(int i = 0; i < strUnknownAction.len; i++)
-				printf("%s\n", strUnknownAction.getdp(i));
-			printf("--- Unknown object finders ---\n");
-			for(int i = 0; i < strUnknownFinder.len; i++)
-				printf("%s\n", strUnknownFinder.getdp(i));
-			printf("--- Unknown position determinators ---\n");
-			for(int i = 0; i < strUnknownPosition.len; i++)
-				printf("%s\n", strUnknownPosition.getdp(i));
-			printf("--- Unknown value determinators ---\n");
-			for(int i = 0; i < strUnknownValue.len; i++)
-				printf("%s\n", strUnknownValue.getdp(i));
-		}
-#endif
-		//if(keypressed['H']) CallCommand(CMD_ENABLE_GTW);
 		if(keypressed['F']) CallCommand(CMD_CONTROL_CLIENT);
 		if(keypressed['J']) CallCommand(CMD_SEND_EVENT);
-	}
+
+#ifndef WKBRE_RELEASE
+		if (keypressed['W'])
+			swTest = !swTest;
+#endif
 	}
 }
 

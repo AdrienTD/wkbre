@@ -82,10 +82,10 @@ struct GEPicButton : public GEButton
 	{
 		int mouseHover = IsPointInRect(dx, dy, width, height, mouseX, mouseY);
 		texture t = mouseHover?(mouseClick?texPressed:texHover):texNormal;
-		if(!t.valid())
+		if(!t)
 		{
-			if(!texPressed.valid()) t = texHover;
-			if(!texHover.valid()) t = texNormal;
+			if(!texPressed) t = texHover;
+			if(!texHover) t = texNormal;
 		}
 		SetTexture(0, t);
 		DrawRect(dx, dy, width, height, -1);
