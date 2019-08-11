@@ -18,21 +18,19 @@
 
 #define determinant33(a, b, c, d, e, f, g, h, i) ((a)*(e)*(i) + (b)*(f)*(g) + (c)*(d)*(h) - (g)*(e)*(c) - (h)*(f)*(a) - (i)*(d)*(b))
 
-#ifndef VECMAT_D3DX
-
-void Vec3Cross(Vector3 *r, Vector3 *a, Vector3 *b)
+void Vec3Cross(Vector3 *r, const Vector3 *a, const Vector3 *b)
 {
 	r->x = a->y * b->z - a->z * b->y;
 	r->y = a->z * b->x - a->x * b->z;
 	r->z = a->x * b->y - a->y * b->x;
 }
 
-float Vec3Dot(Vector3 *a, Vector3 *b)
+float Vec3Dot(const Vector3 *a, const Vector3 *b)
 {
 	return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-void NormalizeVector3(Vector3 *o, Vector3 *i)
+void NormalizeVector3(Vector3 *o, const Vector3 *i)
 {
 	float l = sqrt(i->x*i->x + i->y*i->y + i->z*i->z);
 	o->x = i->x / l;
@@ -92,7 +90,7 @@ void CreateRotationZMatrix(Matrix *m, float a)
 	m->m[1][0] = -m->m[0][1];
 }
 
-void MultiplyMatrices(Matrix *m, Matrix *a, Matrix *b)
+void MultiplyMatrices(Matrix *m, const Matrix *a, const Matrix *b)
 {
 	for(int i = 0; i < 4; i++)
 	for(int j = 0; j < 4; j++)
@@ -102,14 +100,14 @@ void MultiplyMatrices(Matrix *m, Matrix *a, Matrix *b)
 	}
 }
 
-void TransposeMatrix(Matrix *m, Matrix *a)
+void TransposeMatrix(Matrix *m, const Matrix *a)
 {
 	for(int i = 0; i < 4; i++)
 	for(int j = 0; j < 4; j++)
 		m->m[i][j] = a->m[j][i];
 }
 
-void TransformVector3(Vector3 *v, Vector3 *a, Matrix *m)
+void TransformVector3(Vector3 *v, const Vector3 *a, const Matrix *m)
 {
 	v->x = a->x * m->m[0][0] + a->y * m->m[1][0]
 		 + a->z * m->m[2][0] + m->m[3][0];
@@ -119,7 +117,7 @@ void TransformVector3(Vector3 *v, Vector3 *a, Matrix *m)
 		 + a->z * m->m[2][2] + m->m[3][2];
 }
 
-/*void TransformVector3to4(D3DXVECTOR4 *v, Vector3 *a, Matrix *m)
+/*void TransformVector3to4(D3DXVECTOR4 *v, const Vector3 *a, const Matrix *m)
 {
 	v->x = a->x * m->m[0][0] + a->y * m->m[1][0]
 		 + a->z * m->m[2][0] + m->m[3][0];
@@ -131,7 +129,7 @@ void TransformVector3(Vector3 *v, Vector3 *a, Matrix *m)
 		 + a->z * m->m[2][3] + m->m[3][3];
 }*/
 
-void TransformNormal3(Vector3 *v, Vector3 *a, Matrix *m)
+void TransformNormal3(Vector3 *v, const Vector3 *a, const Matrix *m)
 {
 	v->x = a->x * m->m[0][0] + a->y * m->m[1][0]
 		 + a->z * m->m[2][0];
@@ -153,7 +151,7 @@ void CreatePerspectiveMatrix(Matrix *m, float fovy, float aspect, float zn, floa
 	m->m[3][2] = -zn*zf / (zf-zn);
 }
 
-void CreateLookAtLHViewMatrix(Matrix *m, Vector3 *eye, Vector3 *at, Vector3 *up)
+void CreateLookAtLHViewMatrix(Matrix *m, const Vector3 *eye, const Vector3 *at, const Vector3 *up)
 {
 	Vector3 ax, ay, az, t;
 	NormalizeVector3(&az, &(*at - *eye));
@@ -182,43 +180,41 @@ void CreateRotationYXZMatrix(Matrix *m, float y, float x, float z)
 	MultiplyMatrices(m, &c, &a);
 }
 
-void TransformCoord3(Vector3 *r, Vector3 *v, Matrix *m)
+void TransformCoord3(Vector3 *r, const Vector3 *v, const Matrix *m)
 	{float w = v->x * m->_14 + v->y * m->_24 + v->z * m->_34 + m->_44;
 	r->x = (v->x * m->_11 + v->y * m->_21 + v->z * m->_31 + m->_41) / w;
 	r->y = (v->x * m->_12 + v->y * m->_22 + v->z * m->_32 + m->_42) / w;
 	r->z = (v->x * m->_13 + v->y * m->_23 + v->z * m->_33 + m->_43) / w;}
 
 // for LineIntersectsCircle, see wkbre21
-int LineIntersectsSquareRad(float cx, float cy, float r, float sx, float sy, float dx, float dy)
+bool LineIntersectsSquareRad(float cx, float cy, float r, float sx, float sy, float dx, float dy)
 {
 	//if(dx == 0.0f) dx = 0.0001f;
 	//if(dy == 0.0f) dy = 0.0001f;
-	if(dx == 0.0f) if(abs(sy-cy) < r) return 1;
-	if(dy == 0.0f) if(abs(sx-cx) < r) return 1;
+	if(dx == 0.0f) if(abs(sy-cy) < r) return true;
+	if(dy == 0.0f) if(abs(sx-cx) < r) return true;
 	float p = sy - dy * sx / dx;
 	float t;
 	t = dy * (cx+r) / dx + p;
-	if(abs(t-cy) < r) return 1;
+	if(abs(t-cy) < r) return true;
 	t = dy * (cx-r) / dx + p;
-	if(abs(t-cy) < r) return 1;
+	if(abs(t-cy) < r) return true;
 	t = dx * (cy+r - p) / dy;
-	if(abs(t-cx) < r) return 1;
+	if(abs(t-cx) < r) return true;
 	t = dx * (cy-r - p) / dy;
-	if(abs(t-cx) < r) return 1;
-	return 0;
+	if(abs(t-cx) < r) return true;
+	return false;
 }
-int SphereIntersectsRay(Vector3 *sphpos, float r, Vector3 *raystart, Vector3 *raydir)
+bool SphereIntersectsRay(const Vector3 *sphpos, float r, const Vector3 *raystart, const Vector3 *raydir)
 {
 	if(LineIntersectsSquareRad(sphpos->x, sphpos->z, r, raystart->x, raystart->z, raydir->x, raydir->z))
 	if(LineIntersectsSquareRad(sphpos->x, sphpos->y, r, raystart->x, raystart->y, raydir->x, raydir->y))
 	if(LineIntersectsSquareRad(sphpos->y, sphpos->z, r, raystart->y, raystart->z, raydir->y, raydir->z))
-		return 1;
-	return 0;
+		return true;
+	return false;
 }
 
-#endif
-
-void TransformBackFromViewMatrix(Vector3 *r, Vector3 *o, Matrix *m)
+void TransformBackFromViewMatrix(Vector3 *r, const Vector3 *o, const Matrix *m)
 {
 	Vector3 xa, ya, za;
 	xa.x = m->_11; ya.x = m->_12; za.x = m->_13;
@@ -226,9 +222,9 @@ void TransformBackFromViewMatrix(Vector3 *r, Vector3 *o, Matrix *m)
 	xa.z = m->_31; ya.z = m->_32; za.z = m->_33;
 
 	float ex, ey, ez;
-	ex = /*D3DXVec3Dot(&xa, eye) +*/ o->x;
-	ey = /*D3DXVec3Dot(&ya, eye) +*/ o->y;
-	ez = /*D3DXVec3Dot(&za, eye) +*/ o->z;
+	ex = o->x;
+	ey = o->y;
+	ez = o->z;
 
 	float dt = determinant33(xa.x, xa.y, xa.z, ya.x, ya.y, ya.z, za.x, za.y, za.z);
 	//if(!dt) ferr("That's not possible! The determinant is null!");
@@ -238,7 +234,7 @@ void TransformBackFromViewMatrix(Vector3 *r, Vector3 *o, Matrix *m)
 	r->z = determinant33(xa.x, xa.y, ex, ya.x, ya.y, ey, za.x, za.y, ez) / dt;
 }
 
-void CreateWorldMatrix(Matrix *mWorld, Vector3 is, Vector3 ir, Vector3 it)
+void CreateWorldMatrix(Matrix *mWorld, const Vector3 &is, const Vector3 &ir, const Vector3 &it)
 {
 	Matrix mscale, mrot, mtrans;
 	CreateScaleMatrix(&mscale, is.x, is.y, is.z);
