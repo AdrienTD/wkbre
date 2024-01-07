@@ -15,8 +15,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
-#include <gl/gl.h>
-#include <gl/glu.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
 
 #define glprocvalid(x) ( (((scpuint)(x)) < -1) || (((scpuint)(x)) > 3) )
 #ifndef GL_BGRA_EXT
