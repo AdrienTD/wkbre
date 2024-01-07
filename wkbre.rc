@@ -71,7 +71,7 @@ FONT 8, "Ms Shell Dlg"
 //
 // Icon resources
 //
-IDI_APPICON        ICON           ".\\icon.ico"
+IDI_APPICON        ICON           "./icon.ico"
 
 
 
@@ -111,7 +111,7 @@ IDI_APPICON        ICON           ".\\icon.ico"
     }
 }
 
-grass.tga REDATA redata\grass.tga
-grid.tga REDATA redata\grid.tga
-netexfb.tga REDATA redata\netexfb.tga
-newlevel.lvl REDATA redata\newlevel.lvl
+grass.tga REDATA redata/grass.tga
+grid.tga REDATA redata/grid.tga
+netexfb.tga REDATA redata/netexfb.tga
+newlevel.lvl REDATA redata/newlevel.lvl
