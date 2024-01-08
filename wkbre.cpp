@@ -1897,7 +1897,7 @@ bool IGGSLItemsGetter(void *data, int idx, const char **out)
 	return true;
 }
 
-bool OldColorButton(const char *desc, ImVec4 &col, bool mini = false)
+bool OldColorButton(const char *desc, const ImVec4 &col, bool mini = false)
 {
 	float tlh = ImGui::GetTextLineHeight();
 	return ImGui::ColorButton(desc, col, ImGuiColorEditFlags_NoTooltip, mini ? ImVec2(tlh,tlh) : ImVec2(0,0));
